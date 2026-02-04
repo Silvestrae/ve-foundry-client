@@ -374,6 +374,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const updaterStylesheet = document.getElementById(
     "updater-stylesheet",
   ) as HTMLLinkElement;
+  const appConfigStylesheet = document.getElementById(
+    "client-settings-stylesheet",
+  ) as HTMLLinkElement;
   const themeSelector = document.getElementById(
     "theme-selector",
   ) as HTMLSelectElement;
@@ -612,6 +615,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     "href",
     `styles/UpdaterModal-${selectedTheme}.css`,
   );
+  appConfigStylesheet.setAttribute(
+    "href",
+    `styles/AppConfigurationModal-${selectedTheme}.css`,
+  );
   themeSelector.value = selectedTheme;
 
   themeSelector.addEventListener("change", async () => {
@@ -620,6 +627,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     updaterStylesheet.setAttribute(
       "href",
       `styles/UpdaterModal-${newTheme}.css`,
+    );
+    appConfigStylesheet.setAttribute(
+      "href",
+      `styles/AppConfigurationModal-${newTheme}.css`,
     );
     const themeConfigMenu = document.querySelector(
       ".theme-configuration",
@@ -944,6 +955,9 @@ async function applyShareImport() {
   const updaterStylesheet = document.getElementById(
     "updater-stylesheet",
   ) as HTMLLinkElement;
+  const appConfigStylesheet = document.getElementById(
+    "client-settings-stylesheet",
+  ) as HTMLLinkElement;
   const txt = (document.getElementById("share-input") as HTMLTextAreaElement)
     .value;
   let data: any;
@@ -967,6 +981,10 @@ async function applyShareImport() {
       "href",
       `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
     );
+    appConfigStylesheet.setAttribute(
+      "href",
+      `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+    );
     await createGameList();
     return showNotification("Settings imported");
   }
@@ -985,6 +1003,10 @@ async function applyShareImport() {
       "href",
       `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
     );
+    appConfigStylesheet.setAttribute(
+      "href",
+      `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+    );
     return showNotification("Theme imported");
   }
 
@@ -997,6 +1019,9 @@ async function importFromFile() {
   ) as HTMLLinkElement;
   const updaterStylesheet = document.getElementById(
     "updater-stylesheet",
+  ) as HTMLLinkElement;
+  const appConfigStylesheet = document.getElementById(
+    "client-settings-stylesheet",
   ) as HTMLLinkElement;
   const fileInput = document.getElementById("import-file") as HTMLInputElement;
   fileInput.onchange = async () => {
@@ -1023,6 +1048,10 @@ async function importFromFile() {
         "href",
         `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
       );
+      appConfigStylesheet.setAttribute(
+        "href",
+        `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+      );
       await createGameList();
       return showNotification("Settings imported");
     }
@@ -1040,6 +1069,10 @@ async function importFromFile() {
       updaterStylesheet.setAttribute(
         "href",
         `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
+      );
+      appConfigStylesheet.setAttribute(
+        "href",
+        `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
       );
       return showNotification("Theme imported");
     }
