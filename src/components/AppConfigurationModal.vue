@@ -1,7 +1,11 @@
 <template>
-  <transition name="fade">
-    <div v-if="visible" class="backdrop">
-    <div class="app-configuration" v-if="visible">
+<transition name="backdrop-fade">
+  <div v-if="visible" class="backdrop">
+    <transition name="modal-pop" appear>
+      <!-- Wrapper animé -->
+      <div v-if="visible" class="modal-anim">
+        <!-- Panel réel -->
+        <div class="app-configuration">
       <div class="overflow">
         <!-- Cache Path -->
         <div class="cache-path-field">
@@ -226,9 +230,11 @@
           Cancel
         </el-button>
       </div>
-    </div>
-    </div>
-  </transition>
+        </div>
+      </div>
+    </transition>
+  </div>
+</transition>
 </template>
 
 <script setup lang="ts">

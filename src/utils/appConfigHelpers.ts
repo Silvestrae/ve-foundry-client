@@ -55,7 +55,7 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
       { mode: "alert" },
     );
     const appConfig = await window.api.localAppConfig();
-    applyAppConfig(appConfig);
+    await applyRuntimeAppConfig(appConfig);
     return;
   }
 
@@ -79,112 +79,40 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
   }
 
   await window.api.saveAppConfig(validConfig);
-  applyAppConfig(validConfig);
+  await applyRuntimeAppConfig(validConfig);
   refreshAllServerInfos();
   await setupPingInterval();
 
   showNotification("Changes saved");
 }
 
-/**
- * 🔧 Copie/colle ici ton ancienne fonction applyAppConfig(config: AppConfig)
- * depuis renderer.ts, sans rien changer, puis exporte-la.
- */
-export function applyAppConfig(config: AppConfig) {
-  (document.querySelector("#cache-path") as HTMLInputElement).value = "";
-  (document.querySelector("#insecure-ssl") as HTMLInputElement).checked = false;
-  (
-    document.querySelector("#clear-cache-on-close") as HTMLInputElement
-  ).checked = false;
-  (document.querySelector("#discord-rp") as HTMLInputElement).checked = false;
-  (document.querySelector("#full-screen-toggle") as HTMLInputElement).checked =
-    false;
-  (
-    document.querySelector("#share-session-toggle") as HTMLInputElement
-  ).checked = false;
-  if (config.cachePath) {
-    (document.querySelector("#cache-path") as HTMLInputElement).value =
-      config.cachePath;
+export async function applyRuntimeAppConfig(config: AppConfig) {
+  // Cache path
+  if (typeof config.cachePath === "string") {
     window.api.setCachePath(config.cachePath);
-  }
-  if (config.ignoreCertificateErrors) {
-    (document.querySelector("#insecure-ssl") as HTMLInputElement).checked =
-      config.ignoreCertificateErrors;
-  }
-  if (config.autoCacheClear) {
-    (
-      document.querySelector("#clear-cache-on-close") as HTMLInputElement
-    ).checked = config.autoCacheClear;
-  }
-  if (config.discordRP) {
-    (document.querySelector("#discord-rp") as HTMLInputElement).checked =
-      config.discordRP;
+  } else {
+    window.api.setCachePath("");
   }
 
-  const fsToggle = document.querySelector(
-    "#full-screen-toggle",
-  ) as HTMLInputElement;
-  fsToggle.checked = config.fullScreenEnabled ?? false;
-  window.api.setFullScreen(config.fullScreenEnabled ?? false);
-  const closeButton = document.querySelector(
-    ".tooltip-wrapper.close-app",
-  ) as HTMLElement;
-  window.api.isFullScreen().then((fs) => {
+  // Notification timer
+  const timer = typeof config.notificationTimer === "number" ? config.notificationTimer : 3;
+  setNotificationTimer(timer);
+
+  // Fullscreen
+  const fsEnabled = !!config.fullScreenEnabled;
+  window.api.setFullScreen(fsEnabled);
+
+  const closeButton = document.querySelector(".tooltip-wrapper.close-app") as HTMLElement | null;
+  if (closeButton) {
+    const fs = await window.api.isFullScreen();
     closeButton.style.display = fs ? "block" : "none";
-  });
-
-  if (config.notificationTimer != null) {
-    const inputTimer = document.querySelector(
-      "#notification-timer",
-    ) as HTMLInputElement;
-    inputTimer.valueAsNumber = config.notificationTimer;
   }
 
-  const pingInput = document.querySelector(
-    "#server-infos-ping-rate",
-  ) as HTMLInputElement;
-  pingInput.valueAsNumber = config.serverInfoPingRate;
+  // Server refresh interval
+  await setupPingInterval();
 
-  const shareSessionToggle = document.querySelector(
-    "#share-session-toggle",
-  ) as HTMLInputElement;
-  shareSessionToggle.checked = config.shareSessionWindows ?? false;
-
-  const opts = config.serverInfoOptions!;
-
-  (
-    document.querySelector("#server-status-toggle") as HTMLInputElement
-  ).checked = opts.statusEnabled;
-  (
-    document.querySelector("#foundry-version-toggle") as HTMLInputElement
-  ).checked = opts.foundryVersionEnabled;
-  (document.querySelector("#world-toggle") as HTMLInputElement).checked =
-    opts.worldEnabled;
-  (document.querySelector("#game-system-toggle") as HTMLInputElement).checked =
-    opts.gameSystemEnabled;
-  (document.querySelector("#game-version-toggle") as HTMLInputElement).checked =
-    opts.gameSystemVersionEnabled;
-  (
-    document.querySelector("#online-players-toggle") as HTMLInputElement
-  ).checked = opts.onlinePlayersEnabled;
-
-  // Display serverInfo and refresh button
-  const serverInfoConfig = document.querySelector(
-    ".server-infos-configuration",
-  ) as HTMLElement | null;
-  const serverInfoToggle = document.querySelector(
-    "#server-infos-toggle",
-  ) as HTMLInputElement | null;
-
-  if (serverInfoConfig && serverInfoToggle) {
-    const enabled = config.serverInfoEnabled ?? true;
-
-    // checks button status
-    serverInfoToggle.checked = enabled;
-
-    // show/hide server status block
-    serverInfoConfig.style.display = enabled ? "block" : "none";
-  }
+  // (Si tu veux refresh serveur immédiat quand on charge)
+  // refreshAllServerInfos();
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   setNotificationTimer,
 } from "./utils/notifications";
 import {
-  applyAppConfig,
+  applyRuntimeAppConfig,
   setupPingInterval,
 } from "./utils/appConfigHelpers";
 import {
@@ -960,7 +960,7 @@ async function applyShareImport() {
     const mergedTheme = await mergeThemeData(data.theme);
     await window.api.saveAppConfig(mergedApp);
     await window.api.saveThemeConfig(mergedTheme);
-    applyAppConfig(mergedApp);
+    await applyRuntimeAppConfig(mergedApp);
     applyThemeConfig(mergedTheme);
     themeStylesheet.href = `styles/${mergedTheme.baseTheme}.css`;
     updaterStylesheet.setAttribute(
@@ -1016,7 +1016,7 @@ async function importFromFile() {
       const mergedTheme = await mergeThemeData(data.theme);
       await window.api.saveAppConfig(mergedApp);
       await window.api.saveThemeConfig(mergedTheme);
-      applyAppConfig(mergedApp);
+      await applyRuntimeAppConfig(mergedApp);
       applyThemeConfig(mergedTheme);
       themeStylesheet.href = `styles/${mergedTheme.baseTheme}.css`;
       updaterStylesheet.setAttribute(
@@ -1648,7 +1648,7 @@ async function createGameList() {
 
   config.games.forEach(createGameItem);
 
-  applyAppConfig(appConfig);
+  await applyRuntimeAppConfig(appConfig);
   applyThemeConfig(themeConfig);
 }
 // Load UI

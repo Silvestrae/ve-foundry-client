@@ -8,8 +8,7 @@
 
   <AppConfiguration
     v-model="appConfig"
-    :visible="appConfigVisible"
-    @update:visible="ui.appConfigVisible = $event"
+    v-model:visible="ui.appConfigVisible"
     @cancel="handleCancel"
     @save="handleSave"
     @reset="handleReset"
@@ -34,7 +33,7 @@ import { storeToRefs } from "pinia";
 import UpdaterModal from "./components/UpdaterModal.vue";
 import { useUpdaterStore } from "./stores/updater";
 import { useUiStore } from "./stores/ui";
-import { applyAppConfig, saveAppConfigFromForm } from "./utils/appConfigHelpers";
+import { saveAppConfigFromForm, applyRuntimeAppConfig } from "./utils/appConfigHelpers";
 import AppConfiguration from "./components/AppConfigurationModal.vue";
 
 const updaterStore = useUpdaterStore();
@@ -93,7 +92,9 @@ async function loadAppConfigIntoForm() {
 }
 
 onMounted(async () => {
+  const cfg = await window.api.localAppConfig();
   await loadAppConfigIntoForm();
+  await applyRuntimeAppConfig(cfg);
 });
 
 function checkUpdates() {
