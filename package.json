@@ -39,7 +39,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "dotenv": "^17.2.3",
-    "electron": "^40.1.0",
+    "electron": "41.4.0",
     "electron-builder": "26.7.0",
     "eslint": "^9.39.2",
     "prettier": "^3.8.1",
