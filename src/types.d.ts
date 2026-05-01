@@ -34,6 +34,7 @@ type WindowBounds = {
   y?: number;
   width: number;
   height: number;
+  isMaximized?: boolean;
 };
 
 interface ServerInfoOptions {

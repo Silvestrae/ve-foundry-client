@@ -354,7 +354,11 @@ function getSavedWindowBounds(): WindowBounds {
 
   const width = Math.max(400, Math.round(bounds.width));
   const height = Math.max(300, Math.round(bounds.height));
-  const savedBounds: WindowBounds = { width, height };
+  const savedBounds: WindowBounds = {
+    width,
+    height,
+    isMaximized: bounds.isMaximized,
+  };
   if (typeof bounds.x === "number") savedBounds.x = Math.round(bounds.x);
   if (typeof bounds.y === "number") savedBounds.y = Math.round(bounds.y);
 
@@ -377,21 +381,22 @@ function getSavedWindowBounds(): WindowBounds {
 }
 
 function saveWindowBounds(win: BrowserWindow) {
-  if (
-    win.isDestroyed() ||
-    win.isMinimized() ||
-    win.isMaximized() ||
-    win.isFullScreen()
-  ) {
+  if (win.isDestroyed() || win.isMinimized() || win.isFullScreen()) {
     return;
   }
 
-  const bounds = win.getBounds();
+  const currentAppConfig = getAppConfig();
+  const bounds = win.isMaximized()
+    ? currentAppConfig.windowBounds ?? DEFAULT_WINDOW_BOUNDS
+    : win.getBounds();
   const currentData = getUserData();
   currentData.app = {
     ...currentData.app,
     games: currentData.app?.games ?? [],
-    windowBounds: bounds,
+    windowBounds: {
+      ...bounds,
+      isMaximized: win.isMaximized(),
+    },
   };
   fs.writeFileSync(
     path.join(app.getPath("userData"), "userData.json"),
@@ -409,6 +414,8 @@ function hookWindowBoundsPersistence(win: BrowserWindow) {
 
   win.on("resize", queueSave);
   win.on("move", queueSave);
+  win.on("maximize", queueSave);
+  win.on("unmaximize", queueSave);
   win.on("close", () => {
     if (saveTimeout) clearTimeout(saveTimeout);
     saveWindowBounds(win);
@@ -419,7 +426,8 @@ function hookWindowBoundsPersistence(win: BrowserWindow) {
 
 function createWindow(): BrowserWindow {
   const localSession = getSession();
-  const hasSavedWindowBounds = !!getAppConfig().windowBounds;
+  const savedAppConfig = getAppConfig();
+  const hasSavedWindowBounds = !!savedAppConfig.windowBounds;
   const savedBounds = getSavedWindowBounds();
   let win = new BrowserWindow({
     show: false,
@@ -727,7 +735,11 @@ function createWindow(): BrowserWindow {
   });
 
   win.once("ready-to-show", () => {
-    if (!win.isFullScreen() && !hasSavedWindowBounds) win.maximize();
+    if (!win.isFullScreen()) {
+      if (savedAppConfig.windowBounds?.isMaximized ?? !hasSavedWindowBounds) {
+        win.maximize();
+      }
+    }
     win.show();
   });
   win.on("closed", () => {

@@ -45,6 +45,7 @@ export const WindowBoundsSchema = z.object({
   y: z.number().optional(),
   width: z.number(),
   height: z.number(),
+  isMaximized: z.boolean().optional(),
 });
 export type WindowBounds = z.infer<typeof WindowBoundsSchema>;
 
