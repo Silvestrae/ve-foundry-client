@@ -3,8 +3,8 @@
 require("dotenv").config();
 
 module.exports = {
-  appId: "com.silvestrae.ve-player-client",
-  productName: "VE Player Client",
+  appId: "com.silvestrae.ve-foundry-client",
+  productName: "VE Foundry Client",
 
   directories: {
     output: "dist",

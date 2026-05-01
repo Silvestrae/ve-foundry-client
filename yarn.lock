@@ -5920,9 +5920,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ve-player-client@workspace:.":
+"ve-foundry-client@workspace:.":
   version: 0.0.0-use.local
-  resolution: "ve-player-client@workspace:."
+  resolution: "ve-foundry-client@workspace:."
   dependencies:
     "@eslint/js": "npm:^9.39.2"
     "@types/node": "npm:^25.2.0"
