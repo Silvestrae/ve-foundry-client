@@ -40,6 +40,15 @@ import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
 import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
 
+const isPortableWindows = process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
+
+if (isPortableWindows) {
+  const portableDataPath = path.join(process.env.PORTABLE_EXECUTABLE_DIR!, "data");
+  fs.ensureDirSync(portableDataPath);
+  app.setPath("userData", portableDataPath);
+  app.setPath("sessionData", path.join(portableDataPath, "session"));
+}
+
 const fileTransport = log.transports.file;
 (fileTransport as any).getFile = () =>
   path.join(app.getPath("userData"), "main.log");
@@ -898,7 +907,7 @@ app.whenReady().then(async () => {
 
   // Configure cache/session
   const userData = getUserData();
-  if (userData.cachePath) {
+  if (!isPortableWindows && userData.cachePath) {
     // make sure it’s absolute, e.g. under app.getPath('userData')
     const absoluteCachePath = path.isAbsolute(userData.cachePath)
       ? userData.cachePath

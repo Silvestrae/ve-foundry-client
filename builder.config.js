@@ -25,7 +25,11 @@ module.exports = {
   },
 
   win: {
-    target: [{ target: "nsis", arch: ["x64", "ia32"] }, "zip"],
+    target: [
+      { target: "nsis", arch: ["x64", "ia32"] },
+      { target: "portable", arch: ["x64"] },
+      "zip",
+    ],
     icon: "src/icons/win/icon.ico",
     artifactName: "${productName}_${version}_${os}-${arch}.${ext}",
   },
@@ -35,6 +39,9 @@ module.exports = {
     allowToChangeInstallationDirectory: true,
     include: "build/installer.nsh",
     artifactName: "${productName}_${version}_${os}-${arch}.${ext}",
+  },
+  portable: {
+    artifactName: "${productName}_${version}_portable-${arch}.${ext}",
   },
 
   mac: {
