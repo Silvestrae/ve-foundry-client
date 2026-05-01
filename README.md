@@ -11,15 +11,18 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 
 ## Differences between this, omegarogue's and theripper93's player client
 
-| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | jeidouran |
-| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: |
-| Back to server select button in setup screen |                                ✔️                                |                               ✔️                               |    ✔️     |
-| Back to server select button in login screen |                                ✔️                                |                               ✔️                               |    ✔️     |
-| Back to server select button in game         |                                ❌                                |                               ✔️                               |    ✔️     |
-| Foundry v13 Compatibility                    |                                ❌                                |                               ❌                               |    ✔️     |
-| Discord Rich Presence                        |                                ❌                                |                               ❌                               |    ✔️     |
-| Server status on game buttons                |                                ❌                                |                               ❌                               |    ✔️     |
-| Theme editor                                 |                                ❌                                |                               ❌                               |    ✔️     |
+| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | jeidouran | [Silvestrae](https://github.com/Silvestrae/ve-foundry-client) |
+| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: | :-----------------------------------------------------------: |
+| Back to server select button in setup screen |                               Yes                                |                              Yes                               |    Yes    |                              Yes                              |
+| Back to server select button in login screen |                               Yes                                |                              Yes                               |    Yes    |                              Yes                              |
+| Back to server select button in game         |                                No                                |                              Yes                               |    Yes    |                              Yes                              |
+| Foundry v13 Compatibility                    |                                No                                |                               No                               |    Yes    |                              Yes                              |
+| Discord Rich Presence                        |                                No                                |                               No                               |    Yes    |                              Yes                              |
+| Server status on game buttons                |                                No                                |                               No                               |    Yes    |                              Yes                              |
+| Theme editor                                 |                                No                                |                               No                               |    Yes    |                              Yes                              |
+| Fully portable Windows build                 |                                No                                |                               No                               |    No     |                              Yes                              |
+| Remembers window size and position           |                                No                                |                               No                               |    No     |                              Yes                              |
+| Remembers maximized window state             |                                No                                |                               No                               |    No     |                              Yes                              |
 
 ## Discord Rich Presence
 
