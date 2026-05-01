@@ -3,8 +3,8 @@
 require("dotenv").config();
 
 module.exports = {
-  appId: "com.theripper93.fvtt-player-client",
-  productName: "FVTT Desktop Client",
+  appId: "com.silvestrae.ve-player-client",
+  productName: "VE Player Client",
 
   directories: {
     output: "dist",
