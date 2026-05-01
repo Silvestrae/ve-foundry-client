@@ -9,7 +9,7 @@ A simple and lightweight, Chromium based, desktop client for Foundry VTT.
 
 Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 
-## Differences between this, omegarogue's and theripper93's player client
+## Differences between the player clients
 
 | Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | [jeidouran](https://github.com/JeidoUran/fvtt-player-client) | [Silvestrae](https://github.com/Silvestrae/ve-foundry-client) |
 | -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: | :-----------------------------------------------------------: |
