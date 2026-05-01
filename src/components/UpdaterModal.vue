@@ -37,7 +37,7 @@
         </div>
         <span slot="footer" class="dialog-footer">
           <div class="updater-current-version">
-            FVTT Desktop Client {{ currentVersion }}
+            VE Foundry Client {{ currentVersion }}
             <div class="updater-process-versions">
               Node.js {{ versions.node }}, Chromium {{ versions.chrome }},
               Electron
@@ -99,7 +99,7 @@ function install() {
 
 function openLatest() {
   window.api.openExternal(
-    "https://github.com/JeidoUran/fvtt-player-client/releases/latest",
+    "https://github.com/Silvestrae/ve-foundry-client/releases/latest",
   );
 }
 </script>
