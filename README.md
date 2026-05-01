@@ -11,7 +11,7 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 
 ## Differences between this, omegarogue's and theripper93's player client
 
-| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | jeidouran | [Silvestrae](https://github.com/Silvestrae/ve-foundry-client) |
+| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | [jeidouran](https://github.com/JeidoUran/fvtt-player-client) | [Silvestrae](https://github.com/Silvestrae/ve-foundry-client) |
 | -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: | :-----------------------------------------------------------: |
 | Back to server select button in setup screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Back to server select button in login screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
