@@ -12,6 +12,7 @@ import {
   shell,
   Menu,
   MenuItemConstructorOptions,
+  screen,
 } from "electron";
 import {
   UserDataSchema,
@@ -20,6 +21,7 @@ import {
   UserData,
   AppConfig,
   ThemeConfig,
+  WindowBounds,
   CURRENT_SCHEMA_VERSION,
 } from "./schemas";
 import {
@@ -68,6 +70,11 @@ app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
 
 let mainWindow: BrowserWindow;
 let lastUpdateRequestingWindow: BrowserWindow | null = null;
+
+const DEFAULT_WINDOW_BOUNDS: WindowBounds = {
+  width: 800,
+  height: 600,
+};
 
 type MigrationStatus = "skipped" | "success" | "failure";
 async function migrateUserData(): Promise<MigrationStatus> {
@@ -341,14 +348,82 @@ function getSession(): Electron.Session {
   return session.fromPartition(`persist:${partitionIdTemp}`, { cache: true });
 }
 
+function getSavedWindowBounds(): WindowBounds {
+  const bounds = getAppConfig().windowBounds;
+  if (!bounds) return DEFAULT_WINDOW_BOUNDS;
+
+  const width = Math.max(400, Math.round(bounds.width));
+  const height = Math.max(300, Math.round(bounds.height));
+  const savedBounds: WindowBounds = { width, height };
+  if (typeof bounds.x === "number") savedBounds.x = Math.round(bounds.x);
+  if (typeof bounds.y === "number") savedBounds.y = Math.round(bounds.y);
+
+  const nearestDisplay = screen.getDisplayMatching({
+    x: savedBounds.x ?? 0,
+    y: savedBounds.y ?? 0,
+    width,
+    height,
+  });
+  const { workArea } = nearestDisplay;
+  const isVisible =
+    typeof savedBounds.x !== "number" ||
+    typeof savedBounds.y !== "number" ||
+    (savedBounds.x < workArea.x + workArea.width &&
+      savedBounds.x + width > workArea.x &&
+      savedBounds.y < workArea.y + workArea.height &&
+      savedBounds.y + height > workArea.y);
+
+  return isVisible ? savedBounds : { width, height };
+}
+
+function saveWindowBounds(win: BrowserWindow) {
+  if (
+    win.isDestroyed() ||
+    win.isMinimized() ||
+    win.isMaximized() ||
+    win.isFullScreen()
+  ) {
+    return;
+  }
+
+  const bounds = win.getBounds();
+  const currentData = getUserData();
+  currentData.app = {
+    ...currentData.app,
+    games: currentData.app?.games ?? [],
+    windowBounds: bounds,
+  };
+  fs.writeFileSync(
+    path.join(app.getPath("userData"), "userData.json"),
+    JSON.stringify(currentData, null, 2),
+    "utf-8",
+  );
+}
+
+function hookWindowBoundsPersistence(win: BrowserWindow) {
+  let saveTimeout: NodeJS.Timeout | null = null;
+  const queueSave = () => {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => saveWindowBounds(win), 300);
+  };
+
+  win.on("resize", queueSave);
+  win.on("move", queueSave);
+  win.on("close", () => {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveWindowBounds(win);
+  });
+}
+
 // let win: BrowserWindow;
 
 function createWindow(): BrowserWindow {
   const localSession = getSession();
+  const hasSavedWindowBounds = !!getAppConfig().windowBounds;
+  const savedBounds = getSavedWindowBounds();
   let win = new BrowserWindow({
     show: false,
-    width: 800,
-    height: 600,
+    ...savedBounds,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -359,6 +434,7 @@ function createWindow(): BrowserWindow {
   });
 
   hookFullScreenEvents(win);
+  hookWindowBoundsPersistence(win);
 
   // ── Applies fullscreen according to user config ──
   try {
@@ -651,7 +727,7 @@ function createWindow(): BrowserWindow {
   });
 
   win.once("ready-to-show", () => {
-    if (!win.isFullScreen()) win.maximize();
+    if (!win.isFullScreen() && !hasSavedWindowBounds) win.maximize();
     win.show();
   });
   win.on("closed", () => {
@@ -1113,7 +1189,7 @@ app.on("activate", (_, hasVisibleWindows) => {
 ipcMain.on("set-fullscreen", (event, fullscreen: boolean) => {
   const w = BrowserWindow.fromWebContents(event.sender);
   if (w) w.setFullScreen(fullscreen);
-  if ((fullscreen = true)) w.maximize();
+  if (w && fullscreen) w.maximize();
 });
 
 app.on("window-all-closed", () => {

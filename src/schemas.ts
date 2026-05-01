@@ -40,6 +40,14 @@ export const ServerInfoOptionsSchema = z
   });
 export type ServerInfoOptions = z.infer<typeof ServerInfoOptionsSchema>;
 
+export const WindowBoundsSchema = z.object({
+  x: z.number().optional(),
+  y: z.number().optional(),
+  width: z.number(),
+  height: z.number(),
+});
+export type WindowBounds = z.infer<typeof WindowBoundsSchema>;
+
 // AppConfig
 export const AppConfigSchema = z.object({
   games: z.array(GameConfigSchema),
@@ -54,6 +62,7 @@ export const AppConfigSchema = z.object({
   serverInfoPingRate: z.number().optional().prefault(30),
   fullScreenEnabled: z.boolean().optional().prefault(false),
   shareSessionWindows: z.boolean().optional().prefault(false),
+  windowBounds: WindowBoundsSchema.optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 

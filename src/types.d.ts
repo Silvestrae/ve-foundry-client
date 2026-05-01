@@ -26,6 +26,14 @@ type AppConfig = {
   serverInfoPingRate?: number;
   fullScreenEnabled?: boolean;
   shareSessionWindows?: boolean;
+  windowBounds?: WindowBounds;
+};
+
+type WindowBounds = {
+  x?: number;
+  y?: number;
+  width: number;
+  height: number;
 };
 
 interface ServerInfoOptions {
