@@ -3,6 +3,7 @@
 ![Static Badge](https://img.shields.io/badge/Foundry-v11-lightgreen)
 ![Static Badge](https://img.shields.io/badge/Foundry-v12-lightgreen)
 ![Static Badge](https://img.shields.io/badge/Foundry-v13-lightgreen)
+![Static Badge](https://img.shields.io/badge/Foundry-v14-lightgreen)
 ![Static Badge](https://img.shields.io/badge/License-MIT-yellow)
 
 A simple and lightweight, Chromium based, desktop client for Foundry VTT.
@@ -16,7 +17,7 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 | Back to server select button in setup screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Back to server select button in login screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Back to server select button in game         | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Foundry v13 Compatibility                    | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+| Foundry v13/v14 Compatibility                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Discord Rich Presence                        | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Server status on game buttons                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Theme editor                                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
