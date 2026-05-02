@@ -1,12 +1,9 @@
 // src/utils/appConfigHelpers.ts
 import { AppConfigSchema } from "../schemas";
 import { safePrompt } from "./safePrompt";
-import {
-  showNotification,
-  setNotificationTimer,
-} from "./notifications";
+import { showNotification, setNotificationTimer } from "./notifications";
 import { refreshAllServerInfos } from "./serverInfoHelpers";
-import type { AppConfigurationForm } from "../components/AppConfigurationModal.vue";
+import type { AppConfigurationForm } from "../types/appConfiguration";
 
 let pingIntervalId: number | null = null;
 
@@ -95,14 +92,17 @@ export async function applyRuntimeAppConfig(config: AppConfig) {
   }
 
   // Notification timer
-  const timer = typeof config.notificationTimer === "number" ? config.notificationTimer : 3;
+  const timer =
+    typeof config.notificationTimer === "number" ? config.notificationTimer : 3;
   setNotificationTimer(timer);
 
   // Fullscreen
   const fsEnabled = !!config.fullScreenEnabled;
   window.api.setFullScreen(fsEnabled);
 
-  const closeButton = document.querySelector(".tooltip-wrapper.close-app") as HTMLElement | null;
+  const closeButton = document.querySelector(
+    ".tooltip-wrapper.close-app",
+  ) as HTMLElement | null;
   if (closeButton) {
     const fs = await window.api.isFullScreen();
     closeButton.style.display = fs ? "block" : "none";

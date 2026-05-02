@@ -1,6 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Sorts+Mill+Goudy&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sorts+Mill+Goudy&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 
 :root {
   --color-background: #0e1a23;
@@ -13,8 +13,8 @@
   --color-button-hover: #28283c;
   --color-button-hover-rgba: #28283cf2;
   --switch-label-color: #000;
-  --font-primary: 'Cinzel', serif;
-  --font-secondary: 'Sorts Mill Goudy', serif;
+  --font-primary: "Cinzel", serif;
+  --font-secondary: "Sorts Mill Goudy", serif;
 }
 
 #particles {
@@ -52,7 +52,8 @@
   visibility: visible;
   pointer-events: auto;
 
-  transition: opacity 0.25s ease,
+  transition:
+    opacity 0.25s ease,
     visibility 0s linear 0.25s;
 }
 
@@ -81,7 +82,9 @@
 
 .modal-pop-enter-active,
 .modal-pop-leave-active {
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
   will-change: transform, opacity;
 }
 
@@ -90,7 +93,6 @@
   opacity: 1;
   transform: scale(1);
 }
-
 
 body {
   background: var(--color-background);
@@ -110,7 +112,11 @@ body::after {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 20%, transparent 80%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.03) 20%,
+    transparent 80%
+  );
   animation: rippleLight 12s infinite linear;
   z-index: 0;
   pointer-events: none;
@@ -134,8 +140,9 @@ body::after {
   user-select: none;
   position: absolute;
   color: var(--color-text-primary);
-  font-family: Inter, 'Helvetica Neue', Helvetica, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  font-family:
+    Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   margin: 0;
@@ -149,7 +156,7 @@ body::after {
   overflow-y: auto;
 }
 
-input:not([type=color], [type=checkbox], [type=range]) {
+input:not([type="color"], [type="checkbox"], [type="range"]) {
   background-color: transparent;
   border: none;
   border-bottom: 1px solid var(--color-text-primary);
@@ -171,7 +178,7 @@ label {
   font-weight: 700;
 }
 
-input[type=color] {
+input[type="color"] {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -190,15 +197,15 @@ input[type=color] {
   height: 32px;
 }
 
-input[type=color]::-webkit-color-swatch {
+input[type="color"]::-webkit-color-swatch {
   border: none;
 }
 
-input[type=color]::-moz-color-swatch {
+input[type="color"]::-moz-color-swatch {
   border: none;
 }
 
-input:not([type=color], [type=checkbox], [type=range]):focus {
+input:not([type="color"], [type="checkbox"], [type="range"]):focus {
   border-bottom: 1px solid var(--color-accent);
 }
 
@@ -215,7 +222,9 @@ button:not(.game-button) {
   transition: all 0.3s ease;
 }
 
-button:not(.game-button):not(.configure-game):not(.refresh-game):not(.toggle-password):hover {
+button:not(.game-button):not(.configure-game):not(.refresh-game):not(
+    .reorder-game
+  ):not(.toggle-password):hover {
   background: var(--color-button-hover-rgba);
   box-shadow: 0 0 10px var(--color-accent);
   text-shadow: 0 0 4px var(--color-text-primary);
@@ -294,6 +303,11 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(.toggle-pas
   z-index: 1;
 }
 
+.game-item.dragging {
+  opacity: 0.55;
+  transform: scale(0.98);
+}
+
 .hidden {
   height: 0 !important;
 }
@@ -320,7 +334,9 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(.toggle-pas
   overflow: hidden;
 }
 
-table, th, td {
+table,
+th,
+td {
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 10px;
 }
@@ -361,7 +377,9 @@ table, th, td {
 }*/
 
 .help {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   background: var(--color-background);
   transform: scale(0.98);
   pointer-events: all;
@@ -396,7 +414,9 @@ table, th, td {
   box-shadow: 0 0 5px black;
   transform: scale(0.98);
   flex-direction: column;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   border: 2px solid rgba(255, 255, 255, 0.15);
   padding: 0.5rem;
   background: var(--color-background);
@@ -449,7 +469,6 @@ table, th, td {
   display: block;
 }
 
-
 ::-webkit-scrollbar {
   width: 8px;
   background: transparent;
@@ -474,7 +493,9 @@ table, th, td {
   flex-direction: column;
   box-shadow: 0 0 5px black;
   transform: scale(0.98);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   border: 2px solid rgba(255, 255, 255, 0.15);
   padding: 0.5rem;
   background: var(--color-background);
@@ -482,7 +503,8 @@ table, th, td {
   border-radius: 12px;
 }
 
-.share-output, .share-input {
+.share-output,
+.share-input {
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
@@ -540,7 +562,8 @@ a {
   width: 100%;
 }
 
-.game-title-bar .configure-game {
+.game-title-bar .configure-game,
+.game-title-bar .reorder-game {
   height: 100%;
   width: 100%;
   border: none;
@@ -605,7 +628,12 @@ a {
   left: 0;
   width: 3px;
   height: 100%;
-  background: linear-gradient(to bottom, transparent, var(--color-accent), transparent);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-accent),
+    transparent
+  );
   transform: scaleY(0);
   transform-origin: center center;
   transition: transform 0.3s ease;
@@ -627,7 +655,8 @@ a {
   transform: scale(1.25);
 }
 
-.game-title-bar .config-main-button:hover .refresh-game {
+.game-title-bar .config-main-button:hover .refresh-game,
+.game-title-bar .config-main-button:hover .reorder-game {
   transform: scale(1.25);
 }
 
@@ -815,8 +844,15 @@ textarea {
   left: 50%;
   width: 0;
   height: 4px;
-  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
-  transition: width 0.3s ease, left 0.3s ease;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent),
+    transparent
+  );
+  transition:
+    width 0.3s ease,
+    left 0.3s ease;
 }
 
 .game-main-button::after {
@@ -826,8 +862,15 @@ textarea {
   left: 50%;
   width: 0;
   height: 4px;
-  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
-  transition: width 0.3s ease, left 0.3s ease;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent),
+    transparent
+  );
+  transition:
+    width 0.3s ease,
+    left 0.3s ease;
 }
 
 .game-main-button:hover::before,
@@ -859,7 +902,7 @@ textarea {
   color: white;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 1.10rem;
+  font-size: 1.1rem;
   white-space: nowrap;
   pointer-events: none;
   z-index: 9999;
@@ -927,7 +970,8 @@ textarea {
   width: 1.5em;
 }
 
-.configure-game i {
+.configure-game i,
+.reorder-game i {
   transition: all 0.3s ease-in-out;
 }
 
@@ -935,8 +979,8 @@ textarea {
   transition: all 0.3s ease-in-out;
 }
 
-
-.config-button-wrapper:hover .configure-game i {
+.config-button-wrapper:hover .configure-game i,
+.config-button-wrapper:hover .reorder-game i {
   text-shadow: 0 0 4px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
@@ -1118,8 +1162,8 @@ input[type="range"]:focus::-webkit-slider-thumb {
   right: 0;
   bottom: 0;
   background-color: #222;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
   border: solid 2px var(--color-accent);
 }
 
@@ -1131,20 +1175,20 @@ input[type="range"]:focus::-webkit-slider-thumb {
   left: 2px;
   bottom: 1px;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
   border: solid 1px rgb(59, 59, 59);
 }
 
-input:checked+.slider {
+input:checked + .slider {
   background-color: var(--color-accent);
 }
 
-input:focus+.slider {
+input:focus + .slider {
   box-shadow: 0 0 1px var(--color-accent);
 }
 
-input:checked+.slider:before {
+input:checked + .slider:before {
   -webkit-transform: translateX(23px);
   -ms-transform: translateX(23px);
   transform: translateX(23px);
@@ -1183,8 +1227,8 @@ input:checked+.slider:before {
   right: 0;
   bottom: 0;
   background-color: #222;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
   border: solid 2px var(--color-accent);
 }
 
@@ -1196,12 +1240,12 @@ input:checked+.slider:before {
   left: 2px;
   bottom: 1px;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
   border: solid 1px rgb(59, 59, 59);
 }
 
-.switch-wrapper-grid input:checked+.slider:before {
+.switch-wrapper-grid input:checked + .slider:before {
   -webkit-transform: translateX(19px);
   -ms-transform: translateX(19px);
   transform: translateX(19px);
@@ -1232,20 +1276,20 @@ input:checked+.slider:before {
 }
 
 /* ON */
-.switch input:checked+.slider .switch-label.on {
+.switch input:checked + .slider .switch-label.on {
   display: block;
 }
 
-.switch input:checked+.slider .switch-label.off {
+.switch input:checked + .slider .switch-label.off {
   display: none;
 }
 
 /* OFF */
-.switch input:not(:checked)+.slider .switch-label.off {
+.switch input:not(:checked) + .slider .switch-label.off {
   display: block;
 }
 
-.switch input:not(:checked)+.slider .switch-label.on {
+.switch input:not(:checked) + .slider .switch-label.on {
   display: none;
 }
 

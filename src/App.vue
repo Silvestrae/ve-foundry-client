@@ -33,14 +33,17 @@ import { storeToRefs } from "pinia";
 import UpdaterModal from "./components/UpdaterModal.vue";
 import { useUpdaterStore } from "./stores/updater";
 import { useUiStore } from "./stores/ui";
-import { saveAppConfigFromForm, applyRuntimeAppConfig } from "./utils/appConfigHelpers";
+import {
+  saveAppConfigFromForm,
+  applyRuntimeAppConfig,
+} from "./utils/appConfigHelpers";
 import AppConfiguration from "./components/AppConfigurationModal.vue";
 
 const updaterStore = useUpdaterStore();
 const ui = useUiStore();
 const { appConfigVisible } = storeToRefs(ui);
 
-import type { AppConfigurationForm } from "./components/AppConfigurationModal.vue";
+import type { AppConfigurationForm } from "./types/appConfiguration";
 
 const appConfig = ref<AppConfigurationForm>({
   cachePath: "",
@@ -71,18 +74,12 @@ async function loadAppConfigIntoForm() {
     notificationTimer: cfg.notificationTimer ?? 3,
 
     enableServerStatus: cfg.serverInfoEnabled ?? true,
-    showServerStatusOnline:
-      cfg.serverInfoOptions?.statusEnabled ?? true,
-    showFoundryVersion:
-      cfg.serverInfoOptions?.foundryVersionEnabled ?? true,
-    showWorldName:
-      cfg.serverInfoOptions?.worldEnabled ?? true,
-    showGameSystem:
-      cfg.serverInfoOptions?.gameSystemEnabled ?? true,
-    showGameVersion:
-      cfg.serverInfoOptions?.gameSystemVersionEnabled ?? true,
-    showOnlinePlayers:
-      cfg.serverInfoOptions?.onlinePlayersEnabled ?? true,
+    showServerStatusOnline: cfg.serverInfoOptions?.statusEnabled ?? true,
+    showFoundryVersion: cfg.serverInfoOptions?.foundryVersionEnabled ?? true,
+    showWorldName: cfg.serverInfoOptions?.worldEnabled ?? true,
+    showGameSystem: cfg.serverInfoOptions?.gameSystemEnabled ?? true,
+    showGameVersion: cfg.serverInfoOptions?.gameSystemVersionEnabled ?? true,
+    showOnlinePlayers: cfg.serverInfoOptions?.onlinePlayersEnabled ?? true,
 
     serverInfosPingRate: cfg.serverInfoPingRate ?? 30,
     forceFullScreen: cfg.fullScreenEnabled ?? false,
@@ -103,8 +100,8 @@ function checkUpdates() {
 
 // Cancel
 async function handleCancel() {
-    await loadAppConfigIntoForm();
-    showNotification("Changes canceled");
+  await loadAppConfigIntoForm();
+  showNotification("Changes canceled");
 }
 
 // Clear Cache
@@ -129,10 +126,8 @@ async function handleOpenUserData() {
 
 // Save Settings
 async function handleSave(form: AppConfigurationForm) {
-
   ui.appConfigVisible = false;
   await saveAppConfigFromForm(form);
-  
 }
 
 // Reset Settings
@@ -185,7 +180,6 @@ async function handleReset() {
 
   showNotification("Client settings reset");
 }
-
 </script>
 
 <style>

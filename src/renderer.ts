@@ -1,10 +1,6 @@
 // noinspection JSIgnoredPromiseFromCall
 import * as particles from "./utils/particles";
-import {
-  ThemeConfigSchema,
-  ParticleOptions,
-  GameConfig,
-} from "./schemas";
+import { ThemeConfigSchema, ParticleOptions, GameConfig } from "./schemas";
 import { mergeAppData, mergeThemeData } from "./utils/mergeData";
 import {
   showNotification,
@@ -46,6 +42,7 @@ let appVersion: string;
 let preventMenuClose = false;
 let lastParticleOptions: ParticleOptions | null = null;
 let games: GameConfig[] = [];
+let draggedGameItem: HTMLElement | null = null;
 const seenOffline = new Map<string, boolean>();
 
 function toCssUrl(url: string) {
@@ -175,6 +172,7 @@ function extractFamilyName(url: string): string {
 async function updateGameList(task: (appConfig: AppConfig) => void) {
   const appConfig = await window.api.localAppConfig();
   task(appConfig);
+  games = appConfig.games ?? [];
   window.api.saveAppConfig(appConfig);
 }
 
@@ -226,6 +224,85 @@ const gameItemList = document.querySelector("#game-list");
 const gameItemTemplate = document
   .querySelector("template")
   .content.querySelector("li");
+
+function getGameKey(game: GameConfig): string {
+  return String(game.id ?? game.name);
+}
+
+function getDragAfterElement(y: number): HTMLElement | null {
+  const items = Array.from(
+    gameItemList.querySelectorAll<HTMLElement>(".game-item:not(.dragging)"),
+  );
+
+  return items.reduce<{ offset: number; element: HTMLElement | null }>(
+    (closest, item) => {
+      const box = item.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+
+      if (offset < 0 && offset > closest.offset) {
+        return { offset, element: item };
+      }
+
+      return closest;
+    },
+    { offset: Number.NEGATIVE_INFINITY, element: null },
+  ).element;
+}
+
+async function saveGameOrder() {
+  const orderedKeys = Array.from(
+    gameItemList.querySelectorAll<HTMLElement>(".game-item"),
+  ).map((item) => item.dataset.gameId);
+
+  await updateGameList((appConfig) => {
+    const byKey = new Map(
+      (appConfig.games ?? []).map((game) => [getGameKey(game), game]),
+    );
+    const orderedGames = orderedKeys
+      .map((key) => (key ? byKey.get(key) : undefined))
+      .filter((game): game is GameConfig => !!game);
+
+    const orderedKeySet = new Set(orderedKeys);
+    const missingGames = (appConfig.games ?? []).filter(
+      (game) => !orderedKeySet.has(getGameKey(game)),
+    );
+
+    appConfig.games = [...orderedGames, ...missingGames];
+  });
+}
+
+function setupServerReorder(li: HTMLElement) {
+  const handle = li.querySelector<HTMLElement>(".reorder-game");
+  if (!handle) return;
+
+  handle.addEventListener("dragstart", (event) => {
+    draggedGameItem = li;
+    li.classList.add("dragging");
+    event.dataTransfer?.setData("text/plain", li.dataset.gameId ?? "");
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+    }
+  });
+
+  handle.addEventListener("dragend", async () => {
+    li.classList.remove("dragging");
+    draggedGameItem = null;
+    await saveGameOrder();
+    showNotification("Server order saved");
+  });
+}
+
+gameItemList.addEventListener("dragover", (event: DragEvent) => {
+  if (!draggedGameItem) return;
+
+  event.preventDefault();
+  const afterElement = getDragAfterElement(event.clientY);
+  if (afterElement) {
+    gameItemList.insertBefore(draggedGameItem, afterElement);
+  } else {
+    gameItemList.appendChild(draggedGameItem);
+  }
+});
 
 document
   .querySelector("#save-theme-config")
@@ -941,9 +1018,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-document
-  .getElementById("open-config")
-  ?.addEventListener("click", () => {
+  document.getElementById("open-config")?.addEventListener("click", () => {
     ui.toggleAppConfig();
   });
   document
@@ -1248,7 +1323,7 @@ async function createGameItem(game: GameConfig) {
   )) as GameUserDataDecrypted;
 
   li.id = game.cssId;
-  li.setAttribute("data-game-id", String(game.id ?? game.name));
+  li.setAttribute("data-game-id", getGameKey(game));
   (li.querySelector(".user-name") as HTMLInputElement).value = loginData.user;
   (li.querySelector(".user-password") as HTMLInputElement).value =
     loginData.password;
@@ -1257,6 +1332,7 @@ async function createGameItem(game: GameConfig) {
   (li.querySelector(".game-name-edit") as HTMLInputElement).value = game.name;
   (li.querySelector(".game-url-edit") as HTMLInputElement).value = game.url;
   li.querySelector("a").innerText = game.name;
+  setupServerReorder(li);
   void applyCachedServerButtonBackground(li, game);
   li.querySelector(".game-main-button").addEventListener("click", async () => {
     window.api.openGame(game.id ?? game.name, game.name);
@@ -1339,6 +1415,7 @@ async function createGameItem(game: GameConfig) {
     game.url = newGameUrl;
 
     (li.querySelector("a") as HTMLAnchorElement).innerText = newGameName;
+    li.setAttribute("data-game-id", getGameKey(game));
 
     await updateGameList((appConfig) => {
       const gameToUpdate = appConfig.games.find((g) => g.id === game.id);

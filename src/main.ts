@@ -40,10 +40,14 @@ import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
 import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
 
-const isPortableWindows = process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
+const isPortableWindows =
+  process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
 
 if (isPortableWindows) {
-  const portableDataPath = path.join(process.env.PORTABLE_EXECUTABLE_DIR!, "data");
+  const portableDataPath = path.join(
+    process.env.PORTABLE_EXECUTABLE_DIR!,
+    "data",
+  );
   fs.ensureDirSync(portableDataPath);
   app.setPath("userData", portableDataPath);
   app.setPath("sessionData", path.join(portableDataPath, "session"));
@@ -298,6 +302,78 @@ function notifyMainWindow(message: string, winOverride?: BrowserWindow) {
   }
 }
 
+function isAppRendererUrl(url: string): boolean {
+  if (!url) return true;
+  if (!app.isPackaged && MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    return url.startsWith(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+  }
+  return url.startsWith("file:");
+}
+
+function shouldOpenInExternalBrowser(
+  currentUrl: string,
+  targetUrl: string,
+): boolean {
+  let target: URL;
+  try {
+    target = new URL(targetUrl);
+  } catch {
+    return false;
+  }
+
+  if (["mailto:", "tel:"].includes(target.protocol)) {
+    return true;
+  }
+
+  if (!["http:", "https:"].includes(target.protocol)) {
+    return false;
+  }
+
+  if (isAppRendererUrl(currentUrl)) {
+    return false;
+  }
+
+  try {
+    return new URL(currentUrl).origin !== target.origin;
+  } catch {
+    return true;
+  }
+}
+
+function openUrlInDefaultBrowser(url: string) {
+  shell.openExternal(url).catch((err) => {
+    console.error("Failed to open external URL", url, err);
+  });
+}
+
+function hookExternalLinkHandling(win: BrowserWindow) {
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (shouldOpenInExternalBrowser(win.webContents.getURL(), url)) {
+      openUrlInDefaultBrowser(url);
+      return { action: "deny" };
+    }
+
+    return {
+      action: "allow",
+      overrideBrowserWindowOptions: {
+        parent: win,
+        autoHideMenuBar: true,
+      },
+    };
+  });
+
+  win.webContents.on("will-navigate", (event, url) => {
+    if (!shouldOpenInExternalBrowser(win.webContents.getURL(), url)) return;
+
+    event.preventDefault();
+    openUrlInDefaultBrowser(url);
+  });
+
+  win.webContents.on("did-create-window", (childWindow) => {
+    hookExternalLinkHandling(childWindow);
+  });
+}
+
 /**
  * Displays safePrompt in renderer in a given window and retrieve answer
  */
@@ -396,7 +472,7 @@ function saveWindowBounds(win: BrowserWindow) {
 
   const currentAppConfig = getAppConfig();
   const bounds = win.isMaximized()
-    ? currentAppConfig.windowBounds ?? DEFAULT_WINDOW_BOUNDS
+    ? (currentAppConfig.windowBounds ?? DEFAULT_WINDOW_BOUNDS)
     : win.getBounds();
   const currentData = getUserData();
   currentData.app = {
@@ -452,6 +528,7 @@ function createWindow(): BrowserWindow {
 
   hookFullScreenEvents(win);
   hookWindowBoundsPersistence(win);
+  hookExternalLinkHandling(win);
 
   // ── Applies fullscreen according to user config ──
   try {
@@ -537,16 +614,6 @@ function createWindow(): BrowserWindow {
     }
     win.setProgressBar(-1);
   });
-  win.webContents.setWindowOpenHandler(() => {
-    return {
-      action: "allow",
-      overrideBrowserWindowOptions: {
-        parent: win,
-        autoHideMenuBar: true,
-      },
-    };
-  });
-
   win.menuBarVisible = false;
   if (!app.isPackaged && MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -1131,9 +1198,7 @@ ipcMain.handle("local-theme-config", () => {
 }); */
 
 ipcMain.on("open-external", (_event, url: string) => {
-  shell.openExternal(url).catch((err) => {
-    console.error("Failed to open external URL", url, err);
-  });
+  openUrlInDefaultBrowser(url);
 });
 
 ipcMain.handle("cache-path", () => app.getPath("sessionData"));
@@ -1271,9 +1336,7 @@ function getImageExtension(url: string, contentType: string) {
   try {
     const ext = path.extname(new URL(url).pathname).toLowerCase();
     if (
-      [".avif", ".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp"].includes(
-        ext,
-      )
+      [".avif", ".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp"].includes(ext)
     ) {
       return ext === ".jpeg" ? ".jpg" : ext;
     }
