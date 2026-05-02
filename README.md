@@ -13,18 +13,20 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 ## Differences between the player clients
 
 | Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | [jeidouran](https://github.com/JeidoUran/fvtt-player-client) | [Silvestrae](https://github.com/Silvestrae/ve-foundry-client) |
-| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: | :-----------------------------------------------------------: |
+| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :----------------------------------------------------------: | :-----------------------------------------------------------: |
 | Back to server select button in setup screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Back to server select button in login screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Back to server select button in game         | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Foundry v13/v14 Compatibility                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Discord Rich Presence                        | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Server status on game buttons                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Cached server background buttons             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Theme editor                                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+| Cached server background buttons             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Fully portable Windows build                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Remembers window size and position           | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Remembers maximized window state             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+| External links open in default browser       | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+| Reorder server buttons                       | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 
 ## Server Backgrounds
 
