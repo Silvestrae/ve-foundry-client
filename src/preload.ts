@@ -4,6 +4,20 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 
+export type ServerBackgroundOptions = {
+  gameId?: string | number;
+  currentRemoteUrl?: string;
+  currentLocalUrl?: string;
+  force?: boolean;
+};
+
+export type ServerBackgroundData = {
+  remoteUrl: string;
+  localUrl: string;
+  fileName: string;
+  updated: boolean;
+};
+
 // type SendChannels = "toMain" | "open-game" | "save-user-data" | "app-version" | "cache-path" | "clear-cache";
 // type ReceiveChannels = "fromMain" | "save-user-data" | "app-version" | "cache-path";
 // type RequestChannels = "app-version" | "cache-path" | "get-user-data" | "select-path";
@@ -43,7 +57,11 @@ export type ContextBridgeApi = {
   openUserDataFolder: () => Promise<string>;
   showMenu: () => Promise<string>;
   pingServer: (url: string) => Promise<ServerStatusData | null>;
-  serverBackground: (url: string) => Promise<string | null>;
+  serverBackground: (
+    url: string,
+    options?: ServerBackgroundOptions,
+  ) => Promise<ServerBackgroundData | null>;
+  serverBackgroundLocalUrl: (fileName: string) => Promise<string | null>;
   setFullScreen: (fullscreen: boolean) => void;
   /** ask main “are we full-screen right now?” */
   isFullScreen: () => Promise<boolean>;
@@ -158,8 +176,14 @@ const exposedApi: ContextBridgeApi = {
   showMenu: () => ipcRenderer.invoke("show-menu") as Promise<string>,
   pingServer: (url: string) =>
     ipcRenderer.invoke("ping-server", url) as Promise<ServerStatusData | null>,
-  serverBackground: (url: string) =>
-    ipcRenderer.invoke("server-background", url) as Promise<string | null>,
+  serverBackground: (url: string, options?: ServerBackgroundOptions) =>
+    ipcRenderer.invoke("server-background", url, options) as Promise<
+      ServerBackgroundData | null
+    >,
+  serverBackgroundLocalUrl: (fileName: string) =>
+    ipcRenderer.invoke("server-background-local-url", fileName) as Promise<
+      string | null
+    >,
 
   platform: process.platform,
   versions: process.versions,

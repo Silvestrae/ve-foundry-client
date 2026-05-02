@@ -17,6 +17,10 @@ export const GameConfigSchema = z.object({
   url: z.string().optional(),
   id: GameIdSchema.optional(),
   cssId: z.string().optional(),
+  backgroundImageUrl: z.string().optional(),
+  backgroundImageLocalUrl: z.string().optional(),
+  backgroundImageFileName: z.string().optional(),
+  backgroundImageUpdatedAt: z.string().optional(),
 });
 export type GameConfig = z.infer<typeof GameConfigSchema>;
 

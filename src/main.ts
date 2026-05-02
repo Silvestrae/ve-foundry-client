@@ -34,7 +34,7 @@ import {
 } from "./richPresence/richPresenceSocket";
 import path from "path";
 import fs from "fs-extra";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import log from "electron-log";
 import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
@@ -1153,6 +1153,20 @@ ipcMain.on("cache-path", (_, cachePath: string) => {
   );
 });
 
+type ServerBackgroundOptions = {
+  gameId?: GameId;
+  currentRemoteUrl?: string;
+  currentLocalUrl?: string;
+  force?: boolean;
+};
+
+type ServerBackgroundData = {
+  remoteUrl: string;
+  localUrl: string;
+  fileName: string;
+  updated: boolean;
+};
+
 const serverBackgroundCache = new Map<string, string | null>();
 
 function requestText(url: string, timeoutMs = 5000): Promise<string> {
@@ -1185,6 +1199,43 @@ function requestText(url: string, timeoutMs = 5000): Promise<string> {
   });
 }
 
+function requestBuffer(
+  url: string,
+  timeoutMs = 10000,
+): Promise<{ buffer: Buffer; contentType: string }> {
+  return new Promise((resolve, reject) => {
+    const req = net.request(url);
+    const timer = setTimeout(() => {
+      req.abort();
+      reject(new Error("Timeout"));
+    }, timeoutMs);
+
+    const chunks: Buffer[] = [];
+    req.on("response", (response) => {
+      response.on("data", (b) => chunks.push(b));
+      response.on("end", () => {
+        clearTimeout(timer);
+        if (response.statusCode! >= 200 && response.statusCode! < 300) {
+          const header = response.headers["content-type"];
+          const contentType = Array.isArray(header)
+            ? header[0]
+            : (header ?? "");
+          resolve({ buffer: Buffer.concat(chunks), contentType });
+          return;
+        }
+        reject(new Error(`HTTP ${response.statusCode}`));
+      });
+    });
+
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    req.end();
+  });
+}
+
 function extractFoundryBackgroundUrl(html: string, pageUrl: string) {
   const customPropertyMatch = html.match(
     /--background-url\s*:\s*url\(\s*(['"]?)([^'")]+)\1\s*\)/i,
@@ -1202,34 +1253,166 @@ function extractFoundryBackgroundUrl(html: string, pageUrl: string) {
   }
 }
 
-ipcMain.handle("server-background", async (_e, rawUrl: string) => {
-  if (serverBackgroundCache.has(rawUrl)) {
-    return serverBackgroundCache.get(rawUrl);
+function getImageExtension(url: string, contentType: string) {
+  const normalizedContentType = contentType.split(";")[0].trim().toLowerCase();
+  const contentTypeExtensions: Record<string, string> = {
+    "image/avif": ".avif",
+    "image/gif": ".gif",
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/svg+xml": ".svg",
+    "image/webp": ".webp",
+  };
+  if (contentTypeExtensions[normalizedContentType]) {
+    return contentTypeExtensions[normalizedContentType];
   }
 
-  let urls: string[];
   try {
-    urls = Array.from(new Set([rawUrl, new URL("join", rawUrl).toString()]));
+    const ext = path.extname(new URL(url).pathname).toLowerCase();
+    if (
+      [".avif", ".gif", ".jpg", ".jpeg", ".png", ".svg", ".webp"].includes(
+        ext,
+      )
+    ) {
+      return ext === ".jpeg" ? ".jpg" : ext;
+    }
+  } catch {
+    // Fall through to a safe default.
+  }
+
+  return ".webp";
+}
+
+function getLocalPathFromFileUrl(fileUrl?: string) {
+  if (!fileUrl) return null;
+  try {
+    return fileURLToPath(fileUrl);
   } catch {
     return null;
   }
+}
 
-  for (const url of urls) {
-    try {
-      const html = await requestText(url);
-      const backgroundUrl = extractFoundryBackgroundUrl(html, url);
-      if (backgroundUrl) {
-        serverBackgroundCache.set(rawUrl, backgroundUrl);
-        return backgroundUrl;
-      }
-    } catch (err) {
-      console.warn("[Server Background] Failed to inspect", url, err);
-    }
-  }
+function getServerBackgroundFilename(
+  gameId: GameId | undefined,
+  remoteUrl: string,
+) {
+  const source = String(gameId ?? remoteUrl);
+  return source.replace(/[^a-z0-9_-]/gi, "_").slice(0, 80) || "server";
+}
 
-  serverBackgroundCache.set(rawUrl, null);
-  return null;
+async function downloadServerBackground(
+  remoteUrl: string,
+  gameId: GameId | undefined,
+) {
+  const { buffer, contentType } = await requestBuffer(remoteUrl);
+  const backgroundsDir = path.join(
+    app.getPath("userData"),
+    "server-backgrounds",
+  );
+  const filename = `${getServerBackgroundFilename(
+    gameId,
+    remoteUrl,
+  )}${getImageExtension(remoteUrl, contentType)}`;
+  const filePath = path.join(backgroundsDir, filename);
+
+  fs.ensureDirSync(backgroundsDir);
+  fs.writeFileSync(filePath, buffer);
+  return {
+    fileName: filename,
+    localUrl: pathToFileURL(filePath).toString(),
+  };
+}
+
+ipcMain.handle("server-background-local-url", (_e, fileName: string) => {
+  const safeFileName = path.basename(fileName);
+  const filePath = path.join(
+    app.getPath("userData"),
+    "server-backgrounds",
+    safeFileName,
+  );
+  if (!fs.pathExistsSync(filePath)) return null;
+  return pathToFileURL(filePath).toString();
 });
+
+ipcMain.handle(
+  "server-background",
+  async (
+    _e,
+    rawUrl: string,
+    options: ServerBackgroundOptions = {},
+  ): Promise<ServerBackgroundData | null> => {
+    if (serverBackgroundCache.has(rawUrl)) {
+      const cachedRemoteUrl = serverBackgroundCache.get(rawUrl);
+      const cachedLocalPath = getLocalPathFromFileUrl(options.currentLocalUrl);
+      if (
+        cachedRemoteUrl &&
+        cachedRemoteUrl === options.currentRemoteUrl &&
+        options.currentLocalUrl &&
+        cachedLocalPath &&
+        fs.pathExistsSync(cachedLocalPath) &&
+        !options.force
+      ) {
+        return {
+          remoteUrl: cachedRemoteUrl,
+          localUrl: options.currentLocalUrl,
+          fileName: path.basename(cachedLocalPath),
+          updated: false,
+        };
+      }
+    }
+
+    let urls: string[];
+    try {
+      urls = Array.from(new Set([rawUrl, new URL("join", rawUrl).toString()]));
+    } catch {
+      return null;
+    }
+
+    for (const url of urls) {
+      try {
+        const html = await requestText(url);
+        const backgroundUrl = extractFoundryBackgroundUrl(html, url);
+        if (backgroundUrl) {
+          const currentLocalPath = getLocalPathFromFileUrl(
+            options.currentLocalUrl,
+          );
+          if (
+            backgroundUrl === options.currentRemoteUrl &&
+            options.currentLocalUrl &&
+            currentLocalPath &&
+            fs.pathExistsSync(currentLocalPath) &&
+            !options.force
+          ) {
+            serverBackgroundCache.set(rawUrl, backgroundUrl);
+            return {
+              remoteUrl: backgroundUrl,
+              localUrl: options.currentLocalUrl,
+              fileName: path.basename(currentLocalPath),
+              updated: false,
+            };
+          }
+
+          const downloadedBackground = await downloadServerBackground(
+            backgroundUrl,
+            options.gameId,
+          );
+          serverBackgroundCache.set(rawUrl, backgroundUrl);
+          return {
+            remoteUrl: backgroundUrl,
+            localUrl: downloadedBackground.localUrl,
+            fileName: downloadedBackground.fileName,
+            updated: true,
+          };
+        }
+      } catch (err) {
+        console.warn("[Server Background] Failed to inspect", url, err);
+      }
+    }
+
+    serverBackgroundCache.set(rawUrl, null);
+    return null;
+  },
+);
 
 ipcMain.handle("ping-server", (_e, rawUrl: string) => {
   return new Promise<ServerStatusData | null>((resolve, reject) => {

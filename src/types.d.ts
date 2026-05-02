@@ -11,6 +11,10 @@ type GameConfigType = {
   url: string;
   id?: GameId;
   cssId?: string;
+  backgroundImageUrl?: string;
+  backgroundImageLocalUrl?: string;
+  backgroundImageFileName?: string;
+  backgroundImageUpdatedAt?: string;
 };
 
 type AppConfig = {

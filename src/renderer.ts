@@ -47,28 +47,79 @@ let preventMenuClose = false;
 let lastParticleOptions: ParticleOptions | null = null;
 let games: GameConfig[] = [];
 const seenOffline = new Map<string, boolean>();
-const serverBackgrounds = new Map<string, string | null>();
 
 function toCssUrl(url: string) {
   return `url("${url.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`;
 }
 
-async function applyServerButtonBackground(item: HTMLElement, game: GameConfig) {
+function applyServerButtonBackground(item: HTMLElement, localUrl?: string) {
   item.classList.remove("has-server-background");
   item.style.removeProperty("--server-background-image");
 
+  if (!localUrl) return;
+  item.style.setProperty("--server-background-image", toCssUrl(localUrl));
+  item.classList.add("has-server-background");
+}
+
+async function applyCachedServerButtonBackground(
+  item: HTMLElement,
+  game: GameConfig,
+) {
+  if (game.backgroundImageFileName) {
+    const localUrl = await window.api.serverBackgroundLocalUrl(
+      game.backgroundImageFileName,
+    );
+    if (localUrl) {
+      game.backgroundImageLocalUrl = localUrl;
+      applyServerButtonBackground(item, localUrl);
+      return;
+    }
+  }
+
+  applyServerButtonBackground(item, game.backgroundImageLocalUrl);
+}
+
+async function refreshServerButtonBackground(
+  item: HTMLElement,
+  game: GameConfig,
+  options: { force?: boolean } = {},
+) {
   if (!game.url) return;
 
   try {
-    let backgroundUrl = serverBackgrounds.get(game.url);
-    if (!serverBackgrounds.has(game.url)) {
-      backgroundUrl = await window.api.serverBackground(game.url);
-      serverBackgrounds.set(game.url, backgroundUrl);
-    }
+    const background = await window.api.serverBackground(game.url, {
+      gameId: game.id ?? game.name,
+      currentRemoteUrl: game.backgroundImageUrl,
+      currentLocalUrl: game.backgroundImageLocalUrl,
+      force: options.force,
+    });
+    if (!background) return;
 
-    if (!backgroundUrl) return;
-    item.style.setProperty("--server-background-image", toCssUrl(backgroundUrl));
-    item.classList.add("has-server-background");
+    const shouldPersist =
+      background.updated ||
+      game.backgroundImageUrl !== background.remoteUrl ||
+      game.backgroundImageLocalUrl !== background.localUrl ||
+      game.backgroundImageFileName !== background.fileName;
+
+    game.backgroundImageUrl = background.remoteUrl;
+    game.backgroundImageLocalUrl = background.localUrl;
+    game.backgroundImageFileName = background.fileName;
+    if (shouldPersist) {
+      game.backgroundImageUpdatedAt = new Date().toISOString();
+    }
+    applyServerButtonBackground(item, background.localUrl);
+
+    if (!shouldPersist) return;
+
+    await updateGameList((appConfig) => {
+      const gameToUpdate = appConfig.games.find((g) => g.id === game.id);
+      if (gameToUpdate) {
+        gameToUpdate.backgroundImageUrl = background.remoteUrl;
+        gameToUpdate.backgroundImageLocalUrl = background.localUrl;
+        gameToUpdate.backgroundImageFileName = background.fileName;
+        gameToUpdate.backgroundImageUpdatedAt = game.backgroundImageUpdatedAt;
+      }
+    });
   } catch (err) {
     console.warn(`Failed to load server background for ${game.name}:`, err);
   }
@@ -147,7 +198,8 @@ document.querySelector("#add-game").addEventListener("click", async () => {
   });
   gameUrlField.value = "";
   gameNameField.value = "";
-  await createGameItem(newGameItem);
+  const gameItem = await createGameItem(newGameItem);
+  await refreshServerButtonBackground(gameItem, newGameItem, { force: true });
   showNotification("Game added");
 });
 
@@ -1186,9 +1238,10 @@ async function createGameItem(game: GameConfig) {
   (li.querySelector(".game-name-edit") as HTMLInputElement).value = game.name;
   (li.querySelector(".game-url-edit") as HTMLInputElement).value = game.url;
   li.querySelector("a").innerText = game.name;
-  void applyServerButtonBackground(li, game);
+  void applyCachedServerButtonBackground(li, game);
   li.querySelector(".game-main-button").addEventListener("click", async () => {
     window.api.openGame(game.id ?? game.name, game.name);
+    await refreshServerButtonBackground(li, game);
     const appConfig: AppConfig = await window.api.localAppConfig();
     if (appConfig.discordRP) {
       if (window.richPresence?.enable) {
@@ -1267,7 +1320,6 @@ async function createGameItem(game: GameConfig) {
     game.url = newGameUrl;
 
     (li.querySelector("a") as HTMLAnchorElement).innerText = newGameName;
-    void applyServerButtonBackground(li, game);
 
     await updateGameList((appConfig) => {
       const gameToUpdate = appConfig.games.find((g) => g.id === game.id);
@@ -1276,6 +1328,7 @@ async function createGameItem(game: GameConfig) {
         gameToUpdate.url = newGameUrl;
       }
     });
+    await refreshServerButtonBackground(li, game, { force: true });
 
     window.api.saveUserData({
       gameId,
@@ -1285,6 +1338,7 @@ async function createGameItem(game: GameConfig) {
     } as SaveUserData);
     showNotification("Game settings saved");
   });
+  return li;
 }
 
 function applyThemeConfig(config: ThemeConfig) {
