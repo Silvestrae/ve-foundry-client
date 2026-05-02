@@ -537,6 +537,7 @@ a {
 .game-title-bar {
   align-items: stretch;
   display: flex;
+  min-height: 6rem;
   width: 100%;
 }
 
@@ -793,6 +794,7 @@ textarea {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  justify-content: center;
   border: none;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
