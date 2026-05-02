@@ -10,10 +10,7 @@ async function getServerInfo(
   return window.api.pingServer(game.url);
 }
 
-export async function updateServerInfos(
-  item: HTMLElement,
-  game: GameConfig,
-) {
+export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
   // Retrieve user config
   const { serverInfoEnabled = true, serverInfoOptions } =
     await window.api.localAppConfig();

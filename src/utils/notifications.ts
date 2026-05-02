@@ -3,7 +3,7 @@ let hideTimeoutId: number | null = null;
 
 const defaultOpts = { notificationTimer: 3 };
 
-let opts = { ...defaultOpts };
+const opts = { ...defaultOpts };
 export function setNotificationTimer(sec: number): void {
   if (typeof sec === "number" && sec > 0) {
     opts.notificationTimer = sec;
@@ -16,7 +16,9 @@ export async function initNotificationTimer(): Promise<void> {
     if (typeof cfg.notificationTimer === "number") {
       opts.notificationTimer = cfg.notificationTimer;
     }
-  } catch {}
+  } catch {
+    return;
+  }
 }
 
 export function showNotification(message: string): void {

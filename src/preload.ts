@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: no nodejs in preload
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 
 export type ServerBackgroundOptions = {
@@ -178,9 +177,11 @@ const exposedApi: ContextBridgeApi = {
   pingServer: (url: string) =>
     ipcRenderer.invoke("ping-server", url) as Promise<ServerStatusData | null>,
   serverBackground: (url: string, options?: ServerBackgroundOptions) =>
-    ipcRenderer.invoke("server-background", url, options) as Promise<
-      ServerBackgroundData | null
-    >,
+    ipcRenderer.invoke(
+      "server-background",
+      url,
+      options,
+    ) as Promise<ServerBackgroundData | null>,
   serverBackgroundLocalUrl: (fileName: string) =>
     ipcRenderer.invoke("server-background-local-url", fileName) as Promise<
       string | null

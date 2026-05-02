@@ -14,19 +14,19 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 
 | Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | [jeidouran](https://github.com/JeidoUran/fvtt-player-client) | [Silvestrae](https://github.com/Silvestrae/ve-foundry-client) |
 | -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :----------------------------------------------------------: | :-----------------------------------------------------------: |
-| Back to server select button in setup screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Back to server select button in login screen | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Back to server select button in game         | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Foundry v13/v14 Compatibility                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Discord Rich Presence                        | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Server status on game buttons                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Theme editor                                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Cached server background buttons             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Fully portable Windows build                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Remembers window size and position           | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Remembers maximized window state             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| External links open in default browser       | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
-| Reorder server buttons                       | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+| Back to server select button in setup screen |          ![Yes](https://img.shields.io/badge/-✓-2ea44f)          |         ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Back to server select button in login screen |          ![Yes](https://img.shields.io/badge/-✓-2ea44f)          |         ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Back to server select button in game         |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Foundry v13/v14 Compatibility                |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Discord Rich Presence                        |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Server status on game buttons                |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Theme editor                                 |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)        |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Cached server background buttons             |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Fully portable Windows build                 |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Remembers window size and position           |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Remembers maximized window state             |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| External links open in default browser       |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Reorder server buttons                       |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
 
 ## Server Backgrounds
 
@@ -47,10 +47,10 @@ In order to enable and use Rich Presence, you also need to have the module [Foun
 
 The **Theme Editor** lets you tweak every aspect of the client’s look and feel:
 
-1. **Base Theme**  
+1. **Base Theme**
    Choose either **Codex** or **Original** as your starting point.
 
-2. **Fine-tune colors & effects**  
+2. **Fine-tune colors & effects**
    Adjust background(s), text, accent and button colors, as well as particle effects (count, speed & opacity).
 
 3. **Custom assets**
@@ -62,7 +62,6 @@ The **Theme Editor** lets you tweak every aspect of the client’s look and feel
 Open the **Share** menu to **export** or **import** your configuration:
 
 - **Export**
-
   - Full settings (app + theme)
   - Theme only
 
@@ -70,7 +69,7 @@ Open the **Share** menu to **export** or **import** your configuration:
   - From a JSON file
   - From clipboard
 
-You can save the JSON to disk or copy it to your clipboard.  
+You can save the JSON to disk or copy it to your clipboard.
 Perfect for GMs who want to distribute a custom setup or theme to their players.
 
 > **Privacy note:** Exported files never include sensitive fields like auto-login usernames, passwords, admin passwords, or local font-file paths.

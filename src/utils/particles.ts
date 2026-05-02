@@ -112,8 +112,8 @@ function animateFrame() {
   particles.forEach((p) => {
     p.y -= p.speedY;
 
-    let xOffset = Math.sin(time + p.offset) * p.amp;
-    let x = p.x + xOffset;
+    const xOffset = Math.sin(time + p.offset) * p.amp;
+    const x = p.x + xOffset;
 
     if (p.y + p.radius < 0) {
       p.y = h + Math.random() * 20;

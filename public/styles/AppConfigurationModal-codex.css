@@ -1,7 +1,9 @@
 .app-configuration {
   box-shadow: 0 0 5px black;
   flex-direction: column;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
   border: 2px solid rgba(255, 255, 255, 0.15);
   padding: 0.5rem;
   background: var(--color-background);
@@ -35,8 +37,8 @@
   margin-bottom: 0;
 }
 
-.notification-timer-field .tooltip-wrapper+.el-slider,
-.server-infos-ping-rate-field .tooltip-wrapper+.el-slider {
+.notification-timer-field .tooltip-wrapper + .el-slider,
+.server-infos-ping-rate-field .tooltip-wrapper + .el-slider {
   flex: 0 0 70%;
 }
 
@@ -59,7 +61,7 @@
 }
 
 .el-switch__core .el-switch__inner .is-icon {
-  color: var(#CCCCCC) !important;
+  color: var(#cccccc) !important;
 }
 
 .el-icon {

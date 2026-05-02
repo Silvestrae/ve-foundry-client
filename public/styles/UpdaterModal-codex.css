@@ -60,8 +60,9 @@
 
 .updater-current-version {
   margin-top: 1rem;
-  font-family: Inter, 'Helvetica Neue', Helvetica, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  font-family:
+    Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
   font-size: 16px;
 }
 
@@ -70,8 +71,9 @@
 }
 
 .current-version-inline {
-  font-family: Inter, 'Helvetica Neue', Helvetica, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  font-family:
+    Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
   font-size: 1.25rem;
 }
 
@@ -80,8 +82,9 @@
 }
 
 .el-progress-bar__innerText {
-  font-family: Inter, 'Helvetica Neue', Helvetica, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif !important;
+  font-family:
+    Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "微软雅黑", Arial, sans-serif !important;
   color: var(--switch-label-color) !important;
   font-weight: 600 !important;
   font-size: 14px !important;

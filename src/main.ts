@@ -1160,7 +1160,7 @@ ipcMain.handle("local-app-config", () => {
   try {
     const userData = getUserData();
     return userData.app ?? ({} as AppConfig);
-  } catch (e) {
+  } catch {
     return {} as AppConfig;
   }
 });
@@ -1179,7 +1179,7 @@ ipcMain.handle("local-theme-config", () => {
   try {
     const userData = getUserData();
     return userData.theme ?? ({} as ThemeConfig);
-  } catch (e) {
+  } catch {
     return {} as ThemeConfig;
   }
 });

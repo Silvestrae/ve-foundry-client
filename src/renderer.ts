@@ -2,11 +2,7 @@
 import * as particles from "./utils/particles";
 import { ThemeConfigSchema, ParticleOptions, GameConfig } from "./schemas";
 import { mergeAppData, mergeThemeData } from "./utils/mergeData";
-import {
-  showNotification,
-  initNotificationTimer,
-  setNotificationTimer,
-} from "./utils/notifications";
+import { showNotification, initNotificationTimer } from "./utils/notifications";
 import {
   applyRuntimeAppConfig,
   setupPingInterval,
@@ -38,12 +34,10 @@ window.api.onUpdaterStatus((_e, { status, payload }) => {
   updater.handleStatus({ status: status as UpdaterStatus, payload });
 });
 
-let appVersion: string;
 let preventMenuClose = false;
 let lastParticleOptions: ParticleOptions | null = null;
 let games: GameConfig[] = [];
 let draggedGameItem: HTMLElement | null = null;
-const seenOffline = new Map<string, boolean>();
 
 function toCssUrl(url: string) {
   return `url("${url.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`;
@@ -1075,19 +1069,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 // Export Settings
-appVersion = await window.api.appVersion();
+const appVersion = await window.api.appVersion();
 async function exportSettings() {
   const app = await window.api.localAppConfig();
   const rawTheme = await window.api.localThemeConfig();
   // Clean with Zod in order to apply defaults
   const parsed = ThemeConfigSchema.parse(rawTheme);
-  const {
-    fontPrimaryName,
-    fontPrimaryFilePath,
-    fontSecondaryName,
-    fontSecondaryFilePath,
-    ...cleanTheme
-  } = parsed;
+  const cleanTheme = { ...parsed };
+  delete cleanTheme.fontPrimaryName;
+  delete cleanTheme.fontPrimaryFilePath;
+  delete cleanTheme.fontSecondaryName;
+  delete cleanTheme.fontSecondaryFilePath;
   const full = { clientVersion: appVersion, app, theme: cleanTheme };
   document.getElementById("share-output")!.textContent = JSON.stringify(
     full,
@@ -1102,13 +1094,11 @@ async function exportTheme() {
   // Clean with Zod in order to apply defaults
   const parsed = ThemeConfigSchema.parse(rawTheme);
 
-  const {
-    fontPrimaryName,
-    fontPrimaryFilePath,
-    fontSecondaryName,
-    fontSecondaryFilePath,
-    ...cleanTheme
-  } = parsed;
+  const cleanTheme = { ...parsed };
+  delete cleanTheme.fontPrimaryName;
+  delete cleanTheme.fontPrimaryFilePath;
+  delete cleanTheme.fontSecondaryName;
+  delete cleanTheme.fontSecondaryFilePath;
   document.getElementById("share-output")!.textContent = JSON.stringify(
     {
       clientVersion: appVersion,
