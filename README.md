@@ -20,10 +20,20 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 | Foundry v13/v14 Compatibility                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Discord Rich Presence                        | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Server status on game buttons                | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+| Cached server background buttons             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Theme editor                                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Fully portable Windows build                 | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Remembers window size and position           | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
 | Remembers maximized window state             | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![No](https://img.shields.io/badge/-✗-cf222e)  | ![Yes](https://img.shields.io/badge/-✓-2ea44f) |
+
+## Server Backgrounds
+
+VE Foundry Client can use each Foundry server's login-page background as the background for that server's button. Backgrounds are cached locally in the app data folder, so they load quickly on startup and still work for portable builds.
+
+- New servers fetch and cache their background when added.
+- Opening a server checks whether its background URL changed and updates the local cache when needed.
+- Saving server settings forces a fresh background download.
+- If a reachable server no longer has a background, the cached button image is cleared. If the server is offline, the last cached background is kept.
 
 ## Discord Rich Presence
 
