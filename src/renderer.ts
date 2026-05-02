@@ -47,6 +47,32 @@ let preventMenuClose = false;
 let lastParticleOptions: ParticleOptions | null = null;
 let games: GameConfig[] = [];
 const seenOffline = new Map<string, boolean>();
+const serverBackgrounds = new Map<string, string | null>();
+
+function toCssUrl(url: string) {
+  return `url("${url.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`;
+}
+
+async function applyServerButtonBackground(item: HTMLElement, game: GameConfig) {
+  item.classList.remove("has-server-background");
+  item.style.removeProperty("--server-background-image");
+
+  if (!game.url) return;
+
+  try {
+    let backgroundUrl = serverBackgrounds.get(game.url);
+    if (!serverBackgrounds.has(game.url)) {
+      backgroundUrl = await window.api.serverBackground(game.url);
+      serverBackgrounds.set(game.url, backgroundUrl);
+    }
+
+    if (!backgroundUrl) return;
+    item.style.setProperty("--server-background-image", toCssUrl(backgroundUrl));
+    item.classList.add("has-server-background");
+  } catch (err) {
+    console.warn(`Failed to load server background for ${game.name}:`, err);
+  }
+}
 
 /**
  * Dynamically inject or remove a Google Font from a <link> in <head>.
@@ -1160,6 +1186,7 @@ async function createGameItem(game: GameConfig) {
   (li.querySelector(".game-name-edit") as HTMLInputElement).value = game.name;
   (li.querySelector(".game-url-edit") as HTMLInputElement).value = game.url;
   li.querySelector("a").innerText = game.name;
+  void applyServerButtonBackground(li, game);
   li.querySelector(".game-main-button").addEventListener("click", async () => {
     window.api.openGame(game.id ?? game.name, game.name);
     const appConfig: AppConfig = await window.api.localAppConfig();
@@ -1240,6 +1267,7 @@ async function createGameItem(game: GameConfig) {
     game.url = newGameUrl;
 
     (li.querySelector("a") as HTMLAnchorElement).innerText = newGameName;
+    void applyServerButtonBackground(li, game);
 
     await updateGameList((appConfig) => {
       const gameToUpdate = appConfig.games.find((g) => g.id === game.id);

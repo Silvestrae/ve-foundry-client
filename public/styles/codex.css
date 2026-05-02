@@ -273,6 +273,27 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(.toggle-pas
   background-color: var(--color-button-rgba);
 }
 
+.game-item.has-server-background {
+  background-image:
+    linear-gradient(rgba(8, 14, 22, 0.66), rgba(8, 14, 22, 0.78)),
+    var(--server-background-image);
+  background-position: center;
+  background-size: cover;
+}
+
+.game-item.has-server-background::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.28), transparent 70%);
+  pointer-events: none;
+}
+
+.game-item.has-server-background > * {
+  position: relative;
+  z-index: 1;
+}
+
 .hidden {
   height: 0 !important;
 }

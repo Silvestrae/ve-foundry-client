@@ -1153,6 +1153,84 @@ ipcMain.on("cache-path", (_, cachePath: string) => {
   );
 });
 
+const serverBackgroundCache = new Map<string, string | null>();
+
+function requestText(url: string, timeoutMs = 5000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = net.request(url);
+    const timer = setTimeout(() => {
+      req.abort();
+      reject(new Error("Timeout"));
+    }, timeoutMs);
+
+    const chunks: Buffer[] = [];
+    req.on("response", (response) => {
+      response.on("data", (b) => chunks.push(b));
+      response.on("end", () => {
+        clearTimeout(timer);
+        if (response.statusCode! >= 200 && response.statusCode! < 300) {
+          resolve(Buffer.concat(chunks).toString("utf-8"));
+          return;
+        }
+        reject(new Error(`HTTP ${response.statusCode}`));
+      });
+    });
+
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    req.end();
+  });
+}
+
+function extractFoundryBackgroundUrl(html: string, pageUrl: string) {
+  const customPropertyMatch = html.match(
+    /--background-url\s*:\s*url\(\s*(['"]?)([^'")]+)\1\s*\)/i,
+  );
+  const backgroundMatch =
+    customPropertyMatch ??
+    html.match(/background(?:-image)?\s*:\s*url\(\s*(['"]?)([^'")]+)\1\s*\)/i);
+  const backgroundPath = backgroundMatch?.[2]?.trim();
+  if (!backgroundPath || backgroundPath.startsWith("data:")) return null;
+
+  try {
+    return new URL(backgroundPath, pageUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+ipcMain.handle("server-background", async (_e, rawUrl: string) => {
+  if (serverBackgroundCache.has(rawUrl)) {
+    return serverBackgroundCache.get(rawUrl);
+  }
+
+  let urls: string[];
+  try {
+    urls = Array.from(new Set([rawUrl, new URL("join", rawUrl).toString()]));
+  } catch {
+    return null;
+  }
+
+  for (const url of urls) {
+    try {
+      const html = await requestText(url);
+      const backgroundUrl = extractFoundryBackgroundUrl(html, url);
+      if (backgroundUrl) {
+        serverBackgroundCache.set(rawUrl, backgroundUrl);
+        return backgroundUrl;
+      }
+    } catch (err) {
+      console.warn("[Server Background] Failed to inspect", url, err);
+    }
+  }
+
+  serverBackgroundCache.set(rawUrl, null);
+  return null;
+});
+
 ipcMain.handle("ping-server", (_e, rawUrl: string) => {
   return new Promise<ServerStatusData | null>((resolve, reject) => {
     const pingUrl = new URL("api/status", rawUrl).toString();

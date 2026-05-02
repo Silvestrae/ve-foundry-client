@@ -43,6 +43,7 @@ export type ContextBridgeApi = {
   openUserDataFolder: () => Promise<string>;
   showMenu: () => Promise<string>;
   pingServer: (url: string) => Promise<ServerStatusData | null>;
+  serverBackground: (url: string) => Promise<string | null>;
   setFullScreen: (fullscreen: boolean) => void;
   /** ask main “are we full-screen right now?” */
   isFullScreen: () => Promise<boolean>;
@@ -157,6 +158,8 @@ const exposedApi: ContextBridgeApi = {
   showMenu: () => ipcRenderer.invoke("show-menu") as Promise<string>,
   pingServer: (url: string) =>
     ipcRenderer.invoke("ping-server", url) as Promise<ServerStatusData | null>,
+  serverBackground: (url: string) =>
+    ipcRenderer.invoke("server-background", url) as Promise<string | null>,
 
   platform: process.platform,
   versions: process.versions,
