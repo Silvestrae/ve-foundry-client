@@ -95,6 +95,25 @@ async function refreshServerButtonBackground(
     });
     if (!background) return;
 
+    if (background.cleared) {
+      game.backgroundImageUrl = undefined;
+      game.backgroundImageLocalUrl = undefined;
+      game.backgroundImageFileName = undefined;
+      game.backgroundImageUpdatedAt = new Date().toISOString();
+      applyServerButtonBackground(item);
+
+      await updateGameList((appConfig) => {
+        const gameToUpdate = appConfig.games.find((g) => g.id === game.id);
+        if (gameToUpdate) {
+          delete gameToUpdate.backgroundImageUrl;
+          delete gameToUpdate.backgroundImageLocalUrl;
+          delete gameToUpdate.backgroundImageFileName;
+          gameToUpdate.backgroundImageUpdatedAt = game.backgroundImageUpdatedAt;
+        }
+      });
+      return;
+    }
+
     const shouldPersist =
       background.updated ||
       game.backgroundImageUrl !== background.remoteUrl ||

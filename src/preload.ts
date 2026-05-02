@@ -16,6 +16,7 @@ export type ServerBackgroundData = {
   localUrl: string;
   fileName: string;
   updated: boolean;
+  cleared?: boolean;
 };
 
 // type SendChannels = "toMain" | "open-game" | "save-user-data" | "app-version" | "cache-path" | "clear-cache";

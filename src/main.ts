@@ -1165,6 +1165,7 @@ type ServerBackgroundData = {
   localUrl: string;
   fileName: string;
   updated: boolean;
+  cleared?: boolean;
 };
 
 const serverBackgroundCache = new Map<string, string | null>();
@@ -1292,6 +1293,21 @@ function getLocalPathFromFileUrl(fileUrl?: string) {
   }
 }
 
+function getServerBackgroundsDir() {
+  return path.join(app.getPath("userData"), "server-backgrounds");
+}
+
+function removeLocalServerBackground(fileUrl?: string) {
+  const filePath = getLocalPathFromFileUrl(fileUrl);
+  if (!filePath) return;
+
+  const backgroundsDir = path.resolve(getServerBackgroundsDir());
+  const resolvedFilePath = path.resolve(filePath);
+  if (path.dirname(resolvedFilePath) !== backgroundsDir) return;
+
+  fs.removeSync(resolvedFilePath);
+}
+
 function getServerBackgroundFilename(
   gameId: GameId | undefined,
   remoteUrl: string,
@@ -1305,10 +1321,7 @@ async function downloadServerBackground(
   gameId: GameId | undefined,
 ) {
   const { buffer, contentType } = await requestBuffer(remoteUrl);
-  const backgroundsDir = path.join(
-    app.getPath("userData"),
-    "server-backgrounds",
-  );
+  const backgroundsDir = getServerBackgroundsDir();
   const filename = `${getServerBackgroundFilename(
     gameId,
     remoteUrl,
@@ -1325,11 +1338,7 @@ async function downloadServerBackground(
 
 ipcMain.handle("server-background-local-url", (_e, fileName: string) => {
   const safeFileName = path.basename(fileName);
-  const filePath = path.join(
-    app.getPath("userData"),
-    "server-backgrounds",
-    safeFileName,
-  );
+  const filePath = path.join(getServerBackgroundsDir(), safeFileName);
   if (!fs.pathExistsSync(filePath)) return null;
   return pathToFileURL(filePath).toString();
 });
@@ -1368,9 +1377,12 @@ ipcMain.handle(
       return null;
     }
 
+    let reachedServerWithoutBackground = false;
+
     for (const url of urls) {
       try {
         const html = await requestText(url);
+        reachedServerWithoutBackground = true;
         const backgroundUrl = extractFoundryBackgroundUrl(html, url);
         if (backgroundUrl) {
           const currentLocalPath = getLocalPathFromFileUrl(
@@ -1410,6 +1422,17 @@ ipcMain.handle(
     }
 
     serverBackgroundCache.set(rawUrl, null);
+    if (reachedServerWithoutBackground) {
+      removeLocalServerBackground(options.currentLocalUrl);
+      return {
+        remoteUrl: "",
+        localUrl: "",
+        fileName: "",
+        updated: true,
+        cleared: true,
+      };
+    }
+
     return null;
   },
 );
