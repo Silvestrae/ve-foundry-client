@@ -480,7 +480,6 @@ a {
 
 .game-title-bar {
   display: flex;
-  min-height: 9rem;
   width: 100%;
 }
 
@@ -655,7 +654,6 @@ select option {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  justify-content: center;
   border: none;
   cursor: pointer;
   padding: 0.25rem 0 0.5rem;
