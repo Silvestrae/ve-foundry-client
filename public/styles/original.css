@@ -480,7 +480,7 @@ a {
 
 .game-title-bar {
   display: flex;
-  min-height: 6rem;
+  min-height: 9rem;
   width: 100%;
 }
 

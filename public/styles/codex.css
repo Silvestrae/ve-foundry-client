@@ -537,7 +537,7 @@ a {
 .game-title-bar {
   align-items: stretch;
   display: flex;
-  min-height: 6rem;
+  min-height: 9rem;
   width: 100%;
 }
 
