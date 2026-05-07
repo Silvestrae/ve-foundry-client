@@ -153,6 +153,7 @@ export async function refreshAllServerInfos() {
         (g) => String(g.id) === key || String(g.name) === key,
       );
       if (!game) return;
+      if (game.serverInfoAutoRefreshDisabled) return;
 
       try {
         await updateServerInfos(item, game);

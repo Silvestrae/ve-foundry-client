@@ -15,17 +15,36 @@
             v-else-if="store.status === 'not-available'"
             class="updater-text"
           >
-            You are up-to-date.
+            <p>You are up-to-date.</p>
+            <p v-if="store.payload?.version" class="latest-version">
+              Latest version: {{ store.payload.version }}
+            </p>
+            <section
+              v-if="store.payload?.releaseNotes"
+              class="release-notes-section"
+            >
+              <h3>Latest release notes</h3>
+              <pre class="release-notes">{{ store.payload.releaseNotes }}</pre>
+            </section>
           </div>
           <div
             v-else-if="store.status === 'available' && store.payload?.version"
             class="updater-text"
           >
-            Update
-            <strong class="current-version-inline">{{
-              store.payload.version
-            }}</strong>
-            is available!
+            <p>
+              Update
+              <strong class="current-version-inline">{{
+                store.payload.version
+              }}</strong>
+              is available!
+            </p>
+            <section
+              v-if="store.payload?.releaseNotes"
+              class="release-notes-section"
+            >
+              <h3>Release notes</h3>
+              <pre class="release-notes">{{ store.payload.releaseNotes }}</pre>
+            </section>
           </div>
           <div v-else-if="store.status === 'available'" class="updater-text">
             An update is available!

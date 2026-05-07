@@ -96,6 +96,8 @@ const ORIGINAL_APP_USER_DATA_DIR_NAMES = [
   "FVTT Player Client",
   "VTT Desktop Client",
   "fvtt-player-client",
+  "vtt-desktop-client",
+  "vtt_desktop_client",
 ] as const;
 
 type MigrationStatus = "skipped" | "success" | "failure";
@@ -344,6 +346,8 @@ const STATIC_USER_DATA_KEYS = new Set([
   "lastRunAppVersion",
   "originalImportDeclinedAt",
   "originalImportDeclinedAppName",
+  "originalImportCompletedAt",
+  "originalImportCompletedAppName",
   "originalUninstallDeclinedAt",
   "originalUninstallDeclinedAppName",
 ]);
@@ -406,6 +410,13 @@ function markOriginalImportDeclined(candidate: OriginalUserDataCandidate) {
   updateUserDataFile((data) => {
     data.originalImportDeclinedAt = new Date().toISOString();
     data.originalImportDeclinedAppName = candidate.appName;
+  });
+}
+
+function markOriginalImportCompleted(candidate: OriginalUserDataCandidate) {
+  updateUserDataFile((data) => {
+    data.originalImportCompletedAt = new Date().toISOString();
+    data.originalImportCompletedAppName = candidate.appName;
   });
 }
 
@@ -539,9 +550,39 @@ function getImportSuccessMessage(
   candidate: OriginalUserDataCandidate,
   importedData: UserData,
 ) {
-  const serverCount = importedData.app?.games?.length ?? 0;
+  const servers = importedData.app?.games ?? [];
+  const serverCount = servers.length;
   const serverText = serverCount === 1 ? "1 server" : `${serverCount} servers`;
-  return `Imported ${serverText} and theme settings from ${candidate.appName}`;
+  const serverNames = servers
+    .map((server) => server.name)
+    .filter((name): name is string => !!name?.trim());
+  const listedNames = serverNames.slice(0, 8).join(", ");
+  const remainingCount = serverNames.length - 8;
+  const namesText =
+    listedNames && remainingCount > 0
+      ? `: ${listedNames}, and ${remainingCount} more`
+      : listedNames
+        ? `: ${listedNames}`
+        : "";
+  return `Imported ${serverText} and theme settings from ${candidate.appName}${namesText}`;
+}
+
+function shouldOfferOriginalUserDataImport() {
+  const candidate = getOriginalUserDataCandidate();
+  if (!candidate) return null;
+
+  const currentData = getUserData();
+  if (
+    currentData.originalImportDeclinedAt ||
+    currentData.originalImportCompletedAt
+  ) {
+    return null;
+  }
+
+  const currentServerCount = currentData.app?.games?.length ?? 0;
+  if (currentServerCount > 0) return null;
+
+  return candidate;
 }
 
 function prepareImportedUserData(rawData: unknown): UserData {
@@ -591,11 +632,8 @@ function reloadWindowAndRefreshServerBackgrounds(win: BrowserWindow) {
 }
 
 async function promptImportOriginalUserData(win: BrowserWindow) {
-  const candidate = getOriginalUserDataCandidate();
+  const candidate = shouldOfferOriginalUserDataImport();
   if (!candidate) return false;
-
-  const currentData = getUserData();
-  if (currentData.originalImportDeclinedAt) return false;
 
   const shouldImport = await askPrompt(
     `Saved settings from ${candidate.appName} were found. Import servers, themes, and login details into VE Foundry Client?`,
@@ -619,7 +657,13 @@ async function promptImportOriginalUserData(win: BrowserWindow) {
       JSON.stringify(importedData, null, 2),
       "utf-8",
     );
-    notifyMainWindow(getImportSuccessMessage(candidate, importedData), win);
+    const importSuccessMessage = getImportSuccessMessage(
+      candidate,
+      importedData,
+    );
+    notifyMainWindow(importSuccessMessage, win);
+    markOriginalImportCompleted(candidate);
+    await askPrompt(importSuccessMessage, { mode: "alert" }, win);
     await promptUninstallOriginalApp(win);
     reloadWindowAndRefreshServerBackgrounds(win);
     return true;
@@ -707,9 +751,29 @@ function openUrlInDefaultBrowser(url: string) {
   });
 }
 
+function openUrlInAppWindow(url: string, parent?: BrowserWindow | null) {
+  const child = new BrowserWindow({
+    width: 1024,
+    height: 768,
+    parent: parent ?? undefined,
+    autoHideMenuBar: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+    },
+  });
+  child.loadURL(url);
+}
+
 function hookExternalLinkHandling(win: BrowserWindow) {
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (shouldOpenInExternalBrowser(win.webContents.getURL(), url)) {
+    const openExternalLinksInBrowser =
+      getAppConfig().externalLinksInDefaultBrowser ?? true;
+    if (
+      openExternalLinksInBrowser &&
+      shouldOpenInExternalBrowser(win.webContents.getURL(), url)
+    ) {
       openUrlInDefaultBrowser(url);
       return { action: "deny" };
     }
@@ -724,7 +788,14 @@ function hookExternalLinkHandling(win: BrowserWindow) {
   });
 
   win.webContents.on("will-navigate", (event, url) => {
-    if (!shouldOpenInExternalBrowser(win.webContents.getURL(), url)) return;
+    const openExternalLinksInBrowser =
+      getAppConfig().externalLinksInDefaultBrowser ?? true;
+    if (
+      !openExternalLinksInBrowser ||
+      !shouldOpenInExternalBrowser(win.webContents.getURL(), url)
+    ) {
+      return;
+    }
 
     event.preventDefault();
     openUrlInDefaultBrowser(url);
@@ -1179,6 +1250,20 @@ function createWindow(): BrowserWindow {
     }
     win.show();
   });
+  let clearingCacheBeforeClose = false;
+  win.on("close", (event) => {
+    if (clearingCacheBeforeClose || !getAppConfig().autoCacheClear) return;
+    event.preventDefault();
+    clearingCacheBeforeClose = true;
+    win.webContents.session
+      .clearCache()
+      .catch((err) => {
+        console.warn("[cache] Could not clear cache on close:", err);
+      })
+      .finally(() => {
+        if (!win.isDestroyed()) win.destroy();
+      });
+  });
   win.on("closed", () => {
     windows.delete(win);
     win = null;
@@ -1197,12 +1282,35 @@ autoUpdater.on("checking-for-update", () => {
   sendUpdateStatus("checking");
 });
 
+async function enrichUpdateInfoWithReleaseNotes(info: any) {
+  try {
+    const releaseText = await requestText(
+      "https://api.github.com/repos/Silvestrae/ve-foundry-client/releases/latest",
+      8000,
+    );
+    const release = JSON.parse(releaseText);
+    return {
+      ...info,
+      version:
+        info?.version ?? String(release?.tag_name ?? "").replace(/^v/, ""),
+      releaseNotes: release?.body ?? info?.releaseNotes,
+      releaseName: release?.name ?? info?.releaseName,
+      releaseDate: release?.published_at ?? info?.releaseDate,
+    };
+  } catch (err) {
+    console.warn("[updater] Could not fetch latest release notes:", err);
+    return info;
+  }
+}
+
 autoUpdater.on("update-available", (info) => {
   if (initialCheckInProgress) {
     // silence the first “available”
     return;
   }
-  sendUpdateStatus("available", info, lastUpdateRequestingWindow);
+  void enrichUpdateInfoWithReleaseNotes(info).then((payload) => {
+    sendUpdateStatus("available", payload, lastUpdateRequestingWindow);
+  });
 });
 
 autoUpdater.on("update-not-available", (info) => {
@@ -1210,7 +1318,9 @@ autoUpdater.on("update-not-available", (info) => {
     // silence the “no update” that always fires at the end of the startup check
     return;
   }
-  sendUpdateStatus("not-available", info, lastUpdateRequestingWindow);
+  void enrichUpdateInfoWithReleaseNotes(info).then((payload) => {
+    sendUpdateStatus("not-available", payload, lastUpdateRequestingWindow);
+  });
 });
 autoUpdater.on("download-progress", (progress) => {
   sendUpdateStatus("progress", progress, lastUpdateRequestingWindow);
@@ -1373,12 +1483,12 @@ app.whenReady().then(async () => {
     } else if (migrationResult === "failure") {
       await askPrompt("Could not migrate your user data.", { mode: "alert" });
     }
+    const importedOriginalUserData =
+      await promptImportOriginalUserData(mainWindow);
+    if (importedOriginalUserData) return;
+
     // Welcome, new users!
     if (isFirstUser) {
-      const importedOriginalUserData =
-        await promptImportOriginalUserData(mainWindow);
-      if (importedOriginalUserData) return;
-
       notifyMainWindow(`Welcome!`);
     }
   });
@@ -1563,7 +1673,14 @@ ipcMain.handle("local-theme-config", () => {
 }); */
 
 ipcMain.on("open-external", (_event, url: string) => {
-  openUrlInDefaultBrowser(url);
+  const openExternalLinksInBrowser =
+    getAppConfig().externalLinksInDefaultBrowser ?? true;
+  if (openExternalLinksInBrowser) {
+    openUrlInDefaultBrowser(url);
+    return;
+  }
+
+  openUrlInAppWindow(url, BrowserWindow.getFocusedWindow());
 });
 
 ipcMain.handle("cache-path", () => app.getPath("sessionData"));

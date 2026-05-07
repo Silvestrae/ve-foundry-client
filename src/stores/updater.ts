@@ -18,6 +18,9 @@ export interface UpdatePayload {
   transferred?: number;
   total?: number;
   message?: string;
+  releaseNotes?: string;
+  releaseName?: string;
+  releaseDate?: string;
 }
 
 export const useUpdaterStore = defineStore("updater", {

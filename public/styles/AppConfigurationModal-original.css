@@ -1,5 +1,6 @@
 .app-configuration {
-  max-height: 70vh;
+  display: flex;
+  max-height: min(90vh, 780px);
   box-shadow: 0 0 5px black;
   flex-direction: column;
   border: 2px solid var(--color-text-primary);
@@ -7,7 +8,24 @@
   background: var(--color-background);
   pointer-events: all;
   min-width: 35vw;
+  overflow: hidden;
   z-index: 100;
+}
+
+.app-configuration .overflow {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.app-configuration .button-group {
+  flex: 0 0 auto;
+}
+
+@media (max-height: 620px) {
+  .app-configuration {
+    max-height: 95vh;
+  }
 }
 
 .notification-timer-field,

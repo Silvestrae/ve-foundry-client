@@ -14,7 +14,6 @@
   transform: scale(0.98);
   color: var(--color-text-primary);
   width: 90%;
-  height: 300px;
   justify-content: space-between;
   background: var(--color-background);
   border: 2px solid var(--color-text-primary);
@@ -24,7 +23,8 @@
   max-width: 500px;
   width: 90%;
   font-family: var(--font-secondary);
-  height: 275px;
+  min-height: 275px;
+  max-height: 80vh;
   justify-content: space-between;
 }
 
@@ -46,6 +46,38 @@
   margin-block-end: 1em;
   width: 100%;
   max-height: 100%;
+}
+
+.latest-version {
+  font-size: 1rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.release-notes-section {
+  font-family:
+    Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "å¾®è½¯é›…é»‘", Arial, sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.release-notes-section h3 {
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  margin: 0 0 0.35rem;
+  text-align: center;
+}
+
+.release-notes {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--color-text-primary);
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.75rem;
+  white-space: pre-wrap;
 }
 
 .updater-buttons {

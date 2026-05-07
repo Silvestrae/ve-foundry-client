@@ -11,7 +11,7 @@
               <div class="cache-path-field">
                 <el-input
                   v-model="form.cachePath"
-                  placeholder="Cache Path"
+                  placeholder="Cache Path (blank uses Electron default)"
                   id="cache-path"
                   clearable
                 />
@@ -54,6 +54,28 @@
                   :active-icon="Check"
                   :inactive-icon="Close"
                   id="insecure-ssl"
+                />
+              </div>
+
+              <!-- External Links -->
+              <div class="external-links-field field">
+                <label class="switch-label"
+                  >External Links Open in Default Browser</label
+                >
+                <el-switch
+                  v-model="form.externalLinksInDefaultBrowser"
+                  class="mt-2"
+                  size="large"
+                  style="
+                    margin-left: 24px;
+                    --el-switch-on-color: var(--color-accent);
+                    --el-switch-off-color: #000000;
+                    --el-switch-border-color: #000000;
+                  "
+                  inline-prompt
+                  :active-icon="Check"
+                  :inactive-icon="Close"
+                  id="external-links-browser"
                 />
               </div>
 
@@ -364,6 +386,7 @@ const form = reactive<AppConfigurationForm>({
   cachePath: "",
   clearCacheOnClose: false,
   insecureSsl: false,
+  externalLinksInDefaultBrowser: true,
   notificationTimer: 3,
   enableServerStatus: false,
   showServerStatusOnline: false,

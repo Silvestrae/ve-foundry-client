@@ -2,6 +2,7 @@ export interface AppConfigurationForm {
   cachePath: string;
   clearCacheOnClose: boolean;
   insecureSsl: boolean;
+  externalLinksInDefaultBrowser: boolean;
   notificationTimer: number;
   enableServerStatus: boolean;
   showServerStatusOnline: boolean;

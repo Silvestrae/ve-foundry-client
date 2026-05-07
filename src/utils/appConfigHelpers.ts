@@ -27,6 +27,7 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
     cachePath: form.cachePath || "",
     autoCacheClear: form.clearCacheOnClose,
     ignoreCertificateErrors: form.insecureSsl,
+    externalLinksInDefaultBrowser: form.externalLinksInDefaultBrowser,
     discordRP: form.enableDiscordRp,
     notificationTimer: form.notificationTimer,
     serverInfoEnabled: form.enableServerStatus,

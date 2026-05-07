@@ -12,6 +12,9 @@ export async function mergeAppData(
     customCSS: imported.customCSS ?? existing.customCSS,
     ignoreCertificateErrors:
       imported.ignoreCertificateErrors ?? existing.ignoreCertificateErrors,
+    externalLinksInDefaultBrowser:
+      imported.externalLinksInDefaultBrowser ??
+      existing.externalLinksInDefaultBrowser,
     discordRP: imported.discordRP ?? existing.discordRP,
     serverInfoEnabled: imported.serverInfoEnabled ?? existing.serverInfoEnabled,
     serverInfoOptions: {

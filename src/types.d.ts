@@ -11,6 +11,7 @@ type GameConfigType = {
   url: string;
   id?: GameId;
   cssId?: string;
+  serverInfoAutoRefreshDisabled?: boolean;
   backgroundImageUrl?: string;
   backgroundImageLocalUrl?: string;
   backgroundImageFileName?: string;
@@ -23,6 +24,7 @@ type AppConfig = {
   autoCacheClear?: boolean;
   customCSS?: string;
   ignoreCertificateErrors?: boolean;
+  externalLinksInDefaultBrowser?: boolean;
   discordRP?: boolean;
   notificationTimer?: number;
   serverInfoEnabled?: boolean;

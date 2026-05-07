@@ -434,6 +434,15 @@ code.share-output {
   z-index: 1;
 }
 
+.update-available-glow {
+  border-color: var(--color-accent);
+  box-shadow:
+    0 0 8px var(--color-accent),
+    0 0 18px rgba(58, 231, 231, 0.45);
+  color: var(--color-text-primary);
+  text-shadow: 0 0 6px var(--color-accent);
+}
+
 .version-normal {
   position: absolute;
   bottom: 0;
@@ -798,6 +807,24 @@ select option {
   width: 100%;
   margin: 0.5rem 2rem;
   font-size: 1.4rem;
+}
+
+.server-auto-refresh-field {
+  align-items: center;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  min-height: 2rem;
+  padding: 0 2rem;
+}
+
+.server-auto-refresh-disabled {
+  accent-color: var(--color-accent);
+  flex: 0 0 auto;
 }
 
 .download-link,

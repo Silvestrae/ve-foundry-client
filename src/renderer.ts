@@ -1344,6 +1344,9 @@ async function createGameItem(game: GameConfig) {
     loginData.adminPassword;
   (li.querySelector(".game-name-edit") as HTMLInputElement).value = game.name;
   (li.querySelector(".game-url-edit") as HTMLInputElement).value = game.url;
+  (
+    li.querySelector(".server-auto-refresh-disabled") as HTMLInputElement
+  ).checked = game.serverInfoAutoRefreshDisabled ?? false;
   li.querySelector("a").innerText = game.name;
   setupServerReorder(li);
   void applyCachedServerButtonBackground(li, game);
@@ -1359,7 +1362,9 @@ async function createGameItem(game: GameConfig) {
     window.location.href = game.url;
   });
   gameItemList.appendChild(li);
-  await updateServerInfos(li, game);
+  if (!game.serverInfoAutoRefreshDisabled) {
+    await updateServerInfos(li, game);
+  }
 
   // Retrieve app config from userData
   const appConfig = await window.api.localAppConfig();
@@ -1414,6 +1419,11 @@ async function createGameItem(game: GameConfig) {
     const newGameUrl = (
       closeUserConfig.querySelector(".game-url-edit") as HTMLInputElement
     ).value;
+    const serverInfoAutoRefreshDisabled = (
+      closeUserConfig.querySelector(
+        ".server-auto-refresh-disabled",
+      ) as HTMLInputElement
+    ).checked;
 
     console.log({
       gameId,
@@ -1422,10 +1432,12 @@ async function createGameItem(game: GameConfig) {
       adminPassword,
       newGameName,
       newGameUrl,
+      serverInfoAutoRefreshDisabled,
     });
 
     game.name = newGameName;
     game.url = newGameUrl;
+    game.serverInfoAutoRefreshDisabled = serverInfoAutoRefreshDisabled;
 
     (li.querySelector("a") as HTMLAnchorElement).innerText = newGameName;
     li.setAttribute("data-game-id", getGameKey(game));
@@ -1435,6 +1447,8 @@ async function createGameItem(game: GameConfig) {
       if (gameToUpdate) {
         gameToUpdate.name = newGameName;
         gameToUpdate.url = newGameUrl;
+        gameToUpdate.serverInfoAutoRefreshDisabled =
+          serverInfoAutoRefreshDisabled;
       }
     });
     await refreshServerButtonBackground(li, game, { force: true });

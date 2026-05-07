@@ -2,8 +2,12 @@
 <template>
   <!-- header or toolbox here -->
 
-  <button class="update-available" @click="checkUpdates">
-    Check for updates
+  <button
+    class="update-available"
+    :class="{ 'update-available-glow': isUpdateAvailable }"
+    @click="checkUpdates"
+  >
+    {{ isUpdateAvailable ? "Update Available" : "Check for updates" }}
   </button>
 
   <AppConfiguration
@@ -22,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { computed, ref, onMounted } from "vue";
 import {
   showNotification,
   initNotificationTimer,
@@ -42,6 +46,9 @@ import AppConfiguration from "./components/AppConfigurationModal.vue";
 const updaterStore = useUpdaterStore();
 const ui = useUiStore();
 const { appConfigVisible } = storeToRefs(ui);
+const isUpdateAvailable = computed(() =>
+  ["available", "downloaded"].includes(updaterStore.status),
+);
 
 import type { AppConfigurationForm } from "./types/appConfiguration";
 
@@ -49,6 +56,7 @@ const appConfig = ref<AppConfigurationForm>({
   cachePath: "",
   clearCacheOnClose: false,
   insecureSsl: false,
+  externalLinksInDefaultBrowser: true,
   notificationTimer: 3,
   enableServerStatus: true,
   showServerStatusOnline: true,
@@ -71,6 +79,7 @@ async function loadAppConfigIntoForm() {
     cachePath: cfg.cachePath ?? "",
     clearCacheOnClose: cfg.autoCacheClear ?? false,
     insecureSsl: cfg.ignoreCertificateErrors ?? false,
+    externalLinksInDefaultBrowser: cfg.externalLinksInDefaultBrowser ?? true,
     notificationTimer: cfg.notificationTimer ?? 3,
 
     enableServerStatus: cfg.serverInfoEnabled ?? true,
@@ -133,7 +142,7 @@ async function handleSave(form: AppConfigurationForm) {
 // Reset Settings
 async function handleReset() {
   const confirmed = await safePrompt(
-    "Are you sure you want to reset all client settings? This will reset your cache, certificate, fullscreen, session and Discord options (games and themes are not affected).",
+    "Are you sure you want to reset all client settings? This will reset your cache, certificate, external link, fullscreen, session and Discord options (games and themes are not affected).",
   );
   if (!confirmed) return;
 
@@ -142,6 +151,7 @@ async function handleReset() {
     cachePath: "",
     clearCacheOnClose: false,
     insecureSsl: false,
+    externalLinksInDefaultBrowser: true,
     notificationTimer: 3,
     enableServerStatus: true,
     showServerStatusOnline: true,
@@ -163,6 +173,7 @@ async function handleReset() {
   current.autoCacheClear = undefined;
   current.customCSS = undefined;
   current.ignoreCertificateErrors = undefined;
+  current.externalLinksInDefaultBrowser = undefined;
   current.discordRP = undefined;
   current.fullScreenEnabled = undefined;
   current.shareSessionWindows = undefined;
