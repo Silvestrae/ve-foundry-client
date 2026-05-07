@@ -1554,12 +1554,20 @@ app.whenReady().then(async () => {
     // only check once, right after launch
     autoUpdater
       .checkForUpdates()
-      .then((result) => {
+      .then(async (result) => {
         // result has a .updateInfo object
         const latest = result.updateInfo?.version;
         const current = app.getVersion();
 
         if (latest && latest !== current) {
+          const updateInfo = await enrichUpdateInfoWithReleaseNotes(
+            result.updateInfo,
+          );
+          sendUpdateStatus(
+            "available",
+            { ...updateInfo, silent: true },
+            mainWindow,
+          );
           notifyMainWindow(`An update is available!`);
         }
       })

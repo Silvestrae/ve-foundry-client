@@ -21,6 +21,7 @@ export interface UpdatePayload {
   releaseNotes?: string;
   releaseName?: string;
   releaseDate?: string;
+  silent?: boolean;
 }
 
 export const useUpdaterStore = defineStore("updater", {
@@ -35,11 +36,11 @@ export const useUpdaterStore = defineStore("updater", {
       payload,
     }: {
       status: UpdaterStatus;
-      payload?: any;
+      payload?: UpdatePayload;
     }) {
       this.status = status;
       this.payload = payload || {};
-      this.visible = true;
+      this.visible = !payload?.silent;
     },
     close() {
       this.visible = false;
