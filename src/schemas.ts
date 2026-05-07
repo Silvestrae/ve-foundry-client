@@ -18,6 +18,7 @@ export const GameConfigSchema = z.object({
   id: GameIdSchema.optional(),
   cssId: z.string().optional(),
   serverInfoAutoRefreshDisabled: z.boolean().optional(),
+  autoLoginEnabled: z.boolean().optional().prefault(true),
   backgroundImageUrl: z.string().optional(),
   backgroundImageLocalUrl: z.string().optional(),
   backgroundImageFileName: z.string().optional(),

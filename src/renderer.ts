@@ -225,6 +225,7 @@ document.querySelector("#add-game").addEventListener("click", async () => {
     name: gameName,
     url: gameUrl,
     id: Math.round(Math.random() * 1000000),
+    autoLoginEnabled: true,
   } as GameConfig;
   await updateGameList((appConfig) => {
     appConfig.games = appConfig?.games ?? [];
@@ -1347,13 +1348,20 @@ async function createGameItem(game: GameConfig) {
   (
     li.querySelector(".server-auto-refresh-disabled") as HTMLInputElement
   ).checked = game.serverInfoAutoRefreshDisabled ?? false;
+  (li.querySelector(".server-auto-login-enabled") as HTMLInputElement).checked =
+    game.autoLoginEnabled ?? true;
   li.querySelector("a").innerText = game.name;
   setupServerReorder(li);
   void applyCachedServerButtonBackground(li, game);
   li.querySelector(".game-main-button").addEventListener("click", async () => {
-    window.api.openGame(game.id ?? game.name, game.name);
-    await refreshServerButtonBackground(li, game);
     const appConfig: AppConfig = await window.api.localAppConfig();
+    const savedGame = appConfig.games?.find(
+      (storedGame) => String(storedGame.id) === String(game.id),
+    );
+    const shouldAutoLogin =
+      savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
+    window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
+    await refreshServerButtonBackground(li, game);
     if (appConfig.discordRP) {
       if (window.richPresence?.enable) {
         window.richPresence.enable();
@@ -1424,6 +1432,11 @@ async function createGameItem(game: GameConfig) {
         ".server-auto-refresh-disabled",
       ) as HTMLInputElement
     ).checked;
+    const autoLoginEnabled = (
+      closeUserConfig.querySelector(
+        ".server-auto-login-enabled",
+      ) as HTMLInputElement
+    ).checked;
 
     console.log({
       gameId,
@@ -1433,11 +1446,13 @@ async function createGameItem(game: GameConfig) {
       newGameName,
       newGameUrl,
       serverInfoAutoRefreshDisabled,
+      autoLoginEnabled,
     });
 
     game.name = newGameName;
     game.url = newGameUrl;
     game.serverInfoAutoRefreshDisabled = serverInfoAutoRefreshDisabled;
+    game.autoLoginEnabled = autoLoginEnabled;
 
     (li.querySelector("a") as HTMLAnchorElement).innerText = newGameName;
     li.setAttribute("data-game-id", getGameKey(game));
@@ -1449,6 +1464,7 @@ async function createGameItem(game: GameConfig) {
         gameToUpdate.url = newGameUrl;
         gameToUpdate.serverInfoAutoRefreshDisabled =
           serverInfoAutoRefreshDisabled;
+        gameToUpdate.autoLoginEnabled = autoLoginEnabled;
       }
     });
     await refreshServerButtonBackground(li, game, { force: true });

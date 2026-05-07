@@ -809,7 +809,8 @@ select option {
   font-size: 1.4rem;
 }
 
-.server-auto-refresh-field {
+.server-auto-refresh-field,
+.server-auto-login-field {
   align-items: center;
   color: var(--color-text-primary);
   cursor: pointer;
@@ -822,7 +823,8 @@ select option {
   padding: 0 2rem;
 }
 
-.server-auto-refresh-disabled {
+.server-auto-refresh-disabled,
+.server-auto-login-enabled {
   accent-color: var(--color-accent);
   flex: 0 0 auto;
 }

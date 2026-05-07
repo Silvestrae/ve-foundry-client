@@ -12,6 +12,7 @@ type GameConfigType = {
   id?: GameId;
   cssId?: string;
   serverInfoAutoRefreshDisabled?: boolean;
+  autoLoginEnabled?: boolean;
   backgroundImageUrl?: string;
   backgroundImageLocalUrl?: string;
   backgroundImageFileName?: string;

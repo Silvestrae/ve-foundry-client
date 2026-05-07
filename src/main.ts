@@ -1201,44 +1201,139 @@ function createWindow(): BrowserWindow {
     if (!url.endsWith("/join") && !url.endsWith("/auth")) return;
     const userData = getLoginDetails(windowsData[win.webContents.id].gameId);
     if (!userData.user) return;
+    const loginPayload = JSON.stringify({
+      user: userData.user,
+      password: userData.password,
+      adminPassword: userData.adminPassword,
+      autoLogin: windowsData[win.webContents.id].autoLogin,
+    });
     win.webContents.executeJavaScript(`
-            async function waitForLoad() {
-                const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-                while (!document.querySelector('select[name="userid"]') && !document.querySelector('input[name="adminPassword"]')) {
-                    await wait(100);
-                }
-                console.log("logging in");
-                login();
+      (() => {
+        const credentials = ${loginPayload};
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        function setFieldValue(field, value) {
+          if (!field) return;
+          field.value = value ?? "";
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+          field.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        function selectUser(select, userName) {
+          if (!select) return;
+          const normalizedUserName = String(userName).trim();
+          const option = Array.from(select.options).find((opt) => {
+            return (
+              opt.textContent?.trim() === normalizedUserName ||
+              opt.label?.trim() === normalizedUserName ||
+              opt.value === normalizedUserName
+            );
+          });
+          if (option) {
+            select.value = option.value;
+            select.dispatchEvent(new Event("input", { bubbles: true }));
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }
+
+        function findSubmitButton() {
+          return document.querySelector(
+            [
+              'button[name="join"]',
+              'button[data-action="join"]',
+              '#join-game button[type="submit"]',
+              '#join-game button',
+              'form button[type="submit"]',
+              'button[type="submit"]',
+            ].join(","),
+          );
+        }
+
+        function submitLogin() {
+          const button = findSubmitButton();
+          const form =
+            button?.closest("form") ??
+            document.querySelector("#join-game") ??
+            document.querySelector("form");
+
+          if (form instanceof HTMLFormElement) {
+            if (typeof form.requestSubmit === "function") {
+              form.requestSubmit(button instanceof HTMLElement ? button : undefined);
+              return true;
             }
+            form.dispatchEvent(
+              new Event("submit", { bubbles: true, cancelable: true }),
+            );
+            return true;
+          }
 
-            function login() {
-                const adminPassword = document.querySelector('input[name="adminPassword"]');
-                if (adminPassword)
-                    adminPassword.value = "${userData.adminPassword}";
-                const select = document.querySelector('select[name="userid"]');
-                if (select)
-                    select.querySelectorAll("option").forEach(opt => {
-                        opt.selected = opt.innerText === "${userData.user}";
-                    });
-                const password = document.querySelector('input[name="password"]');
-                if (password)
-                    password.value = "${userData.password}";
-                const fakeEvent = {
-                    preventDefault: () => {
-                    }, target: document.getElementById("join-game")
-                }
-                if (${windowsData[win.webContents.id].autoLogin}) {
-                    ui.join._onSubmit(fakeEvent);
-                } else {
-                    document.querySelector(".form-footer button[name=join]").addEventListener("click", () => {
-                        ui.join._onSubmit(fakeEvent);
-                    });
-                }
+          if (button instanceof HTMLElement) {
+            button.click();
+            return true;
+          }
+
+          if (typeof ui?.join?._onSubmit === "function") {
+            ui.join._onSubmit({
+              preventDefault() {},
+              target: document.getElementById("join-game") ?? document,
+            });
+            return true;
+          }
+
+          return false;
+        }
+
+        async function waitForLoginFields() {
+          for (let i = 0; i < 150; i += 1) {
+            if (
+              document.querySelector(
+                [
+                  'select[name="userid"]',
+                  'select[name="user"]',
+                  'input[name="userid"]',
+                  'input[name="user"]',
+                  'input[name="password"]',
+                  'input[name="adminPassword"]',
+                ].join(","),
+              )
+            ) {
+              return true;
             }
+            await wait(100);
+          }
+          return false;
+        }
 
-            waitForLoad();
+        async function login() {
+          const fieldsFound = await waitForLoginFields();
+          if (!fieldsFound) return;
 
-        `);
+          setFieldValue(
+            document.querySelector('input[name="adminPassword"]'),
+            credentials.adminPassword,
+          );
+          selectUser(
+            document.querySelector('select[name="userid"], select[name="user"]'),
+            credentials.user,
+          );
+          setFieldValue(
+            document.querySelector('input[name="userid"], input[name="user"]'),
+            credentials.user,
+          );
+          setFieldValue(
+            document.querySelector('input[name="password"]'),
+            credentials.password,
+          );
+
+          if (credentials.autoLogin) {
+            await wait(75);
+            submitLogin();
+          }
+        }
+
+        login();
+      })();
+    `);
     windowsData[win.webContents.id].autoLogin = false;
   });
 
@@ -1506,8 +1601,9 @@ ipcMain.on("enable-discord-rpc", (event) => {
   enableRichPresence(event.sender.id);
 });
 
-ipcMain.on("open-game", (e, gId, gameName: string) => {
+ipcMain.on("open-game", (e, gId, gameName: string, autoLogin = true) => {
   windowsData[e.sender.id].gameId = gId;
+  windowsData[e.sender.id].autoLogin = autoLogin;
   windowsData[e.sender.id].selectedServerName = gameName;
 });
 ipcMain.on("clear-cache", async (event) => event.sender.session.clearCache());

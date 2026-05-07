@@ -39,7 +39,11 @@ export type ContextBridgeApi = {
   setCachePath: (cachePath: string) => void;
   returnToServerSelect: () => void;
   saveUserData: (data: SaveUserData) => void;
-  openGame: (id: number | string, serverName: string) => void;
+  openGame: (
+    id: number | string,
+    serverName: string,
+    autoLogin?: boolean,
+  ) => void;
   clearCache: () => void;
   saveAppConfig: (data: AppConfig) => void;
   saveThemeConfig: (data: ThemeConfig) => void;
@@ -127,8 +131,8 @@ const exposedApi: ContextBridgeApi = {
   saveUserData(data: SaveUserData) {
     ipcRenderer.send("save-user-data", data);
   },
-  openGame(id: number | string, serverName: string) {
-    ipcRenderer.send("open-game", id, serverName);
+  openGame(id: number | string, serverName: string, autoLogin = true) {
+    ipcRenderer.send("open-game", id, serverName, autoLogin);
   },
   clearCache() {
     ipcRenderer.send("clear-cache");
