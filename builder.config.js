@@ -2,6 +2,8 @@
 
 require("dotenv").config();
 
+const artifactProductName = "VE-Foundry-Client";
+
 module.exports = {
   appId: "com.silvestrae.ve-foundry-client",
   productName: "VE Foundry Client",
@@ -31,30 +33,30 @@ module.exports = {
       "zip",
     ],
     icon: "src/icons/win/icon.ico",
-    artifactName: "${productName}_${version}_${os}-${arch}.${ext}",
+    artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
   nsis: {
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,
     include: "build/installer.nsh",
-    artifactName: "${productName}_${version}_${os}-${arch}.${ext}",
+    artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
   portable: {
-    artifactName: "${productName}_${version}_portable-${arch}.${ext}",
+    artifactName: `${artifactProductName}_\${version}_portable-\${arch}.\${ext}`,
   },
 
   mac: {
     target: ["dmg", "zip"],
     icon: "src/icons/mac/icon.icns",
-    artifactName: "${productName}_${version}_${os}-${arch}.${ext}",
+    artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
 
   linux: {
     target: ["AppImage", "deb", "rpm", "zip", "tar.gz"],
     icon: "src/icons/png",
     maintainer: "JeidoUran <jeido.uran@hotmail.fr>",
-    artifactName: "${productName}_${version}_${os}-${arch}.${ext}",
+    artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
 
   publish: [
