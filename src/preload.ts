@@ -62,6 +62,7 @@ export type ContextBridgeApi = {
     options?: ServerBackgroundOptions,
   ) => Promise<ServerBackgroundData | null>;
   serverBackgroundLocalUrl: (fileName: string) => Promise<string | null>;
+  onRefreshServerBackgrounds: (callback: () => void) => void;
   setFullScreen: (fullscreen: boolean) => void;
   /** ask main “are we full-screen right now?” */
   isFullScreen: () => Promise<boolean>;
@@ -186,6 +187,11 @@ const exposedApi: ContextBridgeApi = {
     ipcRenderer.invoke("server-background-local-url", fileName) as Promise<
       string | null
     >,
+  onRefreshServerBackgrounds(callback: () => void): void {
+    ipcRenderer.on("refresh-server-backgrounds", () => {
+      callback();
+    });
+  },
 
   platform: process.platform,
   versions: process.versions,

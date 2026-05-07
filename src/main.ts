@@ -18,6 +18,7 @@ import {
   UserDataSchema,
   ThemeConfigSchema,
   AppConfigSchema,
+  GameUserDataSchema,
   UserData,
   AppConfig,
   ThemeConfig,
@@ -89,10 +90,60 @@ const DEFAULT_WINDOW_BOUNDS: WindowBounds = {
   height: 600,
 };
 
+const ORIGINAL_APP_USER_DATA_DIR_NAMES = [
+  "FVTT Desktop Client",
+  "FVTT Player Client",
+  "VTT Desktop Client",
+  "fvtt-player-client",
+] as const;
+
 type MigrationStatus = "skipped" | "success" | "failure";
+
+function getUserDataPath() {
+  return path.join(app.getPath("userData"), "userData.json");
+}
+
+function migrateUserDataObject(rawData: unknown) {
+  const themeKeys = [
+    "background",
+    "backgrounds",
+    "backgroundColor",
+    "textColor",
+    "accentColor",
+    "buttonColorAlpha",
+    "buttonColor",
+    "theme",
+    "particlesEnabled",
+  ] as const;
+
+  const dataObj =
+    typeof rawData === "object" && rawData !== null
+      ? { ...(rawData as Record<string, any>) }
+      : {};
+
+  let migrated = false;
+  dataObj.theme = dataObj.theme ?? {};
+  if (dataObj.app) {
+    for (const key of themeKeys) {
+      if ((dataObj.app as any)[key] !== undefined) {
+        (dataObj.theme as any)[key] = (dataObj.app as any)[key];
+        delete (dataObj.app as any)[key];
+        migrated = true;
+      }
+    }
+  }
+  if (dataObj.theme && (dataObj.theme as any).theme !== undefined) {
+    (dataObj.theme as any).baseTheme = (dataObj.theme as any).theme;
+    delete (dataObj.theme as any).theme;
+    migrated = true;
+  }
+
+  return { data: dataObj, migrated };
+}
+
 async function migrateUserData(): Promise<MigrationStatus> {
-  const userDataPath = path.join(app.getPath("userData"), "userData.json");
-  let rawData: any = {};
+  const userDataPath = getUserDataPath();
+  let rawData: unknown = {};
   try {
     rawData = JSON.parse(fs.readFileSync(userDataPath, "utf-8"));
   } catch {
@@ -149,7 +200,7 @@ async function migrateUserData(): Promise<MigrationStatus> {
 
 export function getUserData(): UserData {
   if (require("electron-squirrel-startup")) return;
-  const userDataPath = path.join(app.getPath("userData"), "userData.json");
+  const userDataPath = getUserDataPath();
   let rawData: unknown = {};
 
   // Secure read
@@ -270,6 +321,149 @@ export function getUserData(): UserData {
     );
     // As last resort, return an empty userData
     return UserDataSchema.parse({ app: { games: [] }, theme: {} });
+  }
+}
+
+type OriginalUserDataCandidate = {
+  appName: string;
+  userDataPath: string;
+};
+
+const STATIC_USER_DATA_KEYS = new Set([
+  "app",
+  "theme",
+  "cachePath",
+  "schemaVersion",
+  "lastRunAppVersion",
+]);
+
+function normalizePathForCompare(filePath: string) {
+  const resolved = path.resolve(filePath);
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+function getOriginalUserDataCandidates(): OriginalUserDataCandidate[] {
+  const roots = new Set<string>();
+  try {
+    roots.add(app.getPath("appData"));
+  } catch {
+    // appData is only available after Electron is ready.
+  }
+  if (process.env.APPDATA) roots.add(process.env.APPDATA);
+  if (process.platform === "linux") {
+    roots.add(
+      process.env.XDG_CONFIG_HOME ?? path.join(app.getPath("home"), ".config"),
+    );
+  }
+  if (process.platform === "darwin") {
+    roots.add(path.join(app.getPath("home"), "Library", "Application Support"));
+  }
+
+  const currentUserDataPath = normalizePathForCompare(getUserDataPath());
+  const candidates: OriginalUserDataCandidate[] = [];
+  const seen = new Set<string>();
+  for (const root of roots) {
+    for (const appName of ORIGINAL_APP_USER_DATA_DIR_NAMES) {
+      const userDataPath = path.join(root, appName, "userData.json");
+      const normalizedPath = normalizePathForCompare(userDataPath);
+      if (normalizedPath === currentUserDataPath || seen.has(normalizedPath)) {
+        continue;
+      }
+      seen.add(normalizedPath);
+      candidates.push({ appName, userDataPath });
+    }
+  }
+
+  return candidates;
+}
+
+function getOriginalUserDataCandidate() {
+  return (
+    getOriginalUserDataCandidates().find((candidate) =>
+      fs.pathExistsSync(candidate.userDataPath),
+    ) ?? null
+  );
+}
+
+function prepareImportedUserData(rawData: unknown): UserData {
+  const { data } = migrateUserDataObject(rawData);
+  const defaultApp = AppConfigSchema.parse({ games: [] });
+  const defaultTheme = ThemeConfigSchema.parse({});
+  const appResult = AppConfigSchema.safeParse(data.app);
+  const themeResult = ThemeConfigSchema.safeParse(data.theme);
+  const importedData: Record<string, any> = {
+    app: appResult.success ? appResult.data : defaultApp,
+    theme: themeResult.success ? themeResult.data : defaultTheme,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    lastRunAppVersion: app.getVersion(),
+  };
+
+  if (typeof data.cachePath === "string") {
+    importedData.cachePath = data.cachePath;
+  }
+
+  for (const [key, value] of Object.entries(data)) {
+    if (STATIC_USER_DATA_KEYS.has(key)) continue;
+    const loginResult = GameUserDataSchema.safeParse(value);
+    if (loginResult.success) {
+      importedData[key] = loginResult.data;
+    }
+  }
+
+  const imported = UserDataSchema.parse(importedData);
+  for (const game of imported.app?.games ?? []) {
+    delete game.backgroundImageLocalUrl;
+    delete game.backgroundImageFileName;
+    delete game.backgroundImageUpdatedAt;
+  }
+
+  return imported;
+}
+
+function reloadWindowAndRefreshServerBackgrounds(win: BrowserWindow) {
+  win.webContents.once("did-finish-load", () => {
+    setTimeout(() => {
+      if (!win.isDestroyed()) {
+        win.webContents.send("refresh-server-backgrounds");
+      }
+    }, 750);
+  });
+  win.reload();
+}
+
+async function promptImportOriginalUserData(win: BrowserWindow) {
+  const candidate = getOriginalUserDataCandidate();
+  if (!candidate) return false;
+
+  const shouldImport = await askPrompt(
+    `Saved settings from ${candidate.appName} were found. Import servers, themes, and login details into VE Foundry Client? Server button backgrounds will be refreshed after import.`,
+    undefined,
+    win,
+  );
+  if (!shouldImport) return false;
+
+  try {
+    const rawData = JSON.parse(
+      fs.readFileSync(candidate.userDataPath, "utf-8"),
+    );
+    const importedData = prepareImportedUserData(rawData);
+    fs.ensureDirSync(app.getPath("userData"));
+    fs.writeFileSync(
+      getUserDataPath(),
+      JSON.stringify(importedData, null, 2),
+      "utf-8",
+    );
+    notifyMainWindow(`Imported settings from ${candidate.appName}`, win);
+    reloadWindowAndRefreshServerBackgrounds(win);
+    return true;
+  } catch (e) {
+    console.warn("[getUserData] Original app import failed:", e);
+    await askPrompt(
+      `Could not import settings from ${candidate.appName}.`,
+      { mode: "alert" },
+      win,
+    );
+    return false;
   }
 }
 
@@ -966,7 +1160,7 @@ app.whenReady().then(async () => {
   const migrationResult = await migrateUserData();
 
   // ── Detects first launch : userData.json missing ──
-  const userDataPath = path.join(app.getPath("userData"), "userData.json");
+  const userDataPath = getUserDataPath();
   const isFirstUser = !fs.existsSync(userDataPath);
 
   mainWindow = createWindow();
@@ -1014,6 +1208,10 @@ app.whenReady().then(async () => {
     }
     // Welcome, new users!
     if (isFirstUser) {
+      const importedOriginalUserData =
+        await promptImportOriginalUserData(mainWindow);
+      if (importedOriginalUserData) return;
+
       notifyMainWindow(`Welcome!`);
     }
   });

@@ -135,6 +135,23 @@ async function refreshServerButtonBackground(
   }
 }
 
+async function refreshAllServerButtonBackgrounds(
+  options: { force?: boolean } = {},
+) {
+  await createGameList();
+  const gameItems = Array.from(
+    gameItemList.querySelectorAll<HTMLElement>(".game-item"),
+  );
+
+  for (const item of gameItems) {
+    const gameId = item.dataset.gameId;
+    const game = games.find((g) => getGameKey(g) === gameId);
+    if (game) {
+      await refreshServerButtonBackground(item, game, options);
+    }
+  }
+}
+
 /**
  * Dynamically inject or remove a Google Font from a <link> in <head>.
  * key is here to differentiate <link> (ex. "primary" or "secondary").
@@ -178,6 +195,12 @@ window.api.onShowPrompt(({ id, message, options }) => {
   safePrompt(message, options).then((answer) => {
     window.api.sendPromptResponse(id, answer);
   });
+});
+
+window.api.onRefreshServerBackgrounds(async () => {
+  showNotification("Refreshing imported server backgrounds...");
+  await refreshAllServerButtonBackgrounds({ force: true });
+  showNotification("Server backgrounds refreshed");
 });
 
 window.api.onFullScreenChange((isFs) => {

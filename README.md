@@ -27,6 +27,7 @@ Original Wiki https://wiki.theripper93.com/free/vtt-desktop-client
 | Remembers maximized window state             |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
 | External links open in default browser       |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
 | Reorder server buttons                       |          ![No](https://img.shields.io/badge/-✗-cf222e)           |         ![No](https://img.shields.io/badge/-✗-cf222e)          |        ![No](https://img.shields.io/badge/-✗-cf222e)         |        ![Yes](https://img.shields.io/badge/-✓-2ea44f)         |
+| Import original app settings on first run    |          ![No](https://img.shields.io/badge/-No-cf222e)          |         ![No](https://img.shields.io/badge/-No-cf222e)         |        ![No](https://img.shields.io/badge/-No-cf222e)        |       ![Yes](https://img.shields.io/badge/-Yes-2ea44f)        |
 
 ## Server Backgrounds
 
