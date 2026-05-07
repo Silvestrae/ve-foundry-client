@@ -38,6 +38,12 @@ VE Foundry Client can use each Foundry server's login-page background as the bac
 - Saving server settings forces a fresh background download.
 - If a reachable server no longer has a background, the cached button image is cleared. If the server is offline, the last cached background is kept.
 
+## Migrating from FVTT Desktop Client
+
+On first run, VE Foundry Client checks for saved settings from the original FVTT Desktop Client app. If settings are found, the app prompts to import servers, themes, and login details into VE Foundry Client's own app data folder.
+
+Before importing, VE Foundry Client saves a local backup of its current `userData.json` in the VE app data folder. After a successful import, the app can prompt to uninstall the original client if it is still installed.
+
 ## Discord Rich Presence
 
 In order to enable and use Rich Presence, you also need to have the module [Foundry VTT Rich Presence](https://github.com/JeidoUran/fvtt-rich-presence) installed and enabled on each world you want to use it with. Furthermore, you need to enable the option **Enable Discord Rich Presence** in both the **Client Configuration** and the **Module Settings**, as it is off by default.

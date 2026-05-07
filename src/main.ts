@@ -36,6 +36,7 @@ import {
 import path from "path";
 import fs from "fs-extra";
 import { fileURLToPath, pathToFileURL } from "url";
+import { execFile } from "child_process";
 import log from "electron-log";
 import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
@@ -329,12 +330,22 @@ type OriginalUserDataCandidate = {
   userDataPath: string;
 };
 
+type OriginalAppUninstallCandidate = {
+  appName: string;
+  executablePath: string;
+  args?: string[];
+};
+
 const STATIC_USER_DATA_KEYS = new Set([
   "app",
   "theme",
   "cachePath",
   "schemaVersion",
   "lastRunAppVersion",
+  "originalImportDeclinedAt",
+  "originalImportDeclinedAppName",
+  "originalUninstallDeclinedAt",
+  "originalUninstallDeclinedAppName",
 ]);
 
 function normalizePathForCompare(filePath: string) {
@@ -383,6 +394,154 @@ function getOriginalUserDataCandidate() {
       fs.pathExistsSync(candidate.userDataPath),
     ) ?? null
   );
+}
+
+function updateUserDataFile(task: (data: UserData) => void) {
+  const data = getUserData();
+  task(data);
+  fs.writeFileSync(getUserDataPath(), JSON.stringify(data, null, 2), "utf-8");
+}
+
+function markOriginalImportDeclined(candidate: OriginalUserDataCandidate) {
+  updateUserDataFile((data) => {
+    data.originalImportDeclinedAt = new Date().toISOString();
+    data.originalImportDeclinedAppName = candidate.appName;
+  });
+}
+
+function markOriginalUninstallDeclined(
+  candidate: OriginalAppUninstallCandidate,
+) {
+  updateUserDataFile((data) => {
+    data.originalUninstallDeclinedAt = new Date().toISOString();
+    data.originalUninstallDeclinedAppName = candidate.appName;
+  });
+}
+
+function getOriginalAppUninstallCandidates(): OriginalAppUninstallCandidate[] {
+  const candidates: OriginalAppUninstallCandidate[] = [];
+
+  if (process.env.LOCALAPPDATA) {
+    candidates.push(
+      {
+        appName: "VTT Desktop Client",
+        executablePath: path.join(
+          process.env.LOCALAPPDATA,
+          "vtt_desktop_client",
+          "Update.exe",
+        ),
+        args: ["--uninstall", "-s"],
+      },
+      {
+        appName: "FVTT Desktop Client",
+        executablePath: path.join(
+          process.env.LOCALAPPDATA,
+          "Programs",
+          "FVTT Desktop Client",
+          "Uninstall FVTT Desktop Client.exe",
+        ),
+      },
+    );
+  }
+
+  const programFilesRoots = [
+    process.env.ProgramFiles,
+    process.env.ProgramW6432,
+    process.env["ProgramFiles(x86)"],
+  ].filter((root): root is string => !!root);
+
+  for (const root of programFilesRoots) {
+    candidates.push({
+      appName: "FVTT Desktop Client",
+      executablePath: path.join(
+        root,
+        "FVTT Desktop Client",
+        "Uninstall FVTT Desktop Client.exe",
+      ),
+    });
+  }
+
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    const normalizedPath = normalizePathForCompare(candidate.executablePath);
+    if (seen.has(normalizedPath)) return false;
+    seen.add(normalizedPath);
+    return true;
+  });
+}
+
+function getOriginalAppUninstallCandidate() {
+  return (
+    getOriginalAppUninstallCandidates().find((candidate) =>
+      fs.pathExistsSync(candidate.executablePath),
+    ) ?? null
+  );
+}
+
+function runOriginalAppUninstaller(candidate: OriginalAppUninstallCandidate) {
+  return new Promise<void>((resolve, reject) => {
+    execFile(candidate.executablePath, candidate.args ?? [], (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+async function promptUninstallOriginalApp(win: BrowserWindow) {
+  if (process.platform !== "win32") return;
+
+  const candidate = getOriginalAppUninstallCandidate();
+  if (!candidate) return;
+
+  const currentData = getUserData();
+  if (currentData.originalUninstallDeclinedAt) return;
+
+  const shouldUninstall = await askPrompt(
+    "Settings were imported into VE Foundry Client. You can now uninstall the original app if you no longer need it.",
+    undefined,
+    win,
+  );
+  if (!shouldUninstall) {
+    markOriginalUninstallDeclined(candidate);
+    return;
+  }
+
+  try {
+    await runOriginalAppUninstaller(candidate);
+    notifyMainWindow(`${candidate.appName} uninstall started`, win);
+  } catch (e) {
+    console.warn("[installer] Original app uninstall failed:", e);
+    await askPrompt(
+      `Could not start the ${candidate.appName} uninstaller.`,
+      { mode: "alert" },
+      win,
+    );
+  }
+}
+
+function createPreImportBackup() {
+  const userDataPath = getUserDataPath();
+  if (!fs.pathExistsSync(userDataPath)) return null;
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupPath = path.join(
+    app.getPath("userData"),
+    `userData.before-original-import.${timestamp}.json`,
+  );
+  fs.copyFileSync(userDataPath, backupPath);
+  return backupPath;
+}
+
+function getImportSuccessMessage(
+  candidate: OriginalUserDataCandidate,
+  importedData: UserData,
+) {
+  const serverCount = importedData.app?.games?.length ?? 0;
+  const serverText = serverCount === 1 ? "1 server" : `${serverCount} servers`;
+  return `Imported ${serverText} and theme settings from ${candidate.appName}`;
 }
 
 function prepareImportedUserData(rawData: unknown): UserData {
@@ -435,25 +594,33 @@ async function promptImportOriginalUserData(win: BrowserWindow) {
   const candidate = getOriginalUserDataCandidate();
   if (!candidate) return false;
 
+  const currentData = getUserData();
+  if (currentData.originalImportDeclinedAt) return false;
+
   const shouldImport = await askPrompt(
-    `Saved settings from ${candidate.appName} were found. Import servers, themes, and login details into VE Foundry Client? Server button backgrounds will be refreshed after import.`,
+    `Saved settings from ${candidate.appName} were found. Import servers, themes, and login details into VE Foundry Client?`,
     undefined,
     win,
   );
-  if (!shouldImport) return false;
+  if (!shouldImport) {
+    markOriginalImportDeclined(candidate);
+    return false;
+  }
 
   try {
     const rawData = JSON.parse(
       fs.readFileSync(candidate.userDataPath, "utf-8"),
     );
     const importedData = prepareImportedUserData(rawData);
+    createPreImportBackup();
     fs.ensureDirSync(app.getPath("userData"));
     fs.writeFileSync(
       getUserDataPath(),
       JSON.stringify(importedData, null, 2),
       "utf-8",
     );
-    notifyMainWindow(`Imported settings from ${candidate.appName}`, win);
+    notifyMainWindow(getImportSuccessMessage(candidate, importedData), win);
+    await promptUninstallOriginalApp(win);
     reloadWindowAndRefreshServerBackgrounds(win);
     return true;
   } catch (e) {

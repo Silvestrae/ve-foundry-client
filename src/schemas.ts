@@ -123,6 +123,10 @@ const UserDataStaticSchema = z.object({
   theme: ThemeConfigSchema.optional(),
   schemaVersion: z.number().prefault(CURRENT_SCHEMA_VERSION),
   lastRunAppVersion: z.string().prefault("0.0.0"),
+  originalImportDeclinedAt: z.string().optional(),
+  originalImportDeclinedAppName: z.string().optional(),
+  originalUninstallDeclinedAt: z.string().optional(),
+  originalUninstallDeclinedAppName: z.string().optional(),
 });
 
 // GameUserData
