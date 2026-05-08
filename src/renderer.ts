@@ -2,6 +2,7 @@
 import * as particles from "./utils/particles";
 import { ThemeConfigSchema, ParticleOptions, GameConfig } from "./schemas";
 import { mergeAppData, mergeThemeData } from "./utils/mergeData";
+import { extractImportedLoginRecords } from "./utils/importLoginRecords";
 import { showNotification, initNotificationTimer } from "./utils/notifications";
 import {
   applyRuntimeAppConfig,
@@ -1159,6 +1160,9 @@ async function applyShareImport() {
     const mergedApp = await mergeAppData(data.app);
     const mergedTheme = await mergeThemeData(data.theme);
     await window.api.saveAppConfig(mergedApp);
+    window.api.saveLoginRecords(
+      extractImportedLoginRecords(data, mergedApp.games ?? []),
+    );
     await window.api.saveThemeConfig(mergedTheme);
     await applyRuntimeAppConfig(mergedApp);
     applyThemeConfig(mergedTheme);
@@ -1172,7 +1176,7 @@ async function applyShareImport() {
       `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
     );
     await createGameList();
-    return showNotification("Settings imported");
+    return showNotification("Settings and login details imported");
   }
 
   // theme-only import
@@ -1226,6 +1230,9 @@ async function importFromFile() {
       const mergedApp = await mergeAppData(data.app);
       const mergedTheme = await mergeThemeData(data.theme);
       await window.api.saveAppConfig(mergedApp);
+      window.api.saveLoginRecords(
+        extractImportedLoginRecords(data, mergedApp.games ?? []),
+      );
       await window.api.saveThemeConfig(mergedTheme);
       await applyRuntimeAppConfig(mergedApp);
       applyThemeConfig(mergedTheme);
@@ -1239,7 +1246,7 @@ async function importFromFile() {
         `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
       );
       await createGameList();
-      return showNotification("Settings imported");
+      return showNotification("Settings and login details imported");
     }
 
     // theme-only import

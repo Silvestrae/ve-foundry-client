@@ -2,6 +2,7 @@
 // @ts-ignore: no nodejs in preload
 
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
+import type { ImportedLoginRecord } from "./utils/importLoginRecords";
 
 export type ServerBackgroundOptions = {
   gameId?: string | number;
@@ -39,6 +40,7 @@ export type ContextBridgeApi = {
   setCachePath: (cachePath: string) => void;
   returnToServerSelect: () => void;
   saveUserData: (data: SaveUserData) => void;
+  saveLoginRecords: (records: Record<string, ImportedLoginRecord>) => void;
   openGame: (
     id: number | string,
     serverName: string,
@@ -130,6 +132,9 @@ const exposedApi: ContextBridgeApi = {
   },
   saveUserData(data: SaveUserData) {
     ipcRenderer.send("save-user-data", data);
+  },
+  saveLoginRecords(records: Record<string, ImportedLoginRecord>) {
+    ipcRenderer.send("save-login-records", records);
   },
   openGame(id: number | string, serverName: string, autoLogin = true) {
     ipcRenderer.send("open-game", id, serverName, autoLogin);

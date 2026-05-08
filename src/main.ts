@@ -41,6 +41,8 @@ import log from "electron-log";
 import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
 import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
+import { extractImportedLoginRecords } from "./utils/importLoginRecords";
+import type { ImportedLoginRecord } from "./utils/importLoginRecords";
 
 const isPortableWindows =
   process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
@@ -338,20 +340,6 @@ type OriginalAppUninstallCandidate = {
   args?: string[];
 };
 
-const STATIC_USER_DATA_KEYS = new Set([
-  "app",
-  "theme",
-  "cachePath",
-  "schemaVersion",
-  "lastRunAppVersion",
-  "originalImportDeclinedAt",
-  "originalImportDeclinedAppName",
-  "originalImportCompletedAt",
-  "originalImportCompletedAppName",
-  "originalUninstallDeclinedAt",
-  "originalUninstallDeclinedAppName",
-]);
-
 function normalizePathForCompare(filePath: string) {
   const resolved = path.resolve(filePath);
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
@@ -602,13 +590,10 @@ function prepareImportedUserData(rawData: unknown): UserData {
     importedData.cachePath = data.cachePath;
   }
 
-  for (const [key, value] of Object.entries(data)) {
-    if (STATIC_USER_DATA_KEYS.has(key)) continue;
-    const loginResult = GameUserDataSchema.safeParse(value);
-    if (loginResult.success) {
-      importedData[key] = loginResult.data;
-    }
-  }
+  Object.assign(
+    importedData,
+    extractImportedLoginRecords(data, importedData.app?.games ?? []),
+  );
 
   const imported = UserDataSchema.parse(importedData);
   for (const game of imported.app?.games ?? []) {
@@ -1630,6 +1615,19 @@ ipcMain.on("save-user-data", (_e, data: SaveUserData) => {
         : [],
   });
 });
+ipcMain.on(
+  "save-login-records",
+  (_e, records: Record<string, ImportedLoginRecord>) => {
+    const currentData = getUserData();
+    for (const [key, record] of Object.entries(records)) {
+      const loginResult = GameUserDataSchema.safeParse(record);
+      if (loginResult.success) {
+        currentData[key] = loginResult.data;
+      }
+    }
+    fs.writeFileSync(getUserDataPath(), JSON.stringify(currentData, null, 2));
+  },
+);
 ipcMain.handle("get-user-data", (_, gameId: GameId) => getLoginDetails(gameId));
 
 ipcMain.handle("app-version", () => app.getVersion());
