@@ -7,6 +7,7 @@ const artifactProductName = "VE-Foundry-Client";
 module.exports = {
   appId: "com.silvestrae.ve-foundry-client",
   productName: "VE Foundry Client",
+  electronLanguages: ["en-US", "en-GB"],
 
   directories: {
     output: "dist",
@@ -18,7 +19,12 @@ module.exports = {
     { from: ".vite/build", to: ".vite/build", filter: ["**/*"] },
     // 2) renderer → resources/renderer
     { from: ".vite/renderer", to: "renderer", filter: ["**/*"] },
-    "node_modules/**/*",
+    "!**/*.map",
+    "!**/.vite/**",
+    "!**/.cache/**",
+    "!**/coverage/**",
+    "!**/test{,s}/**",
+    "!**/*.tsbuildinfo",
     "package.json",
   ],
 
