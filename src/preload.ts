@@ -90,6 +90,7 @@ export type ContextBridgeApi = {
   /** Tell the main process to install & restart (after “downloaded”) */
   installUpdate: () => void;
   openExternal: (url: string) => void;
+  openDefaultBrowser: (url: string) => void;
 };
 
 const exposedApi: ContextBridgeApi = {
@@ -232,6 +233,9 @@ const exposedApi: ContextBridgeApi = {
   },
   openExternal: (url: string) => {
     ipcRenderer.send("open-external", url);
+  },
+  openDefaultBrowser: (url: string) => {
+    ipcRenderer.send("open-default-browser", url);
   },
 };
 

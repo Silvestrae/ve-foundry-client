@@ -70,6 +70,7 @@ const MAIN_WINDOW_VITE_DEV_SERVER_URL = !app.isPackaged
   ? "http://localhost:5173"
   : "";
 const MAIN_WINDOW_VITE_NAME = "main_window";
+const isDev = !app.isPackaged;
 
 let initialCheckInProgress = true;
 
@@ -1536,34 +1537,39 @@ app.whenReady().then(async () => {
 
   // After rendering index, we notify on migration status
   mainWindow.webContents.once("did-finish-load", async () => {
-    // only check once, right after launch
-    autoUpdater
-      .checkForUpdates()
-      .then(async (result) => {
-        // result has a .updateInfo object
-        const latest = result.updateInfo?.version;
-        const current = app.getVersion();
+    if (isDev) {
+      initialCheckInProgress = false;
+    } else {
+      // only check once, right after launch
+      autoUpdater
+        .checkForUpdates()
+        .then(async (result) => {
+          if (!result?.updateInfo) return;
+          // result has a .updateInfo object
+          const latest = result.updateInfo?.version;
+          const current = app.getVersion();
 
-        if (latest && latest !== current) {
-          const updateInfo = await enrichUpdateInfoWithReleaseNotes(
-            result.updateInfo,
-          );
-          sendUpdateStatus(
-            "available",
-            { ...updateInfo, silent: true },
-            mainWindow,
-          );
-          notifyMainWindow(`An update is available!`);
-        }
-      })
-      .catch((err) => {
-        console.error("Update‐check failed:", err);
-        notifyMainWindow("Could not check for updates");
-      })
-      .finally(() => {
-        // only once the promise settles do we turn off the “initial check” guard
-        initialCheckInProgress = false;
-      });
+          if (latest && latest !== current) {
+            const updateInfo = await enrichUpdateInfoWithReleaseNotes(
+              result.updateInfo,
+            );
+            sendUpdateStatus(
+              "available",
+              { ...updateInfo, silent: true },
+              mainWindow,
+            );
+            notifyMainWindow(`An update is available!`);
+          }
+        })
+        .catch((err) => {
+          console.error("Update‐check failed:", err);
+          notifyMainWindow("Could not check for updates");
+        })
+        .finally(() => {
+          // only once the promise settles do we turn off the “initial check” guard
+          initialCheckInProgress = false;
+        });
+    }
 
     if (migrationResult === "success") {
       notifyMainWindow(`Your user data has been successfully migrated`);
@@ -1686,6 +1692,17 @@ function getThemeConfig(): ThemeConfig {
 ipcMain.on("check-for-updates", (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   lastUpdateRequestingWindow = win;
+  if (isDev) {
+    sendUpdateStatus(
+      "not-available",
+      {
+        version: app.getVersion(),
+        releaseNotes: "Update checks are disabled while running locally.",
+      },
+      win,
+    );
+    return;
+  }
   sendUpdateStatus("checking", undefined, win);
   autoUpdater.checkForUpdates();
 });
@@ -1783,6 +1800,10 @@ ipcMain.on("open-external", (_event, url: string) => {
   }
 
   openUrlInAppWindow(url, BrowserWindow.getFocusedWindow());
+});
+
+ipcMain.on("open-default-browser", (_event, url: string) => {
+  openUrlInDefaultBrowser(url);
 });
 
 ipcMain.handle("cache-path", () => app.getPath("sessionData"));
@@ -2153,21 +2174,26 @@ function getLoginDetails(gameId: GameId): GameUserDataDecrypted {
   if (!userData) return { user: "", password: "", adminPassword: "" };
   const password = new Uint8Array(userData.password);
   const adminPassword = new Uint8Array(userData.adminPassword);
+  const decrypt = (encrypted: Uint8Array, field: string) => {
+    if (encrypted.length === 0 || !safeStorage.isEncryptionAvailable()) {
+      return "";
+    }
+
+    try {
+      return safeStorage.decryptString(Buffer.from(encrypted));
+    } catch (err) {
+      console.warn(
+        `[userData] Could not decrypt ${field} for server ${String(gameId)}:`,
+        err,
+      );
+      return "";
+    }
+  };
 
   return {
     user: userData.user,
-    password:
-      password.length !== 0
-        ? safeStorage.isEncryptionAvailable()
-          ? safeStorage.decryptString(Buffer.from(password))
-          : ""
-        : "",
-    adminPassword:
-      password.length !== 0
-        ? safeStorage.isEncryptionAvailable()
-          ? safeStorage.decryptString(Buffer.from(adminPassword))
-          : ""
-        : "",
+    password: decrypt(password, "password"),
+    adminPassword: decrypt(adminPassword, "admin password"),
   };
 }
 

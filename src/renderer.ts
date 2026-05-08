@@ -1,6 +1,12 @@
 // noinspection JSIgnoredPromiseFromCall
 import * as particles from "./utils/particles";
-import { ThemeConfigSchema, ParticleOptions, GameConfig } from "./schemas";
+import {
+  ThemeConfigSchema,
+  ParticleOptions,
+  GameConfig,
+  FavoriteConfig,
+  GameId,
+} from "./schemas";
 import { mergeAppData, mergeThemeData } from "./utils/mergeData";
 import { extractImportedLoginRecords } from "./utils/importLoginRecords";
 import { showNotification, initNotificationTimer } from "./utils/notifications";
@@ -38,7 +44,15 @@ window.api.onUpdaterStatus((_e, { status, payload }) => {
 let preventMenuClose = false;
 let lastParticleOptions: ParticleOptions | null = null;
 let games: GameConfig[] = [];
+let favorites: FavoriteConfig[] = [];
+let editingFavoriteId: GameId | null = null;
 let draggedGameItem: HTMLElement | null = null;
+let draggedFavoriteItem: HTMLElement | null = null;
+let mainEditModeEnabled = false;
+
+const mainEditModeToggle = document.querySelector(
+  "#toggle-main-edit-mode",
+) as HTMLButtonElement;
 
 function toCssUrl(url: string) {
   return `url("${url.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`;
@@ -188,6 +202,14 @@ async function updateGameList(task: (appConfig: AppConfig) => void) {
   window.api.saveAppConfig(appConfig);
 }
 
+async function updateFavoriteList(task: (appConfig: AppConfig) => void) {
+  const appConfig = await window.api.localAppConfig();
+  appConfig.favorites = appConfig.favorites ?? [];
+  task(appConfig);
+  favorites = appConfig.favorites ?? [];
+  window.api.saveAppConfig(appConfig);
+}
+
 window.api.showNotification((message: string) => {
   showNotification(message);
 });
@@ -240,13 +262,217 @@ document.querySelector("#add-game").addEventListener("click", async () => {
 });
 
 const gameItemList = document.querySelector("#game-list");
+const serverColumnButtons = document.querySelectorAll<HTMLButtonElement>(
+  ".server-column-option",
+);
+const favoriteColumnButtons = document.querySelectorAll<HTMLButtonElement>(
+  ".favorite-column-option",
+);
 const gameItemTemplate = document
   .querySelector("template")
   .content.querySelector("li");
+const favoriteList = document.querySelector("#favorite-list") as HTMLElement;
+const favoriteNameField = document.querySelector(
+  "#favorite-name",
+) as HTMLInputElement;
+const favoriteUrlField = document.querySelector(
+  "#favorite-url",
+) as HTMLInputElement;
+const addFavoriteButton = document.querySelector(
+  "#add-favorite",
+) as HTMLButtonElement;
+const cancelFavoriteEditButton = document.querySelector(
+  "#cancel-favorite-edit",
+) as HTMLButtonElement;
+const favoriteEmptyState = document.querySelector(
+  "#favorite-empty-state",
+) as HTMLElement;
+const favoriteSectionTitle = document.querySelector(
+  "#favorites-section .section-title",
+) as HTMLElement;
+
+function usesCommonwealthEnglish() {
+  const commonwealthLocales = new Set([
+    "au",
+    "gb",
+    "ie",
+    "nz",
+    "za",
+    "ca",
+    "in",
+  ]);
+  const locales = navigator.languages?.length
+    ? navigator.languages
+    : [navigator.language];
+
+  return locales.some((locale) => {
+    const [, region] = locale.toLowerCase().split("-");
+    return region ? commonwealthLocales.has(region) : false;
+  });
+}
+
+const favoriteLabels = usesCommonwealthEnglish()
+  ? { singular: "Favourite", plural: "Favourites" }
+  : { singular: "Favorite", plural: "Favorites" };
+
+favoriteSectionTitle.textContent = favoriteLabels.plural;
+favoriteEmptyState.textContent = `Add your first ${favoriteLabels.singular.toLowerCase()} website.`;
 
 function getGameKey(game: GameConfig): string {
   return String(game.id ?? game.name);
 }
+
+function getFavoriteKey(favorite: FavoriteConfig): string {
+  return String(favorite.id ?? favorite.name);
+}
+
+function getServerColumnCount(appConfig: AppConfig): 1 | 2 {
+  return appConfig.serverColumnCount === 2 ? 2 : 1;
+}
+
+function getFavoriteColumnCount(appConfig: AppConfig): 2 | 3 | 4 {
+  return appConfig.favoriteColumnCount === 2 ||
+    appConfig.favoriteColumnCount === 4
+    ? appConfig.favoriteColumnCount
+    : 3;
+}
+
+function applyServerColumnCount(columnCount: 1 | 2) {
+  gameItemList.classList.toggle("server-columns-2", columnCount === 2);
+  gameItemList.classList.toggle("server-columns-1", columnCount === 1);
+  serverColumnButtons.forEach((button) => {
+    const isActive = button.dataset.serverColumns === String(columnCount);
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+function applyFavoriteColumnCount(columnCount: 2 | 3 | 4) {
+  favoriteList.classList.toggle("favorite-columns-2", columnCount === 2);
+  favoriteList.classList.toggle("favorite-columns-3", columnCount === 3);
+  favoriteList.classList.toggle("favorite-columns-4", columnCount === 4);
+  favoriteColumnButtons.forEach((button) => {
+    const isActive = button.dataset.favoriteColumns === String(columnCount);
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+function normalizeFavoriteUrl(url: string) {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+}
+
+function getUrlHost(url: string) {
+  try {
+    return new URL(url).host.replace(/^www\./i, "");
+  } catch {
+    return url;
+  }
+}
+
+function getFaviconUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(
+      parsed.origin,
+    )}&sz=64`;
+  } catch {
+    return "";
+  }
+}
+
+function setFavoriteEditMode(favorite?: FavoriteConfig) {
+  editingFavoriteId = favorite?.id ?? null;
+  favoriteNameField.value = favorite?.name ?? "";
+  favoriteUrlField.value = favorite?.url ?? "";
+  addFavoriteButton.textContent = favorite
+    ? `Save ${favoriteLabels.singular}`
+    : `Add ${favoriteLabels.singular}`;
+  cancelFavoriteEditButton.classList.toggle("hidden-display", !favorite);
+}
+
+addFavoriteButton.addEventListener("click", async () => {
+  const favoriteName = favoriteNameField.value.trim();
+  const favoriteUrl = normalizeFavoriteUrl(favoriteUrlField.value);
+  if (!favoriteName || !favoriteUrl) {
+    await safePrompt(
+      `Please enter a ${favoriteLabels.singular} name and URL.`,
+      {
+        mode: "alert",
+      },
+    );
+    return;
+  }
+
+  try {
+    new URL(favoriteUrl);
+  } catch {
+    await safePrompt("Please enter a valid website URL.", { mode: "alert" });
+    return;
+  }
+
+  if (editingFavoriteId !== null) {
+    await updateFavoriteList((appConfig) => {
+      const favorite = appConfig.favorites?.find(
+        (item) => String(item.id) === String(editingFavoriteId),
+      );
+      if (favorite) {
+        favorite.name = favoriteName;
+        favorite.url = favoriteUrl;
+        favorite.iconUrl = getFaviconUrl(favoriteUrl);
+      }
+    });
+    showNotification(`${favoriteLabels.singular} saved`);
+  } else {
+    const newFavorite: FavoriteConfig = {
+      id: Math.round(Math.random() * 1000000),
+      name: favoriteName,
+      url: favoriteUrl,
+      iconUrl: getFaviconUrl(favoriteUrl),
+    };
+    await updateFavoriteList((appConfig) => {
+      appConfig.favorites = appConfig.favorites ?? [];
+      appConfig.favorites.push(newFavorite);
+    });
+    showNotification(`${favoriteLabels.singular} added`);
+  }
+
+  setFavoriteEditMode();
+  await createFavoriteList();
+});
+
+cancelFavoriteEditButton.addEventListener("click", () => {
+  setFavoriteEditMode();
+});
+
+serverColumnButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const columnCount = button.dataset.serverColumns === "2" ? 2 : 1;
+    await updateGameList((appConfig) => {
+      appConfig.serverColumnCount = columnCount;
+    });
+    applyServerColumnCount(columnCount);
+  });
+});
+
+favoriteColumnButtons.forEach((button) => {
+  button.addEventListener("click", async () => {
+    const columnCount =
+      button.dataset.favoriteColumns === "2"
+        ? 2
+        : button.dataset.favoriteColumns === "4"
+          ? 4
+          : 3;
+    await updateFavoriteList((appConfig) => {
+      appConfig.favoriteColumnCount = columnCount;
+    });
+    applyFavoriteColumnCount(columnCount);
+  });
+});
 
 function getDragAfterElement(y: number): HTMLElement | null {
   const items = Array.from(
@@ -295,6 +521,10 @@ function setupServerReorder(li: HTMLElement) {
   if (!handle) return;
 
   handle.addEventListener("dragstart", (event) => {
+    if (!mainEditModeEnabled) {
+      event.preventDefault();
+      return;
+    }
     draggedGameItem = li;
     li.classList.add("dragging");
     event.dataTransfer?.setData("text/plain", li.dataset.gameId ?? "");
@@ -311,8 +541,78 @@ function setupServerReorder(li: HTMLElement) {
   });
 }
 
+async function saveFavoriteOrder() {
+  const orderedKeys = Array.from(
+    favoriteList.querySelectorAll<HTMLElement>(".favorite-item"),
+  ).map((item) => item.dataset.favoriteId);
+
+  await updateFavoriteList((appConfig) => {
+    const byKey = new Map(
+      (appConfig.favorites ?? []).map((favorite) => [
+        getFavoriteKey(favorite),
+        favorite,
+      ]),
+    );
+    const orderedFavorites = orderedKeys
+      .map((key) => (key ? byKey.get(key) : undefined))
+      .filter((favorite): favorite is FavoriteConfig => !!favorite);
+
+    const orderedKeySet = new Set(orderedKeys);
+    const missingFavorites = (appConfig.favorites ?? []).filter(
+      (favorite) => !orderedKeySet.has(getFavoriteKey(favorite)),
+    );
+
+    appConfig.favorites = [...orderedFavorites, ...missingFavorites];
+  });
+}
+
+function getFavoriteDragAfterElement(x: number, y: number): HTMLElement | null {
+  const items = Array.from(
+    favoriteList.querySelectorAll<HTMLElement>(".favorite-item:not(.dragging)"),
+  );
+
+  return items.reduce<{ distance: number; element: HTMLElement | null }>(
+    (closest, item) => {
+      const box = item.getBoundingClientRect();
+      const dx = x - (box.left + box.width / 2);
+      const dy = y - (box.top + box.height / 2);
+      const isBefore = dy < 0 || (Math.abs(dy) < box.height / 2 && dx < 0);
+      const distance = Math.hypot(dx, dy);
+
+      if (isBefore && distance < closest.distance) {
+        return { distance, element: item };
+      }
+
+      return closest;
+    },
+    { distance: Number.POSITIVE_INFINITY, element: null },
+  ).element;
+}
+
+function setupFavoriteReorder(li: HTMLElement) {
+  li.addEventListener("dragstart", (event) => {
+    if (!mainEditModeEnabled) {
+      event.preventDefault();
+      return;
+    }
+    draggedFavoriteItem = li;
+    li.classList.add("dragging");
+    event.dataTransfer?.setData("text/plain", li.dataset.favoriteId ?? "");
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+    }
+  });
+
+  li.addEventListener("dragend", async () => {
+    li.classList.remove("dragging");
+    draggedFavoriteItem = null;
+    await saveFavoriteOrder();
+    showNotification(`${favoriteLabels.singular} order saved`);
+  });
+}
+
 gameItemList.addEventListener("dragover", (event: DragEvent) => {
-  if (!draggedGameItem) return;
+  if (!mainEditModeEnabled || !draggedGameItem) return;
 
   event.preventDefault();
   const afterElement = getDragAfterElement(event.clientY);
@@ -321,6 +621,65 @@ gameItemList.addEventListener("dragover", (event: DragEvent) => {
   } else {
     gameItemList.appendChild(draggedGameItem);
   }
+});
+
+favoriteList.addEventListener("dragover", (event: DragEvent) => {
+  if (!mainEditModeEnabled || !draggedFavoriteItem) return;
+
+  event.preventDefault();
+  const afterElement = getFavoriteDragAfterElement(
+    event.clientX,
+    event.clientY,
+  );
+  if (afterElement) {
+    favoriteList.insertBefore(draggedFavoriteItem, afterElement);
+  } else {
+    favoriteList.appendChild(draggedFavoriteItem);
+  }
+});
+
+function setMainEditMode(enabled: boolean) {
+  mainEditModeEnabled = enabled;
+  document.body.classList.toggle("main-edit-mode", enabled);
+  mainEditModeToggle.setAttribute("aria-pressed", String(enabled));
+  mainEditModeToggle.setAttribute(
+    "aria-label",
+    enabled ? "Switch to Play Mode" : "Switch to Edit Mode",
+  );
+  mainEditModeToggle.title = enabled
+    ? "Switch to Play Mode"
+    : "Switch to Edit Mode";
+  mainEditModeToggle.innerHTML = enabled
+    ? '<i class="fa-solid fa-pen-nib"></i>'
+    : '<i class="fa-solid fa-lock"></i>';
+
+  const tooltip = mainEditModeToggle
+    .closest(".tooltip-wrapper")
+    ?.querySelector(".tooltip");
+  if (tooltip) {
+    tooltip.textContent = enabled
+      ? "Switch to Play Mode"
+      : "Switch to Edit Mode";
+  }
+
+  document
+    .querySelectorAll<HTMLElement>(".reorder-game, .favorite-item")
+    .forEach((handle) => {
+      handle.draggable = enabled;
+    });
+
+  if (!enabled) {
+    setFavoriteEditMode();
+    document
+      .querySelectorAll<HTMLElement>(".user-configuration")
+      .forEach((config) => config.classList.add("hidden"));
+  }
+
+  renderTooltips();
+}
+
+mainEditModeToggle.addEventListener("click", () => {
+  setMainEditMode(!mainEditModeEnabled);
 });
 
 document
@@ -1871,12 +2230,174 @@ function renderTooltips() {
   });
 }
 
+function applyButtonTooltips() {
+  document.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
+    if (button.dataset.skipAutoTooltip === "true") return;
+    if (button.title) return;
+
+    const wrapperTooltip = button
+      .closest(".tooltip-wrapper")
+      ?.querySelector<HTMLElement>(".tooltip")
+      ?.textContent?.trim();
+    const label =
+      wrapperTooltip ||
+      button.getAttribute("aria-label") ||
+      button.textContent?.trim();
+
+    if (label) {
+      button.title = label.replace(/\s+/g, " ");
+    }
+  });
+}
+
+function setupFavoriteDetailTooltip(
+  item: HTMLElement,
+  favorite: FavoriteConfig,
+) {
+  const layer = document.getElementById("tooltip-layer");
+  let tooltip: HTMLElement | null = null;
+  let hoverTimer: number | null = null;
+
+  const clearTooltip = () => {
+    if (hoverTimer) {
+      window.clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    tooltip?.remove();
+    tooltip = null;
+  };
+
+  item.addEventListener("mouseenter", () => {
+    clearTooltip();
+    hoverTimer = window.setTimeout(() => {
+      if (!layer) return;
+      const rect = item.getBoundingClientRect();
+      tooltip = document.createElement("div");
+      tooltip.className = "active-tooltip favorite-detail-tooltip";
+
+      const name = document.createElement("div");
+      name.className = "favorite-detail-name";
+      name.textContent = favorite.name;
+      const url = document.createElement("div");
+      url.className = "favorite-detail-url";
+      url.textContent = favorite.url;
+      tooltip.append(name, url);
+
+      tooltip.style.display = "block";
+      tooltip.style.position = "fixed";
+      tooltip.style.pointerEvents = "none";
+      tooltip.style.left = `${rect.left + rect.width / 2}px`;
+      tooltip.style.top = `${rect.bottom + 7}px`;
+      layer.appendChild(tooltip);
+    }, 1000);
+  });
+
+  item.addEventListener("mouseleave", clearTooltip);
+}
+
+async function createFavoriteList() {
+  const appConfig = await window.api.localAppConfig();
+  favorites = appConfig.favorites ?? [];
+  document
+    .querySelector("#favorites-section")
+    ?.classList.toggle("favorites-empty", favorites.length === 0);
+  favoriteList.replaceChildren();
+
+  for (const favorite of favorites) {
+    const li = document.createElement("li");
+    li.className = "favorite-item";
+    li.dataset.favoriteId = getFavoriteKey(favorite);
+    li.draggable = mainEditModeEnabled;
+    setupFavoriteReorder(li);
+    setupFavoriteDetailTooltip(li, favorite);
+
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "favorite-open-button";
+    openButton.dataset.skipAutoTooltip = "true";
+    openButton.setAttribute("aria-label", `Open ${favorite.name}`);
+    openButton.addEventListener("click", () => {
+      window.api.openDefaultBrowser(favorite.url);
+    });
+
+    const icon = document.createElement("span");
+    icon.className = "favorite-icon";
+    const iconUrl = getFaviconUrl(favorite.url) || favorite.iconUrl;
+    if (iconUrl) {
+      const image = document.createElement("img");
+      image.src = iconUrl;
+      image.alt = "";
+      image.addEventListener("error", () => {
+        image.remove();
+        icon.textContent = favorite.name.trim().charAt(0).toUpperCase() || "?";
+      });
+      icon.append(image);
+    } else {
+      icon.textContent = favorite.name.trim().charAt(0).toUpperCase() || "?";
+    }
+
+    const text = document.createElement("span");
+    text.className = "favorite-text";
+    const title = document.createElement("span");
+    title.className = "favorite-name";
+    title.textContent = favorite.name;
+    const host = document.createElement("span");
+    host.className = "favorite-host";
+    host.textContent = getUrlHost(favorite.url);
+    text.append(title, host);
+    openButton.append(icon, text);
+
+    const controls = document.createElement("span");
+    controls.className = "favorite-controls";
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "favorite-action";
+    editButton.innerHTML = '<i class="fa-solid fa-pen"></i>';
+    editButton.setAttribute("aria-label", `Edit ${favorite.name}`);
+    editButton.addEventListener("click", () => {
+      setFavoriteEditMode(favorite);
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "favorite-action";
+    deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    deleteButton.setAttribute("aria-label", `Delete ${favorite.name}`);
+    deleteButton.addEventListener("click", async () => {
+      const confirmed = await safePrompt(
+        `Are you sure you want to delete ${favorite.name}?`,
+      );
+      if (!confirmed) return;
+      await updateFavoriteList((appConfig) => {
+        appConfig.favorites = (appConfig.favorites ?? []).filter(
+          (item) => String(item.id) !== String(favorite.id),
+        );
+      });
+      if (String(editingFavoriteId) === String(favorite.id)) {
+        setFavoriteEditMode();
+      }
+      await createFavoriteList();
+      showNotification(`${favoriteLabels.singular} deleted`);
+    });
+
+    controls.append(editButton, deleteButton);
+    li.append(openButton, controls);
+    favoriteList.append(li);
+  }
+
+  applyButtonTooltips();
+}
+
 async function createGameList() {
   await migrateConfig();
   const config: AppConfig = await window.api.appConfig();
   const appDefaults: AppConfig = {
     games: games,
+    favorites: favorites,
+    favoriteColumnCount: 3,
     serverInfoEnabled: true,
+    serverColumnCount: 1,
   };
   const defaults: ThemeConfig = {
     background: "",
@@ -1901,16 +2422,22 @@ async function createGameList() {
     ...(await window.api.localThemeConfig()),
   };
 
-  games = config.games;
+  games = appConfig.games ?? [];
+  favorites = appConfig.favorites ?? [];
+  applyServerColumnCount(getServerColumnCount(appConfig));
+  applyFavoriteColumnCount(getFavoriteColumnCount(appConfig));
 
   addStyle(config.customCSS ?? "");
 
   gameItemList.querySelectorAll("li").forEach((li) => li.remove());
 
-  config.games.forEach(createGameItem);
+  games.forEach(createGameItem);
+  await createFavoriteList();
+  setMainEditMode(mainEditModeEnabled);
 
   await applyRuntimeAppConfig(appConfig);
   applyThemeConfig(themeConfig);
+  applyButtonTooltips();
 }
 // Load UI
 await createGameList();

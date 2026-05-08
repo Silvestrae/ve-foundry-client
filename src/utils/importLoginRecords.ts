@@ -9,6 +9,7 @@ export type ImportedLoginRecord = {
 const STATIC_USER_DATA_KEYS = new Set([
   "app",
   "theme",
+  "favorites",
   "cachePath",
   "schemaVersion",
   "lastRunAppVersion",

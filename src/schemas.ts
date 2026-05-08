@@ -26,6 +26,14 @@ export const GameConfigSchema = z.object({
 });
 export type GameConfig = z.infer<typeof GameConfigSchema>;
 
+export const FavoriteConfigSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  id: GameIdSchema.optional(),
+  iconUrl: z.string().optional(),
+});
+export type FavoriteConfig = z.infer<typeof FavoriteConfigSchema>;
+
 // ServerInfoOptions
 export const ServerInfoOptionsSchema = z
   .object({
@@ -58,6 +66,11 @@ export type WindowBounds = z.infer<typeof WindowBoundsSchema>;
 // AppConfig
 export const AppConfigSchema = z.object({
   games: z.array(GameConfigSchema),
+  favorites: z.array(FavoriteConfigSchema).optional().prefault([]),
+  favoriteColumnCount: z
+    .union([z.literal(2), z.literal(3), z.literal(4)])
+    .optional()
+    .prefault(3),
   cachePath: z.string().optional(),
   autoCacheClear: z.boolean().optional(),
   customCSS: z.string().optional(),
@@ -66,6 +79,10 @@ export const AppConfigSchema = z.object({
   discordRP: z.boolean().optional(),
   notificationTimer: z.number().optional(),
   serverInfoEnabled: z.boolean().optional(),
+  serverColumnCount: z
+    .union([z.literal(1), z.literal(2)])
+    .optional()
+    .prefault(1),
   serverInfoOptions: ServerInfoOptionsSchema,
   serverInfoPingRate: z.number().optional().prefault(30),
   fullScreenEnabled: z.boolean().optional().prefault(false),

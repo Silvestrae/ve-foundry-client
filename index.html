@@ -31,6 +31,18 @@
     <div id="app"></div>
 
     <div class="content">
+      <div class="tooltip-wrapper mode-toggle-wrapper">
+        <button
+          class="config-button mode-toggle-button"
+          id="toggle-main-edit-mode"
+          type="button"
+          aria-label="Switch to Edit Mode"
+          aria-pressed="false"
+        >
+          <i class="fa-solid fa-lock"></i>
+        </button>
+        <div class="tooltip">Switch to Edit Mode</div>
+      </div>
       <div class="button-controls">
         <div class="tooltip-wrapper">
           <button class="config-button" id="open-config">
@@ -518,7 +530,32 @@
         </div>
       </section>
 
-      <ul id="game-list">
+      <section id="servers-section" class="servers-section">
+        <div class="section-header">
+          <span class="section-title">Servers</span>
+        </div>
+        <div id="server-column-control" class="server-column-control">
+          <span class="server-column-label">Columns</span>
+          <div class="server-column-options" role="group" aria-label="Server columns">
+            <button
+              class="server-column-option"
+              type="button"
+              data-server-columns="1"
+              aria-label="Show servers in one column"
+            >
+              1
+            </button>
+            <button
+              class="server-column-option"
+              type="button"
+              data-server-columns="2"
+              aria-label="Show servers in two columns"
+            >
+              2
+            </button>
+          </div>
+        </div>
+        <ul id="game-list">
         <template id="game-item-template">
           <li class="game-item">
             <div class="game-title-bar">
@@ -665,12 +702,63 @@
             </div>
           </li>
         </template>
-      </ul>
+        </ul>
+      </section>
       <div id="add-game-wrapper">
-        <input id="game-name" name placeholder="Name" type="text" />
-        <input id="game-url" name placeholder="URL" type="text" />
+        <input id="game-name" name placeholder="Server Name" type="text" />
+        <input id="game-url" name placeholder="Server URL" type="text" />
         <button id="add-game">Add Game</button>
       </div>
+      <section id="favorites-section" class="favorites-section">
+        <div class="section-header">
+          <span class="section-title">Favorites</span>
+        </div>
+        <div id="favorite-column-control" class="favorite-column-control">
+          <span class="favorite-column-label">Columns</span>
+          <div
+            class="favorite-column-options"
+            role="group"
+            aria-label="Favorite columns"
+          >
+            <button
+              class="favorite-column-option"
+              type="button"
+              data-favorite-columns="2"
+              aria-label="Show favourites in two columns"
+            >
+              2
+            </button>
+            <button
+              class="favorite-column-option"
+              type="button"
+              data-favorite-columns="3"
+              aria-label="Show favourites in three columns"
+            >
+              3
+            </button>
+            <button
+              class="favorite-column-option"
+              type="button"
+              data-favorite-columns="4"
+              aria-label="Show favourites in four columns"
+            >
+              4
+            </button>
+          </div>
+        </div>
+        <p id="favorite-empty-state" class="favorite-empty-state">
+          Add your first favorite website.
+        </p>
+        <ul id="favorite-list" class="favorite-list"></ul>
+        <div id="add-favorite-wrapper">
+          <input id="favorite-name" placeholder="Website Name" type="text" />
+          <input id="favorite-url" placeholder="Website URL" type="text" />
+          <button id="add-favorite">Add Favorite</button>
+          <button id="cancel-favorite-edit" class="hidden-display">
+            Cancel
+          </button>
+        </div>
+      </section>
 
       <div id="custom-confirm" class="hidden2 hidden-display">
         <div class="confirm-box">
@@ -684,6 +772,7 @@
 
       <div id="notification-area"></div>
     </div>
+    <div id="tooltip-layer"></div>
     <script src="/src/renderer.ts" type="module"></script>
     <script>
       function updateColorAlpha(rangeEl) {

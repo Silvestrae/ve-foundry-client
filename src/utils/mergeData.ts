@@ -7,6 +7,7 @@ export async function mergeAppData(
   // rebuild appConfig manually
   const merged: AppConfig = {
     games: imported.games ?? existing.games,
+    favorites: imported.favorites ?? existing.favorites,
     cachePath: imported.cachePath ?? existing.cachePath,
     autoCacheClear: imported.autoCacheClear ?? existing.autoCacheClear,
     customCSS: imported.customCSS ?? existing.customCSS,

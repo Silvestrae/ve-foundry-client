@@ -19,8 +19,17 @@ type GameConfigType = {
   backgroundImageUpdatedAt?: string;
 };
 
+type FavoriteConfig = {
+  name: string;
+  url: string;
+  id?: GameId;
+  iconUrl?: string;
+};
+
 type AppConfig = {
   games: GameConfig[];
+  favorites?: FavoriteConfig[];
+  favoriteColumnCount?: 2 | 3 | 4;
   cachePath?: string;
   autoCacheClear?: boolean;
   customCSS?: string;
@@ -29,6 +38,7 @@ type AppConfig = {
   discordRP?: boolean;
   notificationTimer?: number;
   serverInfoEnabled?: boolean;
+  serverColumnCount?: 1 | 2;
   serverInfoOptions?: ServerInfoOptions;
   serverInfoPingRate?: number;
   fullScreenEnabled?: boolean;

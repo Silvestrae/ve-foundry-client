@@ -1,7 +1,7 @@
 {
   "name": "ve-foundry-client",
   "packageManager": "yarn@4.12.0",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "license": "MIT",
   "description": "VE Foundry Client",
   "main": ".vite/build/main.js",
@@ -59,6 +59,8 @@
     "format:check": "prettier --check \"*.{js,json,md,ts}\" \"src/**/*.{ts,vue}\" \"public/styles/*.css\" \".github/**/*.yml\"",
     "dev:renderer": "cross-env NODE_ENV=development vite dev --config vite.renderer.config.ts",
     "start:electron": "electron .",
+    "sample-data:add": "node scripts/sample-data.js add",
+    "sample-data:remove": "node scripts/sample-data.js remove",
     "dist": "npm run build && electron-builder --config builder.config.js",
     "dist:win": "npm run build && electron-builder --config builder.config.js --win",
     "dist:mac": "npm run build && electron-builder --config builder.config.js --mac",
