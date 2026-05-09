@@ -21,9 +21,30 @@ export default defineConfig({
       output: {
         compact: true,
         manualChunks(id) {
-          if (id.includes("node_modules")) {
-            return "vendor";
+          if (!id.includes("node_modules")) {
+            return;
           }
+
+          if (
+            id.includes("node_modules/vue") ||
+            id.includes("node_modules/@vue") ||
+            id.includes("node_modules/pinia")
+          ) {
+            return "vendor-vue";
+          }
+
+          if (
+            id.includes("node_modules/element-plus") ||
+            id.includes("node_modules/@element-plus")
+          ) {
+            return "vendor-element-plus";
+          }
+
+          if (id.includes("node_modules/zod")) {
+            return "vendor-zod";
+          }
+
+          return "vendor";
         },
       },
     },

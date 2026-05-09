@@ -22,6 +22,7 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
 
   // If global toggle is off, hide everything and return
   if (!serverInfoEnabled) {
+    item.classList.remove("server-active");
     serverInfos.style.display = "none";
     return;
   }
@@ -94,6 +95,7 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
 
   // If it fails, displays "-"
   if (!info) {
+    item.classList.remove("server-active");
     if (statusEnabled) {
       statusSpan.innerHTML = `<i class="fa-solid fa-xmark"></i> Offline`;
     }
@@ -115,10 +117,15 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
     return;
   }
 
+  const parsedUsers = Number(info.users);
+  const activeUsers = Number.isFinite(parsedUsers) ? parsedUsers : 0;
+  const hasActivePlayers = activeUsers > 0;
+  item.classList.toggle("server-active", hasActivePlayers);
+
   // Otherwise, inject real data
   if (statusEnabled) {
     statusSpan.innerHTML = info.version
-      ? `<i class="fa-solid fa-signal"></i> Online`
+      ? `<i class="fa-solid fa-signal"></i> ${hasActivePlayers ? "Active" : "Online"}`
       : `<i class="fa-solid fa-xmark"></i> Offline`;
   }
   if (foundryVersionEnabled) {
@@ -134,7 +141,7 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
     systemVersionSpan.innerHTML = `<i class="fa-solid fa-screwdriver-wrench"></i> ${info.systemVersion ?? "-"}`;
   }
   if (onlinePlayersEnabled) {
-    usersSpan.innerHTML = `<i class="fa-solid fa-users"></i> ${info.users ?? "0"}`;
+    usersSpan.innerHTML = `<i class="fa-solid fa-users"></i> ${activeUsers}`;
   }
 }
 

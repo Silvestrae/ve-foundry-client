@@ -13,6 +13,7 @@ import {
   Menu,
   MenuItemConstructorOptions,
   screen,
+  protocol,
 } from "electron";
 import {
   UserDataSchema,
@@ -83,6 +84,17 @@ app.commandLine.appendSwitch("gtk-version", "3");
 
 app.commandLine.appendSwitch("force_high_performance_gpu");
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "ve-local",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
 
 /* Remove the comment (//) from the line below to ignore certificate errors (useful for self-signed certificates) */
 
@@ -1710,6 +1722,8 @@ autoUpdater.on("error", (err) => {
 app.whenReady().then(async () => {
   if (require("electron-squirrel-startup")) return;
 
+  registerLocalAssetProtocol();
+
   // File menu
   const fileMenu: MenuItemConstructorOptions = {
     label: "File",
@@ -2306,10 +2320,23 @@ function getImageExtension(url: string, contentType: string) {
   return ".webp";
 }
 
-function getLocalPathFromFileUrl(fileUrl?: string) {
-  if (!fileUrl) return null;
+function getServerBackgroundLocalUrl(fileName: string) {
+  return `ve-local://server-backgrounds/${encodeURIComponent(path.basename(fileName))}`;
+}
+
+function getLocalPathFromServerBackgroundUrl(localUrl?: string) {
+  if (!localUrl) return null;
   try {
-    return fileURLToPath(fileUrl);
+    if (localUrl.startsWith("file://")) {
+      return fileURLToPath(localUrl);
+    }
+
+    const parsedUrl = new URL(localUrl);
+    if (parsedUrl.protocol !== "ve-local:") return null;
+    if (parsedUrl.hostname !== "server-backgrounds") return null;
+
+    const safeFileName = path.basename(decodeURIComponent(parsedUrl.pathname));
+    return path.join(getServerBackgroundsDir(), safeFileName);
   } catch {
     return null;
   }
@@ -2319,8 +2346,38 @@ function getServerBackgroundsDir() {
   return path.join(app.getPath("userData"), "server-backgrounds");
 }
 
+function registerLocalAssetProtocol() {
+  protocol.handle("ve-local", async (request) => {
+    try {
+      const parsedUrl = new URL(request.url);
+      if (parsedUrl.hostname !== "server-backgrounds") {
+        return new Response("Not found", { status: 404 });
+      }
+
+      const safeFileName = path.basename(
+        decodeURIComponent(parsedUrl.pathname),
+      );
+      const filePath = path.join(getServerBackgroundsDir(), safeFileName);
+      const backgroundsDir = path.resolve(getServerBackgroundsDir());
+      const resolvedFilePath = path.resolve(filePath);
+
+      if (
+        path.dirname(resolvedFilePath) !== backgroundsDir ||
+        !fs.pathExistsSync(resolvedFilePath)
+      ) {
+        return new Response("Not found", { status: 404 });
+      }
+
+      return net.fetch(pathToFileURL(resolvedFilePath).toString());
+    } catch (err) {
+      log.warn("[server-background] Failed to serve local asset", err);
+      return new Response("Not found", { status: 404 });
+    }
+  });
+}
+
 function removeLocalServerBackground(fileUrl?: string) {
-  const filePath = getLocalPathFromFileUrl(fileUrl);
+  const filePath = getLocalPathFromServerBackgroundUrl(fileUrl);
   if (!filePath) return;
 
   const backgroundsDir = path.resolve(getServerBackgroundsDir());
@@ -2354,7 +2411,7 @@ async function downloadServerBackground(
   fs.writeFileSync(filePath, buffer);
   return {
     fileName: filename,
-    localUrl: pathToFileURL(filePath).toString(),
+    localUrl: getServerBackgroundLocalUrl(filename),
   };
 }
 
@@ -2362,7 +2419,7 @@ ipcMain.handle("server-background-local-url", (_e, fileName: string) => {
   const safeFileName = path.basename(fileName);
   const filePath = path.join(getServerBackgroundsDir(), safeFileName);
   if (!fs.pathExistsSync(filePath)) return null;
-  return pathToFileURL(filePath).toString();
+  return getServerBackgroundLocalUrl(safeFileName);
 });
 
 ipcMain.handle(
@@ -2374,7 +2431,9 @@ ipcMain.handle(
   ): Promise<ServerBackgroundData | null> => {
     if (serverBackgroundCache.has(rawUrl)) {
       const cachedRemoteUrl = serverBackgroundCache.get(rawUrl);
-      const cachedLocalPath = getLocalPathFromFileUrl(options.currentLocalUrl);
+      const cachedLocalPath = getLocalPathFromServerBackgroundUrl(
+        options.currentLocalUrl,
+      );
       if (
         cachedRemoteUrl &&
         cachedRemoteUrl === options.currentRemoteUrl &&
@@ -2383,10 +2442,11 @@ ipcMain.handle(
         fs.pathExistsSync(cachedLocalPath) &&
         !options.force
       ) {
+        const fileName = path.basename(cachedLocalPath);
         return {
           remoteUrl: cachedRemoteUrl,
-          localUrl: options.currentLocalUrl,
-          fileName: path.basename(cachedLocalPath),
+          localUrl: getServerBackgroundLocalUrl(fileName),
+          fileName,
           updated: false,
         };
       }
@@ -2407,7 +2467,7 @@ ipcMain.handle(
         reachedServerWithoutBackground = true;
         const backgroundUrl = extractFoundryBackgroundUrl(html, url);
         if (backgroundUrl) {
-          const currentLocalPath = getLocalPathFromFileUrl(
+          const currentLocalPath = getLocalPathFromServerBackgroundUrl(
             options.currentLocalUrl,
           );
           if (
@@ -2418,10 +2478,11 @@ ipcMain.handle(
             !options.force
           ) {
             serverBackgroundCache.set(rawUrl, backgroundUrl);
+            const fileName = path.basename(currentLocalPath);
             return {
               remoteUrl: backgroundUrl,
-              localUrl: options.currentLocalUrl,
-              fileName: path.basename(currentLocalPath),
+              localUrl: getServerBackgroundLocalUrl(fileName),
+              fileName,
               updated: false,
             };
           }

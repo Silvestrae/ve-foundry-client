@@ -241,6 +241,98 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   opacity: 0.55;
 }
 
+.game-item.server-active {
+  animation: active-server-glow 3.6s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--color-accent) 64%, white);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--color-accent) 34%, transparent),
+    0 0 18px color-mix(in srgb, var(--color-accent) 18%, transparent),
+    0 0 5px black;
+}
+
+.game-item.server-active::after {
+  animation:
+    active-server-sheen 8s ease-in-out infinite,
+    active-server-background-glow 3.6s ease-in-out infinite;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--color-accent) 16%, transparent) 0%,
+      transparent 68%
+    ),
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      transparent 36%,
+      color-mix(in srgb, var(--color-accent) 18%, transparent) 46%,
+      rgba(255, 255, 255, 0.18) 50%,
+      color-mix(in srgb, var(--color-accent) 18%, transparent) 54%,
+      transparent 64%,
+      transparent 100%
+    );
+  content: "";
+  inset: 0;
+  opacity: 0.32;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(125%);
+  z-index: 1;
+}
+
+.game-item.server-active > * {
+  position: relative;
+  z-index: 2;
+}
+
+.game-item.server-active .status {
+  color: color-mix(in srgb, var(--color-accent) 72%, white);
+  text-shadow:
+    0 0 4px color-mix(in srgb, var(--color-accent) 65%, transparent),
+    0 0 10px color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+@keyframes active-server-sheen {
+  0%,
+  22% {
+    transform: translateX(125%);
+  }
+
+  78%,
+  100% {
+    transform: translateX(-125%);
+  }
+}
+
+@keyframes active-server-background-glow {
+  0%,
+  100% {
+    opacity: 0.24;
+  }
+
+  50% {
+    opacity: 0.46;
+  }
+}
+
+@keyframes active-server-glow {
+  0%,
+  100% {
+    border-color: color-mix(in srgb, var(--color-accent) 58%, white);
+    box-shadow:
+      0 0 7px color-mix(in srgb, var(--color-accent) 28%, transparent),
+      0 0 16px color-mix(in srgb, var(--color-accent) 14%, transparent),
+      0 0 5px black;
+  }
+
+  50% {
+    border-color: color-mix(in srgb, var(--color-accent) 82%, white);
+    box-shadow:
+      0 0 12px color-mix(in srgb, var(--color-accent) 46%, transparent),
+      0 0 28px color-mix(in srgb, var(--color-accent) 26%, transparent),
+      0 0 6px black;
+  }
+}
+
 .servers-section,
 .favorites-section {
   width: min(92vw, 900px);
