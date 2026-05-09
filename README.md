@@ -26,6 +26,7 @@ This app is currently unsigned. Windows Defender, SmartScreen, or antivirus soft
 - [Server Status And Backgrounds](#server-status-and-backgrounds)
 - [Server Settings](#server-settings)
 - [Favourites](#favourites)
+- [Server Autorun Favourites](#server-autorun-favourites)
 - [In-Game Favourites Popup](#in-game-favourites-popup)
 - [Client Settings](#client-settings)
 - [Theme Editor](#theme-editor)
@@ -64,6 +65,7 @@ This app is currently unsigned. Windows Defender, SmartScreen, or antivirus soft
 | Smart icons           | Use custom icons, favicons, website snapshots, or Windows file icons.                             |
 | Drag reordering       | Reorder favourites by dragging the whole favourite tile in edit mode.                             |
 | Favourite columns     | Show favourites in two, three, or four columns.                                                   |
+| Server autorun        | Attach favourites to a server so they open automatically when that server launches.               |
 | In-game popup         | Press `Ctrl+Shift+F` from any client window to open favourites without returning to the launcher. |
 
 ### Configuration And Sharing
@@ -162,6 +164,7 @@ Each server entry can store:
 - Admin password
 - Auto-login preference
 - Status auto-refresh preference
+- Autorun favourites for that server
 
 Auto-login can be disabled per server while still allowing credential autofill.
 
@@ -184,6 +187,28 @@ Local-file favourites:
 Custom favourite icons or images override all automatic icon choices.
 
 In edit mode, favourites can be reordered by dragging the whole tile. The edit and delete buttons are stacked on the right side of each favourite tile.
+
+## Server Autorun Favourites
+
+Autorun favourites let a server open useful companion resources automatically when you launch it.
+
+Examples:
+
+- A campaign wiki
+- A shared notes document
+- A rules reference
+- A local PDF
+- A music, map, or handout folder
+
+Autorun favourites are managed from the server settings modal. Each server has its own autorun list, separate from the main favourites section.
+
+Autorun favourites use the same favourite model as the main screen:
+
+- Website autorun favourites open in the system default browser.
+- Local-file autorun favourites open with the Windows default app for that file type.
+- Custom icons and automatic icon handling still apply where relevant.
+
+When sharing settings, per-server autorun favourites can be exported separately from the main screen favourites. During import, local-file autorun favourites are checked and skipped if the referenced file does not exist on the importing computer.
 
 ## In-Game Favourites Popup
 
