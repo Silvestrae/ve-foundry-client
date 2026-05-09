@@ -271,36 +271,6 @@ Enable Rich Presence in both places:
 - VE Foundry Client settings
 - The Foundry module settings
 
-## Screenshots
-
-This README is ready for screenshots, but the repository does not currently include dedicated screenshot assets.
-
-Suggested future screenshot targets:
-
-- Main launcher in play mode
-- Main launcher in edit mode with drag overlays
-- Server settings modal
-- Client settings modal
-- Theme editor
-- Share/import modal
-- Favourites popup
-
-Place future images under `docs/screenshots/` and link them from the matching guide sections.
-
-## Development
-
-Common Windows commands:
-
-```powershell
-npm.cmd run format
-npm.cmd run typecheck
-npm.cmd run lint
-npm.cmd run build
-npm.cmd run dist:win
-```
-
-The project currently builds Windows installer, portable, and zip artifacts. The packaging config keeps portable app data support working alongside normal installer support.
-
 ## Acknowledgments
 
 Special thanks to [theripper93](https://github.com/theripper93) and [OmegaRogue](https://github.com/OmegaRogue) for creating the original client, and to [JeidoUran](https://github.com/JeidoUran) for the fork this project was based on.
@@ -311,4 +281,4 @@ Client and Rich Presence icons were designed by [Freepik](http://www.freepik.com
 
 ## Disclaimer
 
-Parts of this fork have been written with help from ChatGPT. If you spot a bug, a rough edge, or something that could be improved, please open a [GitHub Issue](https://github.com/Silvestrae/ve-foundry-client/issues) or [Pull Request](https://github.com/Silvestrae/ve-foundry-client/pulls).
+Changes in the fork have been vibe-coded in Codex. If you spot a bug, a rough edge, or something that could be improved, please open a [GitHub Issue](https://github.com/Silvestrae/ve-foundry-client/issues) or [Pull Request](https://github.com/Silvestrae/ve-foundry-client/pulls).
