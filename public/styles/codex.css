@@ -235,8 +235,11 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
 }
 
 .game-button {
+  align-items: center;
   background-color: transparent;
   border: none;
+  display: flex;
+  gap: 0.65rem;
   padding: 0.7rem 1rem;
   margin: 0;
   cursor: pointer;
@@ -246,6 +249,13 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   font-size: 18px;
   flex-grow: 1;
   text-align: left;
+}
+
+.game-button a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .game-button:hover {
@@ -300,6 +310,22 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   pointer-events: none;
 }
 
+.game-item.has-server-background.server-active::before {
+  background:
+    radial-gradient(
+      circle at 26% 52%,
+      color-mix(in srgb, var(--color-accent) 14%, transparent) 0%,
+      transparent 58%
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-accent) 10%, transparent) 0%,
+      color-mix(in srgb, var(--color-accent) 4%, transparent) 40%,
+      transparent 78%
+    ),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.24), transparent 70%);
+}
+
 .game-item.has-server-background > * {
   position: relative;
   z-index: 1;
@@ -312,39 +338,36 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
 
 .game-item.server-active {
   animation: active-server-glow 3.6s ease-in-out infinite;
-  border-color: color-mix(in srgb, var(--color-accent) 64%, white);
+  border-color: color-mix(in srgb, var(--color-accent) 78%, white);
   box-shadow:
-    0 0 8px color-mix(in srgb, var(--color-accent) 34%, transparent),
-    0 0 18px color-mix(in srgb, var(--color-accent) 18%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 54%, transparent),
+    inset 0 0 28px color-mix(in srgb, var(--color-accent) 16%, transparent),
+    0 0 10px color-mix(in srgb, var(--color-accent) 52%, transparent),
+    0 0 26px color-mix(in srgb, var(--color-accent) 28%, transparent),
     0 0 5px black;
 }
 
 .game-item.server-active::after {
-  animation:
-    active-server-sheen 8s ease-in-out infinite,
-    active-server-background-glow 3.6s ease-in-out infinite;
-  background:
-    radial-gradient(
-      circle at 50% 50%,
-      color-mix(in srgb, var(--color-accent) 16%, transparent) 0%,
-      transparent 68%
-    ),
-    linear-gradient(
-      115deg,
-      transparent 0%,
-      transparent 36%,
-      color-mix(in srgb, var(--color-accent) 18%, transparent) 46%,
-      rgba(255, 255, 255, 0.18) 50%,
-      color-mix(in srgb, var(--color-accent) 18%, transparent) 54%,
-      transparent 64%,
-      transparent 100%
-    );
+  animation: active-server-sheen 8s ease-in-out infinite;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 28%,
+    color-mix(in srgb, var(--color-accent) 0%, transparent) 35%,
+    color-mix(in srgb, var(--color-accent) 18%, transparent) 43%,
+    rgba(255, 255, 255, 0.22) 50%,
+    color-mix(in srgb, var(--color-accent) 18%, transparent) 57%,
+    color-mix(in srgb, var(--color-accent) 0%, transparent) 65%,
+    transparent 72%,
+    transparent 100%
+  );
   content: "";
-  inset: 0;
-  opacity: 0.32;
+  inset: 0 auto 0 -35%;
+  opacity: 0.54;
   pointer-events: none;
   position: absolute;
-  transform: translateX(125%);
+  transform: translateX(115%);
+  width: 170%;
   z-index: 1;
 }
 
@@ -353,8 +376,9 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   z-index: 2;
 }
 
-.game-item.server-active .status {
+.game-item.server-active .users {
   color: color-mix(in srgb, var(--color-accent) 72%, white);
+  font-weight: 800;
   text-shadow:
     0 0 4px color-mix(in srgb, var(--color-accent) 65%, transparent),
     0 0 10px color-mix(in srgb, var(--color-accent) 35%, transparent);
@@ -363,41 +387,34 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
 @keyframes active-server-sheen {
   0%,
   22% {
-    transform: translateX(125%);
+    transform: translateX(115%);
   }
 
   78%,
   100% {
-    transform: translateX(-125%);
-  }
-}
-
-@keyframes active-server-background-glow {
-  0%,
-  100% {
-    opacity: 0.24;
-  }
-
-  50% {
-    opacity: 0.46;
+    transform: translateX(-115%);
   }
 }
 
 @keyframes active-server-glow {
   0%,
   100% {
-    border-color: color-mix(in srgb, var(--color-accent) 58%, white);
+    border-color: color-mix(in srgb, var(--color-accent) 68%, white);
     box-shadow:
-      0 0 7px color-mix(in srgb, var(--color-accent) 28%, transparent),
-      0 0 16px color-mix(in srgb, var(--color-accent) 14%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 46%, transparent),
+      inset 0 0 24px color-mix(in srgb, var(--color-accent) 13%, transparent),
+      0 0 8px color-mix(in srgb, var(--color-accent) 42%, transparent),
+      0 0 20px color-mix(in srgb, var(--color-accent) 22%, transparent),
       0 0 5px black;
   }
 
   50% {
-    border-color: color-mix(in srgb, var(--color-accent) 82%, white);
+    border-color: color-mix(in srgb, var(--color-accent) 94%, white);
     box-shadow:
-      0 0 12px color-mix(in srgb, var(--color-accent) 46%, transparent),
-      0 0 28px color-mix(in srgb, var(--color-accent) 26%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 70%, transparent),
+      inset 0 0 38px color-mix(in srgb, var(--color-accent) 22%, transparent),
+      0 0 16px color-mix(in srgb, var(--color-accent) 68%, transparent),
+      0 0 38px color-mix(in srgb, var(--color-accent) 38%, transparent),
       0 0 6px black;
   }
 }

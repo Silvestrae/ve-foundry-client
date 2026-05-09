@@ -125,7 +125,7 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
   // Otherwise, inject real data
   if (statusEnabled) {
     statusSpan.innerHTML = info.version
-      ? `<i class="fa-solid fa-signal"></i> ${hasActivePlayers ? "Active" : "Online"}`
+      ? `<i class="fa-solid fa-signal"></i> Online`
       : `<i class="fa-solid fa-xmark"></i> Offline`;
   }
   if (foundryVersionEnabled) {
@@ -141,7 +141,9 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
     systemVersionSpan.innerHTML = `<i class="fa-solid fa-screwdriver-wrench"></i> ${info.systemVersion ?? "-"}`;
   }
   if (onlinePlayersEnabled) {
-    usersSpan.innerHTML = `<i class="fa-solid fa-users"></i> ${activeUsers}`;
+    usersSpan.innerHTML = `<i class="fa-solid fa-users"></i> ${
+      hasActivePlayers ? `${activeUsers} Online` : activeUsers
+    }`;
   }
 }
 
