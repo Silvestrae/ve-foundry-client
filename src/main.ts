@@ -1065,6 +1065,7 @@ function hookExternalLinkHandling(win: BrowserWindow) {
 
   win.webContents.on("did-create-window", (childWindow) => {
     hookExternalLinkHandling(childWindow);
+    hookFavoritePopupShortcut(childWindow);
   });
 }
 
@@ -1102,13 +1103,35 @@ function hookFavoritePopupShortcut(win: BrowserWindow) {
     if (
       input.type === "keyDown" &&
       input.control &&
-      input.alt &&
+      input.shift &&
       input.key.toLowerCase() === "f"
     ) {
       event.preventDefault();
       showFavoritesPopup(win);
     }
+
+    if (
+      input.type === "keyDown" &&
+      input.control &&
+      input.shift &&
+      input.key.toLowerCase() === "s"
+    ) {
+      event.preventDefault();
+      returnToServerSelect(win);
+    }
   });
+}
+
+function getFocusedClientWindow() {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (
+    focused &&
+    favoritesPopupWindow &&
+    focused.id === favoritesPopupWindow.id
+  ) {
+    return mainWindow;
+  }
+  return focused ?? mainWindow;
 }
 
 const windows = new Set<BrowserWindow>();
@@ -1739,7 +1762,14 @@ app.whenReady().then(async () => {
         label: "Show Favorites",
         accelerator: "Ctrl+Shift+F",
         click: () => {
-          showFavoritesPopup(BrowserWindow.getFocusedWindow() ?? mainWindow);
+          showFavoritesPopup(getFocusedClientWindow());
+        },
+      },
+      {
+        label: "Server Select",
+        accelerator: "Ctrl+Shift+S",
+        click: () => {
+          returnToServerSelect(getFocusedClientWindow());
         },
       },
       { role: "quit" },

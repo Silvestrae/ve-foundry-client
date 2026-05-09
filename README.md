@@ -118,6 +118,7 @@ In edit mode:
 | Shortcut                    | Action                                              |
 | --------------------------- | --------------------------------------------------- |
 | `Ctrl+Shift+F`              | Toggle the favourites popup from any client window. |
+| `Ctrl+Shift+S`              | Return to the server select screen.                 |
 | `Ctrl+R` or `F5`            | Reload the current page.                            |
 | `Ctrl+Shift+R` or `Ctrl+F5` | Force reload the current page.                      |
 | `Ctrl++` / `Ctrl+Shift++`   | Zoom in.                                            |
