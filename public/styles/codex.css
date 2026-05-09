@@ -336,6 +336,104 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   transform: scale(0.98);
 }
 
+.game-item.dragging-floating {
+  cursor: grabbing;
+  margin: 0;
+  opacity: 0.82;
+  pointer-events: none;
+  position: fixed;
+  transition: none !important;
+  will-change: transform;
+  z-index: 10000;
+}
+
+.game-item > .server-reorder-overlay {
+  align-items: center;
+  backdrop-filter: blur(4px);
+  background: rgba(8, 14, 22, 0.68);
+  border-radius: 8px 0 0 8px;
+  color: var(--color-text-primary);
+  display: flex;
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  font-weight: 700;
+  bottom: 0;
+  left: 0;
+  right: 3.35rem;
+  top: 0;
+  justify-content: center;
+  letter-spacing: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.92);
+  transition: opacity 0.16s ease;
+  z-index: 5;
+}
+
+body.main-edit-mode:not(.server-reorder-dragging) .game-item:hover .server-reorder-overlay {
+  opacity: 1;
+}
+
+.game-item.has-server-background > .server-reorder-overlay,
+.game-item.server-active > .server-reorder-overlay {
+  position: absolute;
+  z-index: 5;
+}
+
+body.main-edit-mode .game-item {
+  cursor: grab;
+}
+
+body.main-edit-mode .game-item:active {
+  cursor: grabbing;
+}
+
+body.main-edit-mode .game-main-button,
+body.main-edit-mode .game-button,
+body.main-edit-mode .game-item a {
+  cursor: grab;
+}
+
+body.main-edit-mode .game-main-button:hover {
+  background: transparent;
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+}
+
+body.main-edit-mode .game-main-button:hover::before,
+body.main-edit-mode .game-main-button:hover::after {
+  left: 50%;
+  width: 0;
+}
+
+body.main-edit-mode .game-main-button:hover .server-infos {
+  text-shadow: none;
+}
+
+.game-reorder-placeholder {
+  background:
+    linear-gradient(rgba(8, 14, 22, 0.42), rgba(8, 14, 22, 0.42)),
+    color-mix(in srgb, var(--color-accent) 16%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--color-accent) 74%, white);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 10px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  pointer-events: none;
+  transition: none !important;
+}
+
+body.server-reorder-dragging .tooltip {
+  display: none !important;
+}
+
+body.main-edit-mode .game-main-button .tooltip,
+body.main-edit-mode #tooltip-layer .active-tooltip:not(.server-action-tooltip) {
+  display: none !important;
+}
+
 .game-item.server-active {
   animation: active-server-glow 3.6s ease-in-out infinite;
   border-color: color-mix(in srgb, var(--color-accent) 78%, white);
@@ -573,11 +671,64 @@ body.main-edit-mode .favorites-section.favorites-empty .favorite-empty-state {
   grid-template-columns: 1fr auto;
   min-height: 4rem;
   overflow: hidden;
+  position: relative;
 }
 
 .favorite-item.dragging {
   opacity: 0.55;
   transform: scale(0.98);
+}
+
+.favorite-item.dragging-floating {
+  cursor: grabbing;
+  margin: 0;
+  opacity: 0.82;
+  pointer-events: none;
+  position: fixed;
+  transition: none !important;
+  will-change: transform;
+  z-index: 10000;
+}
+
+.favorite-reorder-placeholder {
+  background:
+    linear-gradient(rgba(8, 14, 22, 0.42), rgba(8, 14, 22, 0.42)),
+    color-mix(in srgb, var(--color-accent) 16%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--color-accent) 74%, white);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 10px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  pointer-events: none;
+  transition: none !important;
+}
+
+.favorite-reorder-overlay {
+  align-items: center;
+  backdrop-filter: blur(4px);
+  background: rgba(8, 14, 22, 0.68);
+  border-radius: 8px 0 0 8px;
+  bottom: 0;
+  color: var(--color-text-primary);
+  display: flex;
+  font-family: var(--font-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  justify-content: center;
+  left: 0;
+  letter-spacing: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 2rem;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.92);
+  top: 0;
+  transition: opacity 0.16s ease;
+  z-index: 5;
+}
+
+body.main-edit-mode:not(.favorite-reorder-dragging) .favorite-item:hover .favorite-reorder-overlay {
+  opacity: 1;
 }
 
 body.main-edit-mode .favorite-item {
@@ -603,6 +754,11 @@ body.main-edit-mode .favorite-item:active {
 .favorite-open-button:hover {
   background: var(--color-button-hover-rgba);
   text-shadow: 0 0 3px var(--color-text-primary);
+}
+
+body.main-edit-mode .favorite-open-button:hover {
+  background: transparent;
+  text-shadow: none;
 }
 
 .favorite-icon {
@@ -661,18 +817,21 @@ body.main-edit-mode .favorite-item:active {
 
 .favorite-controls {
   display: flex;
-  gap: 0.25rem;
-  padding-right: 0.35rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-right: 0.3rem;
+  position: relative;
+  z-index: 6;
 }
 
 .favorite-action {
   background: transparent;
   border: 0;
   color: var(--color-text-primary);
-  font-size: 0.9rem !important;
-  height: 2.25rem;
+  font-size: 0.78rem !important;
+  height: 1.6rem;
   padding: 0 !important;
-  width: 2.25rem;
+  width: 1.6rem;
 }
 
 .favorite-action:hover {
@@ -935,8 +1094,11 @@ body:not(.main-edit-mode) .favorite-column-control,
 body:not(.main-edit-mode) .favorite-controls,
 body:not(.main-edit-mode) .favorites-section.favorites-empty,
 body:not(.main-edit-mode) .game-title-bar .config-main-button.config,
-body:not(.main-edit-mode) .game-title-bar .config-main-button.reorder,
 body:not(.main-edit-mode) .server-column-control {
+  display: none;
+}
+
+.game-title-bar .config-main-button.reorder {
   display: none;
 }
 
@@ -2466,7 +2628,7 @@ input:checked + .slider:before {
 .game-title-bar .config-refresh-wrapper {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: space-around;
 }
 
 .content > .mode-toggle-wrapper {

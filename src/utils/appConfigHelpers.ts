@@ -22,7 +22,7 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
   const existing = await window.api.localAppConfig();
 
   const rawConfig: unknown = {
-    // on garde les jeux existants
+    ...existing,
     games: existing.games ?? [],
     cachePath: form.cachePath || "",
     autoCacheClear: form.clearCacheOnClose,
@@ -42,7 +42,6 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
     serverInfoPingRate: form.serverInfosPingRate,
     fullScreenEnabled: form.forceFullScreen,
     shareSessionWindows: form.shareSessionBetweenWindows,
-    // customCSS etc. restent comme dans existing si tu en as besoin
   };
 
   const result = AppConfigSchema.safeParse(rawConfig);

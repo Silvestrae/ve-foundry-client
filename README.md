@@ -4,139 +4,292 @@
 ![Foundry v12](https://img.shields.io/badge/Foundry-v12-lightgreen)
 ![Foundry v13](https://img.shields.io/badge/Foundry-v13-lightgreen)
 ![Foundry v14](https://img.shields.io/badge/Foundry-v14-lightgreen)
+![Windows](https://img.shields.io/badge/Platform-Windows-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow)
 
-VE Foundry Client is an independent, privately maintained Windows fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). I detached this fork from the original fork network so I could keep making changes that suited our game group's needs after the previous fork had gone more than a year without updates.
+VE Foundry Client is an independent, privately maintained Windows fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). It keeps the original goal of a lightweight Foundry VTT desktop launcher, then adds quality-of-life tools for managing multiple worlds, favourites, themes, shared settings, and portable Windows use.
 
-If the changes suit your table, you are welcome to use this rebranded client. Credit for the original project work goes to [theripper93](https://github.com/theripper93), [omegarogue](https://github.com/OmegaRogue), and [JeidoUran](https://github.com/JeidoUran).
+This app is currently unsigned. Windows Defender, SmartScreen, or antivirus software may warn you when downloading or installing it. If you do not want to trust an unsigned private-use build, do not use it.
 
-This app is currently unsigned. Windows Defender, SmartScreen, or antivirus software may warn you when downloading or installing it. If you do not want to trust it, do not use it.
+## Contents
+
+### Quick Start
+
+- [Platform Support](#platform-support)
+- [Install And Portable Builds](#install-and-portable-builds)
+- [Play Mode And Edit Mode](#play-mode-and-edit-mode)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+
+### Feature Guide
+
+- [Server Launcher](#server-launcher)
+- [Server Status And Backgrounds](#server-status-and-backgrounds)
+- [Server Settings](#server-settings)
+- [Favourites](#favourites)
+- [In-Game Favourites Popup](#in-game-favourites-popup)
+- [Client Settings](#client-settings)
+- [Theme Editor](#theme-editor)
+- [Sharing, Import, And Export](#sharing-import-and-export)
+- [Original Client Import](#original-client-import)
+- [Updates](#updates)
+- [Discord Rich Presence](#discord-rich-presence)
+
+### Project
+
+- [Development](#development)
+- [Acknowledgments](#acknowledgments)
+- [Disclaimer](#disclaimer)
+
+## Feature Overview
+
+### Server Management
+
+| Feature                       | Details                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Multi-version Foundry support | Designed for Foundry v11, v12, v13, and v14 servers.                                                 |
+| Saved server tiles            | Store server names, URLs, login credentials, admin passwords, and per-server options.                |
+| Play/edit modes               | Keep the launcher clean while playing, then reveal controls only when editing.                       |
+| Drag reordering               | Reorder server tiles by dragging the whole tile in edit mode.                                        |
+| Server columns                | Show servers in one or two columns.                                                                  |
+| Server status                 | Display online status, Foundry version, world name, game system, system version, and online players. |
+| Per-server refresh control    | Disable automatic status refresh for servers where polling is undesirable.                           |
+| Cached tile backgrounds       | Pull and cache background art from Foundry login pages.                                              |
+
+### Favourites
+
+| Feature               | Details                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| Website favourites    | Open saved websites in the system default browser.                                                |
+| Local-file favourites | Open local files with the default Windows app for that file type.                                 |
+| Smart icons           | Use custom icons, favicons, website snapshots, or Windows file icons.                             |
+| Drag reordering       | Reorder favourites by dragging the whole favourite tile in edit mode.                             |
+| Favourite columns     | Show favourites in two, three, or four columns.                                                   |
+| In-game popup         | Press `Ctrl+Shift+F` from any client window to open favourites without returning to the launcher. |
+
+### Configuration And Sharing
+
+| Feature                | Details                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Client settings        | Configure cache, certificates, external links, fullscreen, session sharing, server status, and Discord Rich Presence. |
+| Theme editor           | Adjust base theme, backgrounds, fonts, colours, opacity, and particles.                                               |
+| Share exports          | Export full settings, selected settings, theme data, servers, and favourites.                                         |
+| Safe imports           | Import shared JSON from text or file, with local-file favourites checked before import.                               |
+| Original client import | Import settings from the original FVTT Desktop Client data folders on first run.                                      |
+| Portable support       | Installer and portable builds are both supported.                                                                     |
+| Window persistence     | Restore size, position, and maximized state.                                                                          |
 
 ## Platform Support
 
 VE Foundry Client is currently built and released for Windows only.
 
-The codebase still keeps macOS and Linux in mind where practical. If you want a macOS or Linux build and are happy to be the tester for that platform, open an issue and I can provide one.
+The codebase still keeps macOS and Linux in mind where practical. If you want a macOS or Linux build and are happy to test that platform, open an issue and one can be provided.
 
-## Features
+## Install And Portable Builds
 
-| Feature                                                            | VE Foundry Client |
-| ------------------------------------------------------------------ | :---------------: |
-| Foundry v11, v12, v13, and v14 support                             |        Yes        |
-| Saved server list with one-click launch                            |        Yes        |
-| Saved login details and optional auto-login after autofill         |        Yes        |
-| Per-server toggle to autofill only, without auto-login             |        Yes        |
-| Back to server select button from setup, login, and game screens   |        Yes        |
-| Server status on server buttons                                    |        Yes        |
-| Per-server exclusion from automatic status refresh                 |        Yes        |
-| Server button background caching from Foundry login pages          |        Yes        |
-| Reorderable server buttons                                         |        Yes        |
-| One-column or two-column server layout                             |        Yes        |
-| Scrollable server list and scrollable expanded server settings     |        Yes        |
-| Website and local-file favourites                                  |        Yes        |
-| Favourite/favorite spelling follows the user's locale              |        Yes        |
-| Favourites popup hotkey while in game (`Ctrl+Alt+F`)               |        Yes        |
-| Custom favourite icons/images, favicons, snapshots, and file icons |        Yes        |
-| Favourite layout controls with two, three, or four columns         |        Yes        |
-| Play/edit mode to keep the main screen clean                       |        Yes        |
-| Toggle to open external links in the default browser               |        Yes        |
-| Release notes shown in the update checker                          |        Yes        |
-| Update available button indicator                                  |        Yes        |
-| Theme editor                                                       |        Yes        |
-| Settings and theme import/export                                   |        Yes        |
-| First-run import from the original FVTT Desktop Client folders     |        Yes        |
-| Portable Windows build                                             |        Yes        |
-| Window size, position, and maximized state persistence             |        Yes        |
-| Discord Rich Presence support                                      |        Yes        |
+GitHub releases can include:
 
-## Main Screen
+- A Windows installer
+- A portable Windows build
+- A zipped Windows build
 
-The main screen has two modes:
+Portable support is kept alongside installer support. Portable builds should keep their app data with the portable package rather than behaving like a normal installed app.
 
-- **Play mode** hides editing controls and keeps the server and favourites lists clean.
-- **Edit mode** shows add fields, edit/delete controls, drag handles, and column layout controls.
+Because the app is unsigned, Windows may show a warning the first time you run it.
 
-Servers can be shown in one or two columns. Favourites can be shown in two, three, or four columns. Long server and favourite lists scroll inside their own areas instead of moving the whole page.
+## Play Mode And Edit Mode
 
-## Servers
+The launcher has two main modes.
+
+**Play mode** is the clean daily-use view. Editing controls are hidden, server tiles open servers, favourites open their target, and the page stays focused on launching what you need.
+
+**Edit mode** is for maintenance. It reveals add fields, server/favourite layout controls, server settings buttons, refresh buttons, favourite edit/delete buttons, and drag reordering.
+
+In edit mode:
+
+- Clicking a server tile does not enter the server.
+- Clicking a favourite tile does not open the favourite.
+- Dragging a server or favourite tile reorders it.
+- Server and favourite tiles show a blurred "Click and drag to reorder" overlay.
+- Settings and refresh buttons remain clickable.
+
+## Keyboard Shortcuts
+
+| Shortcut                    | Action                                              |
+| --------------------------- | --------------------------------------------------- |
+| `Ctrl+Shift+F`              | Toggle the favourites popup from any client window. |
+| `Ctrl+R` or `F5`            | Reload the current page.                            |
+| `Ctrl+Shift+R` or `Ctrl+F5` | Force reload the current page.                      |
+| `Ctrl++` / `Ctrl+Shift++`   | Zoom in.                                            |
+| `Ctrl+-`                    | Zoom out.                                           |
+| `Ctrl+0`                    | Reset zoom.                                         |
+| `Ctrl+Shift+I` or `F12`     | Open developer tools.                               |
+
+## Server Launcher
+
+Server tiles are the heart of the app. Each tile represents a Foundry server and can be launched with one click in play mode.
+
+Server tiles can show:
+
+- Server name
+- Connection status
+- Foundry version
+- World name
+- Game system
+- Game system version
+- Online player count
+- Cached server artwork
+
+Use the column selector above the server list to switch between a compact one-column layout and a wider two-column layout. Long server lists scroll inside the server area instead of pushing the whole page down.
+
+## Server Status And Backgrounds
+
+VE Foundry Client can ping saved servers and display status information directly on each server tile.
+
+Status fields can be enabled or disabled in client settings. Automatic refresh has a configurable refresh interval.
+
+Per-server status refresh can also be disabled. This is useful for cloud-hosted Foundry servers where polling a dormant server may wake it and create hosting cost.
+
+The app can also cache a server tile background from a Foundry login page. Cached backgrounds work for normal installs and portable builds.
+
+## Server Settings
 
 Each server entry can store:
 
-- Server name and URL
-- Foundry login username
-- User password and admin password
-- Whether the app should auto-login after autofill
-- Whether that server should be excluded from automatic status refresh
+- Server name
+- Server URL
+- Foundry username
+- User password
+- Admin password
+- Auto-login preference
+- Status auto-refresh preference
 
-The status refresh exclusion is useful for cloud-hosted Foundry servers where polling the server can wake an instance and create hosting cost.
-
-Server button backgrounds are fetched from the Foundry login page and cached locally. Cached backgrounds work for normal installs and portable builds.
+Auto-login can be disabled per server while still allowing credential autofill.
 
 ## Favourites
 
-Favourites are quick-launch tiles for websites or local files.
+Favourites are quick-launch tiles for websites and local files.
 
-- Website favourites always open in the user's default browser.
-- Local file favourites open with the user's default app for that file type.
-- File favourites use the operating system's file icon when available.
-- Website favourites try a favicon first, then a snapshot-style fallback if the favicon fails.
-- Users can choose a custom icon or image for any favourite, which overrides all automatic icons.
+Website favourites:
 
-Press `Ctrl+Alt+F` from any client window to open the favourites popup. This works while you are inside a Foundry server, so you do not need to return to the server select screen just to open a favourite.
+- Open in the user's default browser.
+- Try a favicon first.
+- Fall back to a snapshot-style image if no favicon works.
 
-When importing shared settings, local-file favourites are only imported if the referenced file exists on the current machine. This prevents broken local-file favourites from being created on another user's computer.
+Local-file favourites:
 
-## Settings Import
+- Open with the Windows default app for that file type.
+- Use the operating system's file icon where available.
+- Are checked during import so broken local paths are not blindly added on another machine.
 
-On first run, VE Foundry Client checks for settings from the original FVTT Desktop Client, including older `vtt-desktop-client` data folders. If settings are found, the app asks whether to import them.
+Custom favourite icons or images override all automatic icon choices.
 
-The import can bring across servers, theme settings, and saved login details. Before importing, the app backs up the current VE Foundry Client `userData.json`.
+In edit mode, favourites can be reordered by dragging the whole tile. The edit and delete buttons are stacked on the right side of each favourite tile.
 
-After a successful original-app import, the app may remind you that you can uninstall the original client if you no longer need it.
+## In-Game Favourites Popup
 
-## Sharing Settings
+Press `Ctrl+Shift+F` from any client window to open the favourites popup.
 
-The Share menu can export:
+This works while you are inside a Foundry server, so you do not need to return to the main launcher just to open a reference site, PDF, local document, or other saved favourite.
 
-- Full settings, including app configuration and theme
-- Theme only
+## Client Settings
 
-Imports can be pasted as JSON text or loaded from a JSON file.
+Client settings include:
 
-Exported settings do not include saved usernames, passwords, admin passwords, or local font-file paths. They may include favourite entries. Local-file favourites are checked during import and skipped if the file does not exist on the importing computer.
+- Cache path
+- Clear cache on close
+- Certificate error handling
+- External links opening in the default browser
+- Notification duration
+- Fullscreen behavior
+- Session sharing between windows
+- Server status display options
+- Server status refresh rate
+- Discord Rich Presence
+
+Saving client settings preserves unrelated launcher data such as server columns, favourite columns, saved favourites, and window bounds.
 
 ## Theme Editor
 
 The theme editor can adjust:
 
 - Base theme
-- Background images
-- Text, accent, and button colours
-- Button opacity
+- Background image collection
+- Background colour
+- Text colour
+- Accent colour
+- Button colour and opacity
+- Button hover colour and opacity
 - Particle effects
 - Google Font URLs
 - Local font files
 
-## External Links
+Theme imports do not include local font-file paths, because those paths are machine-specific.
 
-External links can be opened in the system default browser. This is enabled by default and can be toggled in settings.
+## Sharing, Import, And Export
+
+The Share menu can export selected parts of the app configuration.
+
+Export options include:
+
+- Client settings
+- Theme
+- Server addresses
+- Server credentials
+- Main screen favourites
+- Per-server autorun favourites
+
+Imports can be pasted as JSON text or loaded from a JSON file.
+
+Exported settings do not include saved usernames, passwords, admin passwords, or local font-file paths unless the relevant credential export option is explicitly selected. Local-file favourites are checked on import and skipped if the target file does not exist on the importing computer.
+
+## Original Client Import
+
+On first run, VE Foundry Client checks for settings from the original FVTT Desktop Client, including older `vtt-desktop-client` data folders.
+
+If settings are found, the app asks whether to import them. The import can bring across servers, theme settings, and saved login details.
+
+Before importing, the app backs up the current VE Foundry Client `userData.json`.
+
+After a successful original-client import, the app may remind you that the original client can be uninstalled if you no longer need it.
 
 ## Updates
 
-The app can check GitHub releases for updates. When an update is available, the update button changes state and the updater shows release notes for the latest version.
+The app can check GitHub releases for updates.
+
+When an update is available:
+
+- The update button changes state.
+- The updater modal shows release notes.
+- GitHub release and action support can publish installer and portable Windows artifacts.
 
 ## Discord Rich Presence
 
 Discord Rich Presence requires the [Foundry VTT Rich Presence](https://github.com/JeidoUran/fvtt-rich-presence) module to be installed and enabled in each Foundry world where you want presence updates.
 
-You must enable Rich Presence in both:
+Enable Rich Presence in both places:
 
 - VE Foundry Client settings
 - The Foundry module settings
 
+## Screenshots
+
+This README is ready for screenshots, but the repository does not currently include dedicated screenshot assets.
+
+Suggested future screenshot targets:
+
+- Main launcher in play mode
+- Main launcher in edit mode with drag overlays
+- Server settings modal
+- Client settings modal
+- Theme editor
+- Share/import modal
+- Favourites popup
+
+Place future images under `docs/screenshots/` and link them from the matching guide sections.
+
 ## Development
 
-Common commands:
+Common Windows commands:
 
 ```powershell
 npm.cmd run format
@@ -150,7 +303,7 @@ The project currently builds Windows installer, portable, and zip artifacts. The
 
 ## Acknowledgments
 
-Special thanks to theripper93 and OmegaRogue for creating the original client, and to JeidoUran for the fork this project was based on.
+Special thanks to [theripper93](https://github.com/theripper93) and [OmegaRogue](https://github.com/OmegaRogue) for creating the original client, and to [JeidoUran](https://github.com/JeidoUran) for the fork this project was based on.
 
 Rich Presence uses [@xhayper/discord-rpc](https://www.npmjs.com/package/@xhayper/discord-rpc).
 

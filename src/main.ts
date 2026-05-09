@@ -932,7 +932,7 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
 </head>
 <body>
   <h1>${favoriteLabels.plural}</h1>
-  <p class="hint">Ctrl+Alt+F toggles this popup from any client window.</p>
+  <p class="hint">Ctrl+Shift+F toggles this popup from any client window.</p>
   <div id="list" class="list"></div>
   <script>
     const favorites = ${data};
@@ -1737,7 +1737,7 @@ app.whenReady().then(async () => {
       },
       {
         label: "Show Favorites",
-        accelerator: "Ctrl+Alt+F",
+        accelerator: "Ctrl+Shift+F",
         click: () => {
           showFavoritesPopup(BrowserWindow.getFocusedWindow() ?? mainWindow);
         },

@@ -47,7 +47,17 @@ let favorites: FavoriteConfig[] = [];
 let editingFavoriteId: GameId | null = null;
 let selectedFavoriteIconOverrideUrl = "";
 let draggedGameItem: HTMLElement | null = null;
+let draggedGamePlaceholder: HTMLElement | null = null;
+let draggedGameOffsetX = 0;
+let draggedGameOffsetY = 0;
+let draggedGameStartX = 0;
+let draggedGameStartY = 0;
 let draggedFavoriteItem: HTMLElement | null = null;
+let draggedFavoritePlaceholder: HTMLElement | null = null;
+let draggedFavoriteOffsetX = 0;
+let draggedFavoriteOffsetY = 0;
+let draggedFavoriteStartX = 0;
+let draggedFavoriteStartY = 0;
 let mainEditModeEnabled = false;
 let editingServerId: GameId | null = null;
 let editingServerAutorunItems: FavoriteConfig[] = [];
@@ -441,7 +451,7 @@ const favoriteLabels = usesCommonwealthEnglish()
   : { singular: "Favorite", plural: "Favorites" };
 
 favoriteSectionTitle.textContent = favoriteLabels.plural;
-favoriteShortcutHint.textContent = `Press Ctrl+Alt+F in game to open ${favoriteLabels.plural.toLowerCase()}.`;
+favoriteShortcutHint.textContent = `Press Ctrl+Shift+F in game to open ${favoriteLabels.plural.toLowerCase()}.`;
 serverAutorunTitle.textContent = `Autorun ${favoriteLabels.plural}`;
 favoriteEmptyState.textContent = `Add your first ${favoriteLabels.singular.toLowerCase()} website or file.`;
 
@@ -749,29 +759,178 @@ favoriteColumnButtons.forEach((button) => {
   });
 });
 
-function getDragAfterElement(y: number): HTMLElement | null {
+function getDragInsertBeforeElement(
+  container: Element,
+  itemSelector: string,
+  x: number,
+  y: number,
+): HTMLElement | null {
   const items = Array.from(
-    gameItemList.querySelectorAll<HTMLElement>(".game-item:not(.dragging)"),
+    container.querySelectorAll<HTMLElement>(
+      `${itemSelector}:not(.dragging):not(.game-reorder-placeholder)`,
+    ),
   );
 
-  return items.reduce<{ offset: number; element: HTMLElement | null }>(
-    (closest, item) => {
-      const box = item.getBoundingClientRect();
-      const offset = y - box.top - box.height / 2;
+  if (!items.length) return null;
 
-      if (offset < 0 && offset > closest.offset) {
-        return { offset, element: item };
+  const closest = items.reduce<{
+    distance: number;
+    index: number;
+    rect: DOMRect | null;
+  }>(
+    (current, item, index) => {
+      const rect = item.getBoundingClientRect();
+      const dx = x - (rect.left + rect.width / 2);
+      const dy = y - (rect.top + rect.height / 2);
+      const distance = Math.hypot(dx, dy);
+
+      if (distance < current.distance) {
+        return { distance, index, rect };
       }
 
-      return closest;
+      return current;
     },
-    { offset: Number.NEGATIVE_INFINITY, element: null },
-  ).element;
+    { distance: Number.POSITIVE_INFINITY, index: -1, rect: null },
+  );
+
+  if (!closest.rect || closest.index < 0) return null;
+
+  const centerX = closest.rect.left + closest.rect.width / 2;
+  const centerY = closest.rect.top + closest.rect.height / 2;
+  const isSameRow = Math.abs(y - centerY) <= closest.rect.height / 2;
+  const shouldInsertBefore = isSameRow ? x < centerX : y < centerY;
+  const insertIndex = closest.index + (shouldInsertBefore ? 0 : 1);
+
+  return items[insertIndex] ?? null;
+}
+
+function getServerGridInsertBeforeElement(
+  x: number,
+  y: number,
+): HTMLElement | null {
+  const items = Array.from(
+    gameItemList.querySelectorAll<HTMLElement>(
+      ".game-item:not(.dragging):not(.game-reorder-placeholder)",
+    ),
+  );
+  const columnCount = gameItemList.classList.contains("server-columns-2")
+    ? 2
+    : 1;
+
+  if (columnCount === 1) {
+    return getDragInsertBeforeElement(gameItemList, ".game-item", x, y);
+  }
+
+  const listRect = gameItemList.getBoundingClientRect();
+  const styles = getComputedStyle(gameItemList);
+  const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+  const paddingRight = parseFloat(styles.paddingRight) || 0;
+  const paddingTop = parseFloat(styles.paddingTop) || 0;
+  const columnGap = parseFloat(styles.columnGap) || 0;
+  const rowGap = parseFloat(styles.rowGap) || columnGap;
+  const contentLeft = listRect.left + paddingLeft;
+  const contentTop = listRect.top + paddingTop;
+  const contentWidth = Math.max(
+    1,
+    listRect.width - paddingLeft - paddingRight,
+  );
+  const columnWidth = Math.max(1, (contentWidth - columnGap) / columnCount);
+  const columnSpan = columnWidth + columnGap;
+  const column = Math.max(
+    0,
+    Math.min(columnCount - 1, Math.floor((x - contentLeft) / columnSpan)),
+  );
+
+  const visibleSlots = Array.from(
+    gameItemList.querySelectorAll<HTMLElement>(
+      ".game-item:not(.dragging), .game-reorder-placeholder",
+    ),
+  );
+  const measuredSlot =
+    visibleSlots.find((item) => !item.classList.contains("dragging")) ??
+    items[0];
+  const slotHeight = Math.max(
+    1,
+    measuredSlot?.getBoundingClientRect().height ?? 1,
+  );
+  const rowSpan = slotHeight + rowGap;
+  const row = Math.max(0, Math.floor((y - contentTop) / rowSpan));
+  const slotIndex = Math.max(
+    0,
+    Math.min(items.length, row * columnCount + column),
+  );
+
+  return items[slotIndex] ?? null;
+}
+
+function getFavoriteGridInsertBeforeElement(
+  x: number,
+  y: number,
+): HTMLElement | null {
+  const items = Array.from(
+    favoriteList.querySelectorAll<HTMLElement>(
+      ".favorite-item:not(.dragging):not(.favorite-reorder-placeholder)",
+    ),
+  );
+  const columnCount = favoriteList.classList.contains("favorite-columns-2")
+    ? 2
+    : favoriteList.classList.contains("favorite-columns-4")
+      ? 4
+      : 3;
+
+  if (columnCount <= 1) {
+    return getDragInsertBeforeElement(favoriteList, ".favorite-item", x, y);
+  }
+
+  const listRect = favoriteList.getBoundingClientRect();
+  const styles = getComputedStyle(favoriteList);
+  const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+  const paddingRight = parseFloat(styles.paddingRight) || 0;
+  const paddingTop = parseFloat(styles.paddingTop) || 0;
+  const columnGap = parseFloat(styles.columnGap) || 0;
+  const rowGap = parseFloat(styles.rowGap) || columnGap;
+  const contentLeft = listRect.left + paddingLeft;
+  const contentTop = listRect.top + paddingTop;
+  const contentWidth = Math.max(
+    1,
+    listRect.width - paddingLeft - paddingRight,
+  );
+  const columnWidth = Math.max(
+    1,
+    (contentWidth - columnGap * (columnCount - 1)) / columnCount,
+  );
+  const columnSpan = columnWidth + columnGap;
+  const column = Math.max(
+    0,
+    Math.min(columnCount - 1, Math.floor((x - contentLeft) / columnSpan)),
+  );
+  const visibleSlots = Array.from(
+    favoriteList.querySelectorAll<HTMLElement>(
+      ".favorite-item:not(.dragging), .favorite-reorder-placeholder",
+    ),
+  );
+  const measuredSlot =
+    visibleSlots.find((item) => !item.classList.contains("dragging")) ??
+    items[0];
+  const slotHeight = Math.max(
+    1,
+    measuredSlot?.getBoundingClientRect().height ?? 1,
+  );
+  const rowSpan = slotHeight + rowGap;
+  const row = Math.max(0, Math.floor((y - contentTop) / rowSpan));
+  const slotIndex = Math.max(
+    0,
+    Math.min(items.length, row * columnCount + column),
+  );
+
+  return items[slotIndex] ?? null;
 }
 
 async function saveGameOrder() {
   const orderedKeys = Array.from(
-    gameItemList.querySelectorAll<HTMLElement>(".game-item"),
+    gameItemList.querySelectorAll<HTMLElement>(
+      ".game-item:not(.game-reorder-placeholder)",
+    ),
   ).map((item) => item.dataset.gameId);
 
   await updateGameList((appConfig) => {
@@ -793,32 +952,138 @@ async function saveGameOrder() {
 
 function setupServerReorder(li: HTMLElement) {
   const handle = li.querySelector<HTMLElement>(".reorder-game");
-  if (!handle) return;
+  handle?.setAttribute("draggable", "false");
+  li.draggable = false;
 
-  handle.addEventListener("dragstart", (event) => {
+  const finishDrag = async () => {
+    if (!draggedGameItem) return;
+    const item = draggedGameItem;
+
+    if (draggedGamePlaceholder?.parentElement) {
+      draggedGamePlaceholder.parentElement.insertBefore(
+        item,
+        draggedGamePlaceholder,
+      );
+      draggedGamePlaceholder.remove();
+    }
+
+    item.style.removeProperty("height");
+    item.style.removeProperty("left");
+    item.style.removeProperty("top");
+    item.style.removeProperty("transform");
+    item.style.removeProperty("width");
+    item.classList.remove("dragging-floating");
+    item.classList.remove("dragging");
+    document.body.classList.remove("server-reorder-dragging");
+    draggedGameItem = null;
+    draggedGamePlaceholder = null;
+    draggedGameOffsetX = 0;
+    draggedGameOffsetY = 0;
+    draggedGameStartX = 0;
+    draggedGameStartY = 0;
+    await saveGameOrder();
+    showNotification("Server order saved");
+  };
+
+  const startDrag = (event: PointerEvent) => {
+    if (draggedGameItem) return;
+
+    const rect = li.getBoundingClientRect();
+    draggedGameItem = li;
+    draggedGameOffsetX = event.clientX - rect.left;
+    draggedGameOffsetY = event.clientY - rect.top;
+    draggedGameStartX = rect.left;
+    draggedGameStartY = rect.top;
+    draggedGamePlaceholder = document.createElement("li");
+    draggedGamePlaceholder.className = "game-item game-reorder-placeholder";
+    draggedGamePlaceholder.setAttribute("aria-hidden", "true");
+    draggedGamePlaceholder.style.minHeight = `${rect.height}px`;
+    li.parentElement?.insertBefore(draggedGamePlaceholder, li);
+    li.style.width = `${rect.width}px`;
+    li.style.height = `${rect.height}px`;
+    li.style.left = `${rect.left}px`;
+    li.style.top = `${rect.top}px`;
+    li.style.transform = "translate3d(0, 0, 0)";
+    li.classList.add("dragging", "dragging-floating");
+    document.body.classList.add("server-reorder-dragging");
+    moveGamePlaceholder(event.clientX, event.clientY);
+  };
+
+  li.addEventListener("dragstart", (event) => {
+    event.preventDefault();
+  });
+
+  li.addEventListener("pointerdown", (event) => {
     if (!mainEditModeEnabled) {
-      event.preventDefault();
       return;
     }
-    draggedGameItem = li;
-    li.classList.add("dragging");
-    event.dataTransfer?.setData("text/plain", li.dataset.gameId ?? "");
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = "move";
+    if (event.button !== 0) return;
+    if (
+      event.target instanceof Element &&
+      event.target.closest(".configure-game, .refresh-game")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    li.dataset.reorderPointerId = String(event.pointerId);
+    li.dataset.reorderStartX = String(event.clientX);
+    li.dataset.reorderStartY = String(event.clientY);
+    li.setPointerCapture(event.pointerId);
+  });
+
+  li.addEventListener("pointermove", (event) => {
+    if (!mainEditModeEnabled) return;
+    if (li.dataset.reorderPointerId !== String(event.pointerId)) return;
+
+    event.preventDefault();
+    if (draggedGameItem !== li) {
+      const startX = Number(li.dataset.reorderStartX ?? event.clientX);
+      const startY = Number(li.dataset.reorderStartY ?? event.clientY);
+      if (Math.hypot(event.clientX - startX, event.clientY - startY) < 6) {
+        return;
+      }
+      startDrag(event);
+    }
+
+    moveGamePlaceholder(event.clientX, event.clientY);
+  });
+
+  li.addEventListener("pointerup", async (event) => {
+    if (li.dataset.reorderPointerId !== String(event.pointerId)) return;
+
+    event.preventDefault();
+    delete li.dataset.reorderPointerId;
+    delete li.dataset.reorderStartX;
+    delete li.dataset.reorderStartY;
+    if (li.hasPointerCapture(event.pointerId)) {
+      li.releasePointerCapture(event.pointerId);
+    }
+    if (draggedGameItem === li) {
+      await finishDrag();
     }
   });
 
-  handle.addEventListener("dragend", async () => {
-    li.classList.remove("dragging");
-    draggedGameItem = null;
-    await saveGameOrder();
-    showNotification("Server order saved");
+  li.addEventListener("pointercancel", async (event) => {
+    if (li.dataset.reorderPointerId !== String(event.pointerId)) return;
+
+    delete li.dataset.reorderPointerId;
+    delete li.dataset.reorderStartX;
+    delete li.dataset.reorderStartY;
+    if (li.hasPointerCapture(event.pointerId)) {
+      li.releasePointerCapture(event.pointerId);
+    }
+    if (draggedGameItem === li) {
+      await finishDrag();
+    }
   });
 }
 
 async function saveFavoriteOrder() {
   const orderedKeys = Array.from(
-    favoriteList.querySelectorAll<HTMLElement>(".favorite-item"),
+    favoriteList.querySelectorAll<HTMLElement>(
+      ".favorite-item:not(.favorite-reorder-placeholder)",
+    ),
   ).map((item) => item.dataset.favoriteId);
 
   await updateFavoriteList((appConfig) => {
@@ -841,77 +1106,197 @@ async function saveFavoriteOrder() {
   });
 }
 
-function getFavoriteDragAfterElement(x: number, y: number): HTMLElement | null {
-  const items = Array.from(
-    favoriteList.querySelectorAll<HTMLElement>(".favorite-item:not(.dragging)"),
-  );
-
-  return items.reduce<{ distance: number; element: HTMLElement | null }>(
-    (closest, item) => {
-      const box = item.getBoundingClientRect();
-      const dx = x - (box.left + box.width / 2);
-      const dy = y - (box.top + box.height / 2);
-      const isBefore = dy < 0 || (Math.abs(dy) < box.height / 2 && dx < 0);
-      const distance = Math.hypot(dx, dy);
-
-      if (isBefore && distance < closest.distance) {
-        return { distance, element: item };
-      }
-
-      return closest;
-    },
-    { distance: Number.POSITIVE_INFINITY, element: null },
-  ).element;
-}
-
 function setupFavoriteReorder(li: HTMLElement) {
-  li.addEventListener("dragstart", (event) => {
-    if (!mainEditModeEnabled) {
-      event.preventDefault();
-      return;
-    }
-    draggedFavoriteItem = li;
-    li.classList.add("dragging");
-    event.dataTransfer?.setData("text/plain", li.dataset.favoriteId ?? "");
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = "move";
-    }
-  });
+  li.draggable = false;
 
-  li.addEventListener("dragend", async () => {
-    li.classList.remove("dragging");
+  const finishDrag = async () => {
+    if (!draggedFavoriteItem) return;
+    const item = draggedFavoriteItem;
+
+    if (draggedFavoritePlaceholder?.parentElement) {
+      draggedFavoritePlaceholder.parentElement.insertBefore(
+        item,
+        draggedFavoritePlaceholder,
+      );
+      draggedFavoritePlaceholder.remove();
+    }
+
+    item.style.removeProperty("height");
+    item.style.removeProperty("left");
+    item.style.removeProperty("top");
+    item.style.removeProperty("transform");
+    item.style.removeProperty("width");
+    item.classList.remove("dragging-floating");
+    item.classList.remove("dragging");
+    document.body.classList.remove("favorite-reorder-dragging");
     draggedFavoriteItem = null;
+    draggedFavoritePlaceholder = null;
+    draggedFavoriteOffsetX = 0;
+    draggedFavoriteOffsetY = 0;
+    draggedFavoriteStartX = 0;
+    draggedFavoriteStartY = 0;
     await saveFavoriteOrder();
     showNotification(`${favoriteLabels.singular} order saved`);
+  };
+
+  const startDrag = (event: PointerEvent) => {
+    if (draggedFavoriteItem) return;
+
+    const rect = li.getBoundingClientRect();
+    draggedFavoriteItem = li;
+    draggedFavoriteOffsetX = event.clientX - rect.left;
+    draggedFavoriteOffsetY = event.clientY - rect.top;
+    draggedFavoriteStartX = rect.left;
+    draggedFavoriteStartY = rect.top;
+    draggedFavoritePlaceholder = document.createElement("li");
+    draggedFavoritePlaceholder.className =
+      "favorite-item favorite-reorder-placeholder";
+    draggedFavoritePlaceholder.setAttribute("aria-hidden", "true");
+    draggedFavoritePlaceholder.style.minHeight = `${rect.height}px`;
+    li.parentElement?.insertBefore(draggedFavoritePlaceholder, li);
+    li.style.width = `${rect.width}px`;
+    li.style.height = `${rect.height}px`;
+    li.style.left = `${rect.left}px`;
+    li.style.top = `${rect.top}px`;
+    li.style.transform = "translate3d(0, 0, 0)";
+    li.classList.add("dragging", "dragging-floating");
+    document.body.classList.add("favorite-reorder-dragging");
+    moveFavoritePlaceholder(event.clientX, event.clientY);
+  };
+
+  li.addEventListener("dragstart", (event) => {
+    event.preventDefault();
+  });
+
+  li.addEventListener("pointerdown", (event) => {
+    if (!mainEditModeEnabled) return;
+    if (event.button !== 0) return;
+    if (
+      event.target instanceof Element &&
+      event.target.closest(".favorite-action")
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    li.dataset.reorderPointerId = String(event.pointerId);
+    li.dataset.reorderStartX = String(event.clientX);
+    li.dataset.reorderStartY = String(event.clientY);
+    li.setPointerCapture(event.pointerId);
+  });
+
+  li.addEventListener("pointermove", (event) => {
+    if (!mainEditModeEnabled) return;
+    if (li.dataset.reorderPointerId !== String(event.pointerId)) return;
+
+    event.preventDefault();
+    if (draggedFavoriteItem !== li) {
+      const startX = Number(li.dataset.reorderStartX ?? event.clientX);
+      const startY = Number(li.dataset.reorderStartY ?? event.clientY);
+      if (Math.hypot(event.clientX - startX, event.clientY - startY) < 6) {
+        return;
+      }
+      startDrag(event);
+    }
+
+    moveFavoritePlaceholder(event.clientX, event.clientY);
+  });
+
+  li.addEventListener("pointerup", async (event) => {
+    if (li.dataset.reorderPointerId !== String(event.pointerId)) return;
+
+    event.preventDefault();
+    delete li.dataset.reorderPointerId;
+    delete li.dataset.reorderStartX;
+    delete li.dataset.reorderStartY;
+    if (li.hasPointerCapture(event.pointerId)) {
+      li.releasePointerCapture(event.pointerId);
+    }
+    if (draggedFavoriteItem === li) {
+      await finishDrag();
+    }
+  });
+
+  li.addEventListener("pointercancel", async (event) => {
+    if (li.dataset.reorderPointerId !== String(event.pointerId)) return;
+
+    delete li.dataset.reorderPointerId;
+    delete li.dataset.reorderStartX;
+    delete li.dataset.reorderStartY;
+    if (li.hasPointerCapture(event.pointerId)) {
+      li.releasePointerCapture(event.pointerId);
+    }
+    if (draggedFavoriteItem === li) {
+      await finishDrag();
+    }
   });
 }
 
-gameItemList.addEventListener("dragover", (event: DragEvent) => {
-  if (!mainEditModeEnabled || !draggedGameItem) return;
-
-  event.preventDefault();
-  const afterElement = getDragAfterElement(event.clientY);
-  if (afterElement) {
-    gameItemList.insertBefore(draggedGameItem, afterElement);
-  } else {
-    gameItemList.appendChild(draggedGameItem);
+function moveGamePlaceholder(clientX: number, clientY: number) {
+  if (!draggedGameItem || !draggedGamePlaceholder) {
+    return;
   }
-});
 
-favoriteList.addEventListener("dragover", (event: DragEvent) => {
-  if (!mainEditModeEnabled || !draggedFavoriteItem) return;
+  draggedGameItem.style.transform = `translate3d(${clientX - draggedGameOffsetX - draggedGameStartX}px, ${clientY - draggedGameOffsetY - draggedGameStartY}px, 0)`;
 
-  event.preventDefault();
-  const afterElement = getFavoriteDragAfterElement(
-    event.clientX,
-    event.clientY,
-  );
-  if (afterElement) {
-    favoriteList.insertBefore(draggedFavoriteItem, afterElement);
+  const beforeElement = getServerGridInsertBeforeElement(clientX, clientY);
+  if (beforeElement) {
+    if (beforeElement !== draggedGamePlaceholder) {
+      gameItemList.insertBefore(draggedGamePlaceholder, beforeElement);
+    }
   } else {
-    favoriteList.appendChild(draggedFavoriteItem);
+    if (gameItemList.lastElementChild !== draggedGamePlaceholder) {
+      gameItemList.appendChild(draggedGamePlaceholder);
+    }
   }
-});
+}
+
+function moveFavoritePlaceholder(clientX: number, clientY: number) {
+  if (!draggedFavoriteItem || !draggedFavoritePlaceholder) {
+    return;
+  }
+
+  draggedFavoriteItem.style.transform = `translate3d(${clientX - draggedFavoriteOffsetX - draggedFavoriteStartX}px, ${clientY - draggedFavoriteOffsetY - draggedFavoriteStartY}px, 0)`;
+
+  const beforeElement = getFavoriteGridInsertBeforeElement(clientX, clientY);
+  if (beforeElement) {
+    if (beforeElement !== draggedFavoritePlaceholder) {
+      favoriteList.insertBefore(draggedFavoritePlaceholder, beforeElement);
+    }
+  } else {
+    if (favoriteList.lastElementChild !== draggedFavoritePlaceholder) {
+      favoriteList.appendChild(draggedFavoritePlaceholder);
+    }
+  }
+}
+
+function setServerTileNativeTooltipsEnabled(enabled: boolean) {
+  document
+    .querySelectorAll<HTMLElement>(".game-item [title]")
+    .forEach((element) => {
+      const isServerAction = !!element.closest(
+        ".config-main-button.config, .config-main-button.refresh",
+      );
+      if (isServerAction) {
+        return;
+      }
+
+      if (enabled) {
+        const previousTitle = element.dataset.editModePreviousTitle;
+        if (previousTitle !== undefined) {
+          element.setAttribute("title", previousTitle);
+          delete element.dataset.editModePreviousTitle;
+        }
+        return;
+      }
+
+      const title = element.getAttribute("title");
+      if (title !== null) {
+        element.dataset.editModePreviousTitle = title;
+        element.removeAttribute("title");
+      }
+    });
+}
 
 function setMainEditMode(enabled: boolean) {
   mainEditModeEnabled = enabled;
@@ -935,10 +1320,22 @@ function setMainEditMode(enabled: boolean) {
       : "Switch to Edit Mode";
   }
 
+  if (enabled) {
+    document
+      .querySelectorAll("#tooltip-layer .active-tooltip")
+      .forEach((tooltip) => tooltip.remove());
+  }
+  setServerTileNativeTooltipsEnabled(!enabled);
+
   document
-    .querySelectorAll<HTMLElement>(".reorder-game, .favorite-item")
+    .querySelectorAll<HTMLElement>(".favorite-item")
     .forEach((handle) => {
-      handle.draggable = enabled;
+      handle.draggable = false;
+    });
+  document
+    .querySelectorAll<HTMLElement>(".reorder-game")
+    .forEach((handle) => {
+      handle.draggable = false;
     });
 
   if (!enabled) {
@@ -2513,7 +2910,12 @@ async function createGameItem(game: GameConfig) {
   li.querySelector("a").innerText = game.name;
   setupServerReorder(li);
   void applyCachedServerButtonBackground(li, game);
-  li.querySelector(".game-main-button").addEventListener("click", async () => {
+  li.querySelector(".game-main-button").addEventListener("click", async (event) => {
+    if (mainEditModeEnabled) {
+      event.preventDefault();
+      return;
+    }
+
     const appConfig: AppConfig = await window.api.localAppConfig();
     const gameId =
       game.id === undefined || game.id === null ? null : String(game.id);
@@ -2912,9 +3314,23 @@ function renderTooltips() {
     const input = wrapper.querySelector<HTMLInputElement>("input[type=range]");
 
     wrapper.addEventListener("mouseenter", () => {
+      const isServerActionTooltip = !!wrapperElement.closest(
+        ".config-main-button.config, .config-main-button.refresh",
+      );
+      if (
+        mainEditModeEnabled &&
+        wrapperElement.closest(".game-main-button") &&
+        !isServerActionTooltip
+      ) {
+        return;
+      }
+
       const rect = wrapper.getBoundingClientRect();
       const clone = tooltip.cloneNode(true) as HTMLElement;
       clone.classList.add("active-tooltip");
+      if (isServerActionTooltip) {
+        clone.classList.add("server-action-tooltip");
+      }
       clone.style.display = "block";
       clone.style.position = "fixed";
       clone.style.pointerEvents = "none";
@@ -2959,6 +3375,16 @@ function renderTooltips() {
 
 function applyButtonTooltips() {
   document.querySelectorAll<HTMLButtonElement>("button").forEach((button) => {
+    const isServerActionButton = !!button.closest(
+      ".config-main-button.config, .config-main-button.refresh",
+    );
+    if (
+      mainEditModeEnabled &&
+      button.closest(".game-item") &&
+      !isServerActionButton
+    ) {
+      return;
+    }
     if (button.dataset.skipAutoTooltip === "true") return;
     if (button.title) return;
 
@@ -2997,6 +3423,8 @@ function setupFavoriteDetailTooltip(
   };
 
   item.addEventListener("mouseenter", () => {
+    if (mainEditModeEnabled) return;
+
     clearTooltip();
     hoverTimer = window.setTimeout(() => {
       if (!layer) return;
@@ -3036,7 +3464,7 @@ async function createFavoriteList() {
     const li = document.createElement("li");
     li.className = "favorite-item";
     li.dataset.favoriteId = getFavoriteKey(favorite);
-    li.draggable = mainEditModeEnabled;
+    li.draggable = false;
     setupFavoriteReorder(li);
     setupFavoriteDetailTooltip(li, favorite);
 
@@ -3046,6 +3474,8 @@ async function createFavoriteList() {
     openButton.dataset.skipAutoTooltip = "true";
     openButton.setAttribute("aria-label", `Open ${favorite.name}`);
     openButton.addEventListener("click", () => {
+      if (mainEditModeEnabled) return;
+
       if (isFileFavorite(favorite)) {
         const filePath = favorite.filePath;
         if (filePath) window.api.openLocalPath(filePath);
@@ -3164,8 +3594,12 @@ async function createFavoriteList() {
       showNotification(`${favoriteLabels.singular} deleted`);
     });
 
+    const overlay = document.createElement("span");
+    overlay.className = "favorite-reorder-overlay";
+    overlay.textContent = "Click and drag to reorder";
+
     controls.append(editButton, deleteButton);
-    li.append(openButton, controls);
+    li.append(openButton, controls, overlay);
     favoriteList.append(li);
   }
 
@@ -3221,6 +3655,7 @@ async function createGameList() {
   await applyRuntimeAppConfig(appConfig);
   applyThemeConfig(themeConfig);
   applyButtonTooltips();
+  setServerTileNativeTooltipsEnabled(!mainEditModeEnabled);
 }
 // Load UI
 await createGameList();
