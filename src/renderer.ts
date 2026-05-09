@@ -46,9 +46,12 @@ let lastParticleOptions: ParticleOptions | null = null;
 let games: GameConfig[] = [];
 let favorites: FavoriteConfig[] = [];
 let editingFavoriteId: GameId | null = null;
+let selectedFavoriteIconOverrideUrl = "";
 let draggedGameItem: HTMLElement | null = null;
 let draggedFavoriteItem: HTMLElement | null = null;
 let mainEditModeEnabled = false;
+let editingServerId: GameId | null = null;
+let editingServerAutorunItems: FavoriteConfig[] = [];
 
 const mainEditModeToggle = document.querySelector(
   "#toggle-main-edit-mode",
@@ -199,7 +202,7 @@ async function updateGameList(task: (appConfig: AppConfig) => void) {
   const appConfig = await window.api.localAppConfig();
   task(appConfig);
   games = appConfig.games ?? [];
-  window.api.saveAppConfig(appConfig);
+  await window.api.saveAppConfig(appConfig);
 }
 
 async function updateFavoriteList(task: (appConfig: AppConfig) => void) {
@@ -207,7 +210,7 @@ async function updateFavoriteList(task: (appConfig: AppConfig) => void) {
   appConfig.favorites = appConfig.favorites ?? [];
   task(appConfig);
   favorites = appConfig.favorites ?? [];
-  window.api.saveAppConfig(appConfig);
+  await window.api.saveAppConfig(appConfig);
 }
 
 window.api.showNotification((message: string) => {
@@ -278,6 +281,12 @@ const favoriteNameField = document.querySelector(
 const favoriteUrlField = document.querySelector(
   "#favorite-url",
 ) as HTMLInputElement;
+const chooseFavoriteFileButton = document.querySelector(
+  "#choose-favorite-file",
+) as HTMLButtonElement;
+const chooseFavoriteIconButton = document.querySelector(
+  "#choose-favorite-icon",
+) as HTMLButtonElement;
 const addFavoriteButton = document.querySelector(
   "#add-favorite",
 ) as HTMLButtonElement;
@@ -290,6 +299,110 @@ const favoriteEmptyState = document.querySelector(
 const favoriteSectionTitle = document.querySelector(
   "#favorites-section .section-title",
 ) as HTMLElement;
+const favoriteShortcutHint = document.querySelector(
+  "#favorite-shortcut-hint",
+) as HTMLElement;
+const serverSettingsModal = document.querySelector(
+  "#server-settings-modal",
+) as HTMLElement;
+const closeServerSettingsButton = document.querySelector(
+  "#close-server-settings",
+) as HTMLButtonElement;
+const saveServerSettingsButton = document.querySelector(
+  "#save-server-settings",
+) as HTMLButtonElement;
+const deleteServerSettingsButton = document.querySelector(
+  "#delete-server-settings",
+) as HTMLButtonElement;
+const serverSettingsNameField = document.querySelector(
+  "#server-settings-name",
+) as HTMLInputElement;
+const serverSettingsUrlField = document.querySelector(
+  "#server-settings-url",
+) as HTMLInputElement;
+const serverSettingsUserField = document.querySelector(
+  "#server-settings-user",
+) as HTMLInputElement;
+const serverSettingsPasswordField = document.querySelector(
+  "#server-settings-password",
+) as HTMLInputElement;
+const serverSettingsAdminPasswordField = document.querySelector(
+  "#server-settings-admin-password",
+) as HTMLInputElement;
+const serverSettingsDisableRefreshField = document.querySelector(
+  "#server-settings-disable-refresh",
+) as HTMLInputElement;
+const serverSettingsAutoLoginField = document.querySelector(
+  "#server-settings-auto-login",
+) as HTMLInputElement;
+const serverAutorunList = document.querySelector(
+  "#server-autorun-list",
+) as HTMLElement;
+const serverAutorunTitle = document.querySelector(
+  "#server-autorun-title",
+) as HTMLElement;
+const serverAutorunNameField = document.querySelector(
+  "#server-autorun-name",
+) as HTMLInputElement;
+const serverAutorunTargetField = document.querySelector(
+  "#server-autorun-target",
+) as HTMLInputElement;
+const chooseServerAutorunFileButton = document.querySelector(
+  "#choose-server-autorun-file",
+) as HTMLButtonElement;
+const addServerAutorunButton = document.querySelector(
+  "#add-server-autorun",
+) as HTMLButtonElement;
+
+function closeServerSettings() {
+  editingServerId = null;
+  editingServerAutorunItems = [];
+  serverSettingsModal.classList.add("hidden-display");
+}
+
+function renderServerAutorunList() {
+  serverAutorunList.replaceChildren();
+
+  if (editingServerAutorunItems.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "server-autorun-empty";
+    empty.textContent = "Nothing will open automatically yet.";
+    serverAutorunList.append(empty);
+    return;
+  }
+
+  editingServerAutorunItems.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = "server-autorun-item";
+
+    const text = document.createElement("div");
+    text.className = "server-autorun-text";
+
+    const name = document.createElement("span");
+    name.className = "server-autorun-name";
+    name.textContent = item.name;
+
+    const target = document.createElement("span");
+    target.className = "server-autorun-target";
+    target.textContent = getAutorunItemTargetText(item);
+
+    const remove = document.createElement("button");
+    remove.className = "server-autorun-remove";
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Remove ${item.name}`);
+    remove.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    remove.addEventListener("click", () => {
+      editingServerAutorunItems = editingServerAutorunItems.filter(
+        (storedItem) => String(storedItem.id) !== String(item.id),
+      );
+      renderServerAutorunList();
+    });
+
+    text.append(name, target);
+    li.append(text, remove);
+    serverAutorunList.append(li);
+  });
+}
 
 function usesCommonwealthEnglish() {
   const commonwealthLocales = new Set([
@@ -316,10 +429,17 @@ const favoriteLabels = usesCommonwealthEnglish()
   : { singular: "Favorite", plural: "Favorites" };
 
 favoriteSectionTitle.textContent = favoriteLabels.plural;
-favoriteEmptyState.textContent = `Add your first ${favoriteLabels.singular.toLowerCase()} website.`;
+favoriteShortcutHint.textContent = `Press Ctrl+Alt+F in game to open ${favoriteLabels.plural.toLowerCase()}.`;
+serverAutorunTitle.textContent = `Autorun ${favoriteLabels.plural}`;
+favoriteEmptyState.textContent = `Add your first ${favoriteLabels.singular.toLowerCase()} website or file.`;
 
 function getGameKey(game: GameConfig): string {
   return String(game.id ?? game.name);
+}
+
+function findGameByKey(gameId: GameId | string | null) {
+  if (gameId === null) return undefined;
+  return games.find((game) => getGameKey(game) === String(gameId));
 }
 
 function getFavoriteKey(favorite: FavoriteConfig): string {
@@ -340,6 +460,9 @@ function getFavoriteColumnCount(appConfig: AppConfig): 2 | 3 | 4 {
 function applyServerColumnCount(columnCount: 1 | 2) {
   gameItemList.classList.toggle("server-columns-2", columnCount === 2);
   gameItemList.classList.toggle("server-columns-1", columnCount === 1);
+  gameItemList
+    .closest(".servers-section")
+    ?.classList.toggle("server-columns-active", columnCount === 2);
   serverColumnButtons.forEach((button) => {
     const isActive = button.dataset.serverColumns === String(columnCount);
     button.classList.toggle("active", isActive);
@@ -366,6 +489,58 @@ function normalizeFavoriteUrl(url: string) {
     : `https://${trimmed}`;
 }
 
+function isLikelyLocalPath(value: string) {
+  const trimmed = value.trim();
+  return (
+    /^[a-z]:[\\/]/i.test(trimmed) ||
+    /^\\\\/.test(trimmed) ||
+    /^\//.test(trimmed) ||
+    /^~[\\/]/.test(trimmed)
+  );
+}
+
+function isFileFavorite(favorite: FavoriteConfig) {
+  return favorite.type === "file" || (!!favorite.filePath && !favorite.url);
+}
+
+function getFavoriteTarget(favorite: FavoriteConfig) {
+  return isFileFavorite(favorite)
+    ? (favorite.filePath ?? "")
+    : (favorite.url ?? "");
+}
+
+function createFavoriteLikeItem(name: string, target: string): FavoriteConfig {
+  const isFile = isLikelyLocalPath(target);
+  const url = isFile ? "" : normalizeFavoriteUrl(target);
+  return {
+    id: Math.round(Math.random() * 1000000),
+    name,
+    type: isFile ? "file" : "website",
+    url: isFile ? undefined : url,
+    filePath: isFile ? target : undefined,
+    iconUrl: isFile ? undefined : getFaviconUrl(url),
+  };
+}
+
+function getAutorunItemTargetText(item: FavoriteConfig) {
+  const target = getFavoriteTarget(item);
+  return isFileFavorite(item) ? target || "Local file" : getUrlHost(target);
+}
+
+function openAutorunItems(items: FavoriteConfig[] = []) {
+  items.forEach((item) => {
+    const target = getFavoriteTarget(item);
+    if (!target) return;
+
+    if (isFileFavorite(item)) {
+      window.api.openLocalPath(target);
+      return;
+    }
+
+    window.api.openDefaultBrowser(target);
+  });
+}
+
 function getUrlHost(url: string) {
   try {
     return new URL(url).host.replace(/^www\./i, "");
@@ -375,6 +550,7 @@ function getUrlHost(url: string) {
 }
 
 function getFaviconUrl(url: string) {
+  if (!url || isLikelyLocalPath(url)) return "";
   try {
     const parsed = new URL(url);
     return `https://www.google.com/s2/favicons?domain_url=${encodeURIComponent(
@@ -385,22 +561,101 @@ function getFaviconUrl(url: string) {
   }
 }
 
+function getWebsiteSnapshotUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `https://api.microlink.io/?url=${encodeURIComponent(
+      parsed.href,
+    )}&screenshot=true&embed=screenshot.url`;
+  } catch {
+    return "";
+  }
+}
+
 function setFavoriteEditMode(favorite?: FavoriteConfig) {
   editingFavoriteId = favorite?.id ?? null;
+  selectedFavoriteIconOverrideUrl = favorite?.iconOverrideUrl ?? "";
   favoriteNameField.value = favorite?.name ?? "";
-  favoriteUrlField.value = favorite?.url ?? "";
+  favoriteUrlField.value = getFavoriteTarget(
+    favorite ?? ({} as FavoriteConfig),
+  );
   addFavoriteButton.textContent = favorite
     ? `Save ${favoriteLabels.singular}`
     : `Add ${favoriteLabels.singular}`;
+  chooseFavoriteIconButton.setAttribute(
+    "aria-label",
+    favorite?.iconOverrideUrl ? "Change icon" : "Choose icon",
+  );
+  chooseFavoriteIconButton.title = favorite?.iconOverrideUrl
+    ? "Change icon"
+    : "Choose icon";
   cancelFavoriteEditButton.classList.toggle("hidden-display", !favorite);
 }
 
+chooseFavoriteFileButton.addEventListener("click", async () => {
+  const file = await window.api.chooseFavoriteFile();
+  if (!file) return;
+  favoriteUrlField.value = file.path;
+  if (!favoriteNameField.value.trim()) {
+    favoriteNameField.value = file.name;
+  }
+});
+
+chooseServerAutorunFileButton.addEventListener("click", async () => {
+  const file = await window.api.chooseFavoriteFile();
+  if (!file) return;
+  serverAutorunTargetField.value = file.path;
+  if (!serverAutorunNameField.value.trim()) {
+    serverAutorunNameField.value = file.name;
+  }
+});
+
+addServerAutorunButton.addEventListener("click", async () => {
+  const name = serverAutorunNameField.value.trim();
+  const target = serverAutorunTargetField.value.trim();
+
+  if (!name || !target) {
+    await safePrompt("Please enter an autorun name and URL or file path.", {
+      mode: "alert",
+    });
+    return;
+  }
+
+  if (!isLikelyLocalPath(target)) {
+    try {
+      new URL(normalizeFavoriteUrl(target));
+    } catch {
+      await safePrompt("Please enter a valid autorun URL.", { mode: "alert" });
+      return;
+    }
+  }
+
+  editingServerAutorunItems.push(createFavoriteLikeItem(name, target));
+  serverAutorunNameField.value = "";
+  serverAutorunTargetField.value = "";
+  renderServerAutorunList();
+});
+
+chooseFavoriteIconButton.addEventListener("click", async () => {
+  const image = await window.api.chooseFavoriteIcon();
+  if (!image) return;
+  selectedFavoriteIconOverrideUrl = image.dataUrl;
+  chooseFavoriteIconButton.setAttribute("aria-label", "Change icon");
+  chooseFavoriteIconButton.title = "Change icon";
+  if (!favoriteNameField.value.trim()) {
+    favoriteNameField.value = image.name;
+  }
+});
+
 addFavoriteButton.addEventListener("click", async () => {
   const favoriteName = favoriteNameField.value.trim();
-  const favoriteUrl = normalizeFavoriteUrl(favoriteUrlField.value);
-  if (!favoriteName || !favoriteUrl) {
+  const favoriteTarget = favoriteUrlField.value.trim();
+  const isFile = isLikelyLocalPath(favoriteTarget);
+  const favoriteUrl = isFile ? "" : normalizeFavoriteUrl(favoriteTarget);
+  const filePath = isFile ? favoriteTarget : "";
+  if (!favoriteName || (!favoriteUrl && !filePath)) {
     await safePrompt(
-      `Please enter a ${favoriteLabels.singular} name and URL.`,
+      `Please enter a ${favoriteLabels.singular} name and website URL or file path.`,
       {
         mode: "alert",
       },
@@ -408,11 +663,13 @@ addFavoriteButton.addEventListener("click", async () => {
     return;
   }
 
-  try {
-    new URL(favoriteUrl);
-  } catch {
-    await safePrompt("Please enter a valid website URL.", { mode: "alert" });
-    return;
+  if (!isFile) {
+    try {
+      new URL(favoriteUrl);
+    } catch {
+      await safePrompt("Please enter a valid website URL.", { mode: "alert" });
+      return;
+    }
   }
 
   if (editingFavoriteId !== null) {
@@ -422,8 +679,11 @@ addFavoriteButton.addEventListener("click", async () => {
       );
       if (favorite) {
         favorite.name = favoriteName;
-        favorite.url = favoriteUrl;
-        favorite.iconUrl = getFaviconUrl(favoriteUrl);
+        favorite.type = isFile ? "file" : "website";
+        favorite.url = isFile ? undefined : favoriteUrl;
+        favorite.filePath = isFile ? filePath : undefined;
+        favorite.iconUrl = isFile ? undefined : getFaviconUrl(favoriteUrl);
+        favorite.iconOverrideUrl = selectedFavoriteIconOverrideUrl || undefined;
       }
     });
     showNotification(`${favoriteLabels.singular} saved`);
@@ -431,8 +691,11 @@ addFavoriteButton.addEventListener("click", async () => {
     const newFavorite: FavoriteConfig = {
       id: Math.round(Math.random() * 1000000),
       name: favoriteName,
-      url: favoriteUrl,
-      iconUrl: getFaviconUrl(favoriteUrl),
+      type: isFile ? "file" : "website",
+      url: isFile ? undefined : favoriteUrl,
+      filePath: isFile ? filePath : undefined,
+      iconUrl: isFile ? undefined : getFaviconUrl(favoriteUrl),
+      iconOverrideUrl: selectedFavoriteIconOverrideUrl || undefined,
     };
     await updateFavoriteList((appConfig) => {
       appConfig.favorites = appConfig.favorites ?? [];
@@ -670,9 +933,7 @@ function setMainEditMode(enabled: boolean) {
 
   if (!enabled) {
     setFavoriteEditMode();
-    document
-      .querySelectorAll<HTMLElement>(".user-configuration")
-      .forEach((config) => config.classList.add("hidden"));
+    closeServerSettings();
   }
 
   renderTooltips();
@@ -1312,41 +1573,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  function toggleConfigureGame(event: MouseEvent) {
+  async function openServerSettings(event: MouseEvent) {
     const target = event.target as HTMLElement;
     const gameItem = target.closest(".game-item") as HTMLDivElement;
     if (!gameItem) return;
 
-    const userConfig = gameItem.querySelector(
-      ".user-configuration",
-    ) as HTMLDivElement;
-    if (!userConfig) return;
+    const gameId = gameItem.dataset.gameId ?? null;
+    const game = findGameByKey(gameId);
+    if (!game) return;
 
-    const allUserConfigs = document.querySelectorAll(".user-configuration");
+    editingServerId = game.id ?? game.name;
+    const loginData = (await window.api.userData(
+      game.id ?? game.name,
+    )) as GameUserDataDecrypted;
 
-    allUserConfigs.forEach((config) => {
-      if (config !== userConfig) {
-        config.classList.add("hidden");
-      }
-    });
+    serverSettingsNameField.value = game.name;
+    serverSettingsUrlField.value = game.url;
+    serverSettingsUserField.value = loginData.user;
+    serverSettingsPasswordField.value = loginData.password;
+    serverSettingsAdminPasswordField.value = loginData.adminPassword;
+    serverSettingsDisableRefreshField.checked =
+      game.serverInfoAutoRefreshDisabled ?? false;
+    serverSettingsAutoLoginField.checked = game.autoLoginEnabled ?? true;
+    editingServerAutorunItems = structuredClone(game.autorunFavorites ?? []);
+    serverAutorunNameField.value = "";
+    serverAutorunTargetField.value = "";
+    renderServerAutorunList();
 
-    if (userConfig.classList.contains("hidden")) {
-      userConfig.classList.remove("hidden");
-      userConfig.style.height = "0px"; // Start collapsed but visible
-
-      requestAnimationFrame(() => {
-        const scrollHeight = userConfig.scrollHeight;
-        userConfig.style.height = `${scrollHeight + 15}px`; // Animate expansion
+    serverSettingsPasswordField.type = "password";
+    serverSettingsAdminPasswordField.type = "password";
+    serverSettingsModal
+      .querySelectorAll<HTMLButtonElement>(".toggle-password")
+      .forEach((button) => {
+        button.innerHTML = '<i class="fa-solid fa-eye"></i>';
       });
-    } else {
-      userConfig.style.height = "0px"; // Collapse
-      userConfig.addEventListener("transitionend", function handler(e) {
-        if (e.propertyName === "height") {
-          userConfig.classList.add("hidden");
-          userConfig.removeEventListener("transitionend", handler);
-        }
-      });
-    }
+
+    serverSettingsModal.classList.remove("hidden-display");
+    serverSettingsNameField.focus();
   }
 
   document.addEventListener("click", (event) => {
@@ -1354,8 +1617,93 @@ document.addEventListener("DOMContentLoaded", async () => {
       ".config-main-button.config",
     ) as HTMLButtonElement | null;
     if (target) {
-      toggleConfigureGame(event as MouseEvent);
+      void openServerSettings(event as MouseEvent);
     }
+  });
+
+  closeServerSettingsButton.addEventListener("click", closeServerSettings);
+
+  serverSettingsModal.addEventListener("click", (event) => {
+    if (event.target === serverSettingsModal) {
+      closeServerSettings();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      !serverSettingsModal.classList.contains("hidden-display")
+    ) {
+      closeServerSettings();
+    }
+  });
+
+  saveServerSettingsButton.addEventListener("click", async () => {
+    const game = findGameByKey(editingServerId);
+    if (!game) return;
+
+    const gameId = game.id ?? game.name;
+    const newGameName = serverSettingsNameField.value.trim();
+    const newGameUrl = serverSettingsUrlField.value.trim();
+    const user = serverSettingsUserField.value;
+    const password = serverSettingsPasswordField.value;
+    const adminPassword = serverSettingsAdminPasswordField.value;
+    const serverInfoAutoRefreshDisabled =
+      serverSettingsDisableRefreshField.checked;
+    const autoLoginEnabled = serverSettingsAutoLoginField.checked;
+
+    if (!newGameName || !newGameUrl) {
+      await safePrompt("Please enter a server name and URL.", {
+        mode: "alert",
+      });
+      return;
+    }
+
+    await updateGameList((appConfig) => {
+      const gameToUpdate = appConfig.games.find(
+        (storedGame) => getGameKey(storedGame) === getGameKey(game),
+      );
+      if (gameToUpdate) {
+        gameToUpdate.name = newGameName;
+        gameToUpdate.url = newGameUrl;
+        gameToUpdate.serverInfoAutoRefreshDisabled =
+          serverInfoAutoRefreshDisabled;
+        gameToUpdate.autoLoginEnabled = autoLoginEnabled;
+        gameToUpdate.autorunFavorites = structuredClone(
+          editingServerAutorunItems,
+        );
+      }
+    });
+
+    window.api.saveUserData({
+      gameId,
+      user,
+      password,
+      adminPassword,
+    } as SaveUserData);
+
+    closeServerSettings();
+    await createGameList();
+    showNotification("Game settings saved");
+  });
+
+  deleteServerSettingsButton.addEventListener("click", async () => {
+    const game = findGameByKey(editingServerId);
+    if (!game) return;
+
+    const confirmed = await safePrompt(
+      "Are you sure you want to delete this game?",
+    );
+    if (!confirmed) return;
+
+    await updateGameList((appConfig) => {
+      appConfig.games = appConfig.games.filter(
+        (storedGame) => getGameKey(storedGame) !== getGameKey(game),
+      );
+    });
+    closeServerSettings();
+    await createGameList();
+    showNotification("Game deleted");
   });
 
   document.addEventListener("click", (event) => {
@@ -1371,7 +1719,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // extract ID and retrieve correct config
     const key = li.dataset.gameId;
-    const game = games.find((g) => String(g.id) === key);
+    const game = findGameByKey(key ?? null);
     if (!game) return;
 
     // animate spinner icon
@@ -1493,6 +1841,59 @@ async function exportTheme() {
   );
 }
 
+async function removeUnavailableImportedFileFavorites(app: Partial<AppConfig>) {
+  const favoritesToImport = app.favorites ?? [];
+  const availableFavorites: FavoriteConfig[] = [];
+  const gamesToImport = app.games;
+
+  for (const favorite of favoritesToImport) {
+    if (!isFileFavorite(favorite)) {
+      availableFavorites.push(favorite);
+      continue;
+    }
+
+    const filePath = favorite.filePath ?? "";
+    if (filePath && (await window.api.localPathExists(filePath))) {
+      availableFavorites.push(favorite);
+    }
+  }
+
+  const availableGames = gamesToImport
+    ? await Promise.all(
+        gamesToImport.map(async (game) => {
+          const autorunFavorites: FavoriteConfig[] = [];
+
+          for (const favorite of game.autorunFavorites ?? []) {
+            if (!isFileFavorite(favorite)) {
+              autorunFavorites.push(favorite);
+              continue;
+            }
+
+            const filePath = favorite.filePath ?? "";
+            if (filePath && (await window.api.localPathExists(filePath))) {
+              autorunFavorites.push(favorite);
+            }
+          }
+
+          return {
+            ...game,
+            autorunFavorites,
+          };
+        }),
+      )
+    : undefined;
+
+  return {
+    ...app,
+    ...(availableGames ? { games: availableGames } : {}),
+    favorites: availableFavorites,
+  };
+}
+
+async function mergeImportedAppData(app: Partial<AppConfig>) {
+  return mergeAppData(await removeUnavailableImportedFileFavorites(app));
+}
+
 // Apply import
 async function applyShareImport() {
   const themeStylesheet = document.getElementById(
@@ -1516,7 +1917,7 @@ async function applyShareImport() {
 
   // full settings import
   if (data.app && data.theme && typeof data.app === "object") {
-    const mergedApp = await mergeAppData(data.app);
+    const mergedApp = await mergeImportedAppData(data.app);
     const mergedTheme = await mergeThemeData(data.theme);
     await window.api.saveAppConfig(mergedApp);
     window.api.saveLoginRecords(
@@ -1586,7 +1987,7 @@ async function importFromFile() {
 
     // full settings import
     if (data.app && data.theme && typeof data.app === "object") {
-      const mergedApp = await mergeAppData(data.app);
+      const mergedApp = await mergeImportedAppData(data.app);
       const mergedTheme = await mergeThemeData(data.theme);
       await window.api.saveAppConfig(mergedApp);
       window.api.saveLoginRecords(
@@ -1698,24 +2099,9 @@ function switchTab(event: MouseEvent, tabId: string): void {
 
 async function createGameItem(game: GameConfig) {
   const li = document.importNode(gameItemTemplate, true);
-  const loginData = (await window.api.userData(
-    game.id ?? game.name,
-  )) as GameUserDataDecrypted;
 
   li.id = game.cssId;
   li.setAttribute("data-game-id", getGameKey(game));
-  (li.querySelector(".user-name") as HTMLInputElement).value = loginData.user;
-  (li.querySelector(".user-password") as HTMLInputElement).value =
-    loginData.password;
-  (li.querySelector(".admin-password") as HTMLInputElement).value =
-    loginData.adminPassword;
-  (li.querySelector(".game-name-edit") as HTMLInputElement).value = game.name;
-  (li.querySelector(".game-url-edit") as HTMLInputElement).value = game.url;
-  (
-    li.querySelector(".server-auto-refresh-disabled") as HTMLInputElement
-  ).checked = game.serverInfoAutoRefreshDisabled ?? false;
-  (li.querySelector(".server-auto-login-enabled") as HTMLInputElement).checked =
-    game.autoLoginEnabled ?? true;
   li.querySelector("a").innerText = game.name;
   setupServerReorder(li);
   void applyCachedServerButtonBackground(li, game);
@@ -1727,6 +2113,7 @@ async function createGameItem(game: GameConfig) {
     const shouldAutoLogin =
       savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
     window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
+    openAutorunItems(savedGame?.autorunFavorites ?? game.autorunFavorites);
     await refreshServerButtonBackground(li, game);
     if (appConfig.discordRP) {
       if (window.richPresence?.enable) {
@@ -1751,98 +2138,6 @@ async function createGameItem(game: GameConfig) {
     });
 
   renderTooltips();
-  const userConfiguration = li.querySelector(
-    "div.user-configuration",
-  ) as HTMLDivElement;
-
-  userConfiguration
-    .querySelector(".delete-game")
-    ?.addEventListener("click", async () => {
-      const confirmed = await safePrompt(
-        "Are you sure you want to delete this game?",
-      );
-      if (!confirmed) return;
-      await updateGameList((appConfig) => {
-        appConfig.games = appConfig.games.filter((g) => g.id !== game.id);
-      });
-      await createGameList();
-      showNotification("Game deleted");
-    });
-  const gameId = game.id ?? game.name;
-  const saveButton = userConfiguration.querySelector(
-    ".save-user-data",
-  ) as HTMLButtonElement;
-  saveButton.addEventListener("click", async (e) => {
-    if (!(e.target instanceof Element)) return;
-    e.target.closest(".user-configuration").classList.add("hidden");
-    const closeUserConfig = e.target.closest(
-      ".user-configuration",
-    ) as HTMLDivElement;
-    const user = (
-      closeUserConfig.querySelector(".user-name") as HTMLInputElement
-    ).value;
-    const password = (
-      closeUserConfig.querySelector(".user-password") as HTMLInputElement
-    ).value;
-    const adminPassword = (
-      closeUserConfig.querySelector(".admin-password") as HTMLInputElement
-    ).value;
-    const newGameName = (
-      closeUserConfig.querySelector(".game-name-edit") as HTMLInputElement
-    ).value;
-    const newGameUrl = (
-      closeUserConfig.querySelector(".game-url-edit") as HTMLInputElement
-    ).value;
-    const serverInfoAutoRefreshDisabled = (
-      closeUserConfig.querySelector(
-        ".server-auto-refresh-disabled",
-      ) as HTMLInputElement
-    ).checked;
-    const autoLoginEnabled = (
-      closeUserConfig.querySelector(
-        ".server-auto-login-enabled",
-      ) as HTMLInputElement
-    ).checked;
-
-    console.log({
-      gameId,
-      user,
-      password,
-      adminPassword,
-      newGameName,
-      newGameUrl,
-      serverInfoAutoRefreshDisabled,
-      autoLoginEnabled,
-    });
-
-    game.name = newGameName;
-    game.url = newGameUrl;
-    game.serverInfoAutoRefreshDisabled = serverInfoAutoRefreshDisabled;
-    game.autoLoginEnabled = autoLoginEnabled;
-
-    (li.querySelector("a") as HTMLAnchorElement).innerText = newGameName;
-    li.setAttribute("data-game-id", getGameKey(game));
-
-    await updateGameList((appConfig) => {
-      const gameToUpdate = appConfig.games.find((g) => g.id === game.id);
-      if (gameToUpdate) {
-        gameToUpdate.name = newGameName;
-        gameToUpdate.url = newGameUrl;
-        gameToUpdate.serverInfoAutoRefreshDisabled =
-          serverInfoAutoRefreshDisabled;
-        gameToUpdate.autoLoginEnabled = autoLoginEnabled;
-      }
-    });
-    await refreshServerButtonBackground(li, game, { force: true });
-
-    window.api.saveUserData({
-      gameId,
-      user,
-      password,
-      adminPassword,
-    } as SaveUserData);
-    showNotification("Game settings saved");
-  });
   return li;
 }
 
@@ -2176,7 +2471,7 @@ async function migrateConfig() {
     localAppConfig = { ...localAppConfig, ...oldConfig };
     window.localStorage.removeItem("appConfig");
   }
-  window.api.saveAppConfig(localAppConfig);
+  await window.api.saveAppConfig(localAppConfig);
 }
 
 function renderTooltips() {
@@ -2280,7 +2575,7 @@ function setupFavoriteDetailTooltip(
       name.textContent = favorite.name;
       const url = document.createElement("div");
       url.className = "favorite-detail-url";
-      url.textContent = favorite.url;
+      url.textContent = getFavoriteTarget(favorite);
       tooltip.append(name, url);
 
       tooltip.style.display = "block";
@@ -2317,21 +2612,56 @@ async function createFavoriteList() {
     openButton.dataset.skipAutoTooltip = "true";
     openButton.setAttribute("aria-label", `Open ${favorite.name}`);
     openButton.addEventListener("click", () => {
-      window.api.openDefaultBrowser(favorite.url);
+      if (isFileFavorite(favorite)) {
+        const filePath = favorite.filePath;
+        if (filePath) window.api.openLocalPath(filePath);
+        return;
+      }
+      const url = favorite.url;
+      if (url) window.api.openDefaultBrowser(url);
     });
 
     const icon = document.createElement("span");
     icon.className = "favorite-icon";
-    const iconUrl = getFaviconUrl(favorite.url) || favorite.iconUrl;
+    const customIconUrl = favorite.iconOverrideUrl;
+    const fileIconUrl =
+      !customIconUrl && isFileFavorite(favorite) && favorite.filePath
+        ? await window.api.localFileIcon(favorite.filePath)
+        : "";
+    const faviconUrl =
+      !customIconUrl && !fileIconUrl && !isFileFavorite(favorite)
+        ? favorite.iconUrl || getFaviconUrl(favorite.url ?? "")
+        : "";
+    const iconUrl = customIconUrl || fileIconUrl || faviconUrl;
     if (iconUrl) {
       const image = document.createElement("img");
       image.src = iconUrl;
       image.alt = "";
+      image.className =
+        customIconUrl || fileIconUrl
+          ? "favorite-icon-image"
+          : "favorite-favicon";
       image.addEventListener("error", () => {
+        const snapshotUrl =
+          !customIconUrl && !fileIconUrl && favorite.url
+            ? getWebsiteSnapshotUrl(favorite.url)
+            : "";
+        if (snapshotUrl && image.src !== snapshotUrl) {
+          image.className = "favorite-icon-image";
+          image.src = snapshotUrl;
+          return;
+        }
         image.remove();
-        icon.textContent = favorite.name.trim().charAt(0).toUpperCase() || "?";
+        if (isFileFavorite(favorite)) {
+          icon.innerHTML = '<i class="fa-solid fa-file"></i>';
+        } else {
+          icon.textContent =
+            favorite.name.trim().charAt(0).toUpperCase() || "?";
+        }
       });
       icon.append(image);
+    } else if (isFileFavorite(favorite)) {
+      icon.innerHTML = '<i class="fa-solid fa-file"></i>';
     } else {
       icon.textContent = favorite.name.trim().charAt(0).toUpperCase() || "?";
     }
@@ -2343,7 +2673,9 @@ async function createFavoriteList() {
     title.textContent = favorite.name;
     const host = document.createElement("span");
     host.className = "favorite-host";
-    host.textContent = getUrlHost(favorite.url);
+    host.textContent = isFileFavorite(favorite)
+      ? "Local file"
+      : getUrlHost(favorite.url ?? "");
     text.append(title, host);
     openButton.append(icon, text);
 

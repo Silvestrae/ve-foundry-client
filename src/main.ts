@@ -21,6 +21,7 @@ import {
   GameUserDataSchema,
   UserData,
   AppConfig,
+  FavoriteConfig,
   ThemeConfig,
   WindowBounds,
   CURRENT_SCHEMA_VERSION,
@@ -88,6 +89,7 @@ app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
 
 let mainWindow: BrowserWindow;
 let lastUpdateRequestingWindow: BrowserWindow | null = null;
+let favoritesPopupWindow: BrowserWindow | null = null;
 
 const DEFAULT_WINDOW_BOUNDS: WindowBounds = {
   width: 800,
@@ -752,6 +754,250 @@ function openUrlInAppWindow(url: string, parent?: BrowserWindow | null) {
   child.loadURL(url);
 }
 
+function isFileFavorite(favorite: FavoriteConfig) {
+  return favorite.type === "file" || (!!favorite.filePath && !favorite.url);
+}
+
+function getFavoriteTarget(favorite: FavoriteConfig) {
+  return isFileFavorite(favorite)
+    ? (favorite.filePath ?? "")
+    : (favorite.url ?? "");
+}
+
+function getFavoriteLabels() {
+  const commonwealthLocales = new Set([
+    "au",
+    "gb",
+    "ie",
+    "nz",
+    "za",
+    "ca",
+    "in",
+  ]);
+  const localeParts = app.getLocale().toLowerCase().split("-");
+  const region = localeParts[1];
+  const usesCommonwealthEnglish = region
+    ? commonwealthLocales.has(region)
+    : false;
+
+  return usesCommonwealthEnglish
+    ? { singular: "Favourite", plural: "Favourites" }
+    : { singular: "Favorite", plural: "Favorites" };
+}
+
+function showFavoritesPopup(parent?: BrowserWindow | null) {
+  if (favoritesPopupWindow && !favoritesPopupWindow.isDestroyed()) {
+    favoritesPopupWindow.close();
+    return;
+  }
+
+  const favorites = (getAppConfig().favorites ?? []).filter((favorite) =>
+    Boolean(getFavoriteTarget(favorite)),
+  );
+  const favoriteLabels = getFavoriteLabels();
+  const popup = new BrowserWindow({
+    width: 520,
+    height: 460,
+    parent: parent ?? undefined,
+    modal: !!parent,
+    title: favoriteLabels.plural,
+    autoHideMenuBar: true,
+    resizable: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+  favoritesPopupWindow = popup;
+  popup.on("closed", () => {
+    if (favoritesPopupWindow === popup) {
+      favoritesPopupWindow = null;
+    }
+  });
+
+  const data = JSON.stringify(favorites);
+  const labels = JSON.stringify(favoriteLabels);
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${favoriteLabels.plural}</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background: #101722;
+      color: #f3edc8;
+      font-family: Georgia, "Times New Roman", serif;
+      margin: 0;
+      overflow-x: hidden;
+      padding: 1rem;
+    }
+    h1 {
+      font-size: 1.35rem;
+      letter-spacing: 0.04em;
+      margin: 0 0 0.75rem;
+      text-align: center;
+    }
+    .hint {
+      color: rgba(243, 237, 200, 0.72);
+      font-size: 0.82rem;
+      margin: -0.35rem 0 0.9rem;
+      text-align: center;
+    }
+    .list {
+      display: grid;
+      gap: 0.55rem;
+      max-height: 20.5rem;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+    button {
+      align-items: center;
+      background: rgba(20, 20, 30, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      color: #f3edc8;
+      cursor: pointer;
+      display: grid;
+      gap: 0.7rem;
+      grid-template-columns: 2.25rem 1fr;
+      min-height: 3.75rem;
+      min-width: 0;
+      padding: 0.55rem 0.7rem;
+      text-align: left;
+      width: 100%;
+    }
+    button:hover {
+      background: rgba(38, 42, 56, 0.94);
+      box-shadow: 0 0 8px rgba(255, 139, 0, 0.55);
+    }
+    .icon {
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 7px;
+      display: flex;
+      height: 2.25rem;
+      justify-content: center;
+      overflow: hidden;
+      width: 2.25rem;
+    }
+    .icon img {
+      height: 100%;
+      object-fit: cover;
+      width: 100%;
+    }
+    .name {
+      display: block;
+      font-size: 1rem;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .target {
+      color: rgba(243, 237, 200, 0.72);
+      display: block;
+      font-size: 0.78rem;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .empty {
+      color: rgba(243, 237, 200, 0.72);
+      margin-top: 4rem;
+      text-align: center;
+    }
+    .text {
+      min-width: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <h1>${favoriteLabels.plural}</h1>
+  <p class="hint">Ctrl+Alt+F toggles this popup from any client window.</p>
+  <div id="list" class="list"></div>
+  <script>
+    const favorites = ${data};
+    const favoriteLabels = ${labels};
+    const list = document.getElementById("list");
+    const isFileFavorite = (favorite) => favorite.type === "file" || (!!favorite.filePath && !favorite.url);
+    const target = (favorite) => isFileFavorite(favorite) ? favorite.filePath : favorite.url;
+    if (!favorites.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "No " + favoriteLabels.plural.toLowerCase() + " have been added yet.";
+      list.replaceWith(empty);
+    }
+    favorites.forEach((favorite) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      const icon = document.createElement("span");
+      icon.className = "icon";
+      const imageUrl = favorite.iconOverrideUrl || favorite.iconUrl;
+      if (imageUrl) {
+        const img = document.createElement("img");
+        img.src = imageUrl;
+        img.alt = "";
+        img.addEventListener("error", () => {
+          img.remove();
+          icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
+        });
+        icon.append(img);
+      } else if (isFileFavorite(favorite) && target(favorite)) {
+        window.api.localFileIcon(target(favorite)).then((iconUrl) => {
+          if (!iconUrl) {
+            icon.textContent = "file";
+            return;
+          }
+          const img = document.createElement("img");
+          img.src = iconUrl;
+          img.alt = "";
+          img.addEventListener("error", () => {
+            img.remove();
+            icon.textContent = "file";
+          });
+          icon.replaceChildren(img);
+        });
+      } else {
+        icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
+      }
+      const text = document.createElement("span");
+      text.className = "text";
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = favorite.name || favoriteLabels.singular;
+      const targetText = document.createElement("span");
+      targetText.className = "target";
+      targetText.textContent = target(favorite) || "";
+      text.append(name, targetText);
+      button.append(icon, text);
+      button.addEventListener("click", () => {
+        const value = target(favorite);
+        if (!value) return;
+        if (isFileFavorite(favorite)) {
+          window.api.openLocalPath(value);
+        } else {
+          window.api.openDefaultBrowser(value);
+        }
+        window.api.closeWindow();
+      });
+      list.append(button);
+    });
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") window.api.closeWindow();
+    });
+  </script>
+</body>
+</html>`;
+
+  popup.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+}
+
 function hookExternalLinkHandling(win: BrowserWindow) {
   win.webContents.setWindowOpenHandler(({ url }) => {
     const openExternalLinksInBrowser =
@@ -818,6 +1064,20 @@ function hookFullScreenEvents(win: BrowserWindow) {
   });
   win.on("leave-full-screen", () => {
     win.webContents.send("fullscreen-changed", false);
+  });
+}
+
+function hookFavoritePopupShortcut(win: BrowserWindow) {
+  win.webContents.on("before-input-event", (event, input) => {
+    if (
+      input.type === "keyDown" &&
+      input.control &&
+      input.alt &&
+      input.key.toLowerCase() === "f"
+    ) {
+      event.preventDefault();
+      showFavoritesPopup(win);
+    }
   });
 }
 
@@ -947,6 +1207,7 @@ function createWindow(): BrowserWindow {
   hookFullScreenEvents(win);
   hookWindowBoundsPersistence(win);
   hookExternalLinkHandling(win);
+  hookFavoritePopupShortcut(win);
 
   // ── Applies fullscreen according to user config ──
   try {
@@ -1442,6 +1703,13 @@ app.whenReady().then(async () => {
           createWindow();
         },
       },
+      {
+        label: "Show Favorites",
+        accelerator: "Ctrl+Alt+F",
+        click: () => {
+          showFavoritesPopup(BrowserWindow.getFocusedWindow() ?? mainWindow);
+        },
+      },
       { role: "quit" },
     ],
   };
@@ -1659,6 +1927,39 @@ ipcMain.handle("dialog:choose-font", async () => {
   return canceled || filePaths.length === 0 ? null : filePaths[0];
 });
 
+ipcMain.handle("dialog:choose-favorite-file", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: "Select a file",
+    properties: ["openFile"],
+  });
+  if (canceled || filePaths.length === 0) return null;
+  const filePath = filePaths[0];
+  return { path: filePath, name: path.parse(filePath).name };
+});
+
+ipcMain.handle("dialog:choose-favorite-icon", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: "Select an icon or image",
+    filters: [
+      {
+        name: "Images",
+        extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "ico"],
+      },
+    ],
+    properties: ["openFile"],
+  });
+  if (canceled || filePaths.length === 0) return null;
+  const imagePath = filePaths[0];
+  const image = nativeImage.createFromPath(imagePath);
+  if (image.isEmpty()) return null;
+  return {
+    dataUrl: image
+      .resize({ width: 128, height: 128, quality: "best" })
+      .toDataURL(),
+    name: path.parse(imagePath).name,
+  };
+});
+
 ipcMain.handle("read-font-file", async (_e, fontPath: string) => {
   try {
     const buffer = fs.readFileSync(fontPath);
@@ -1666,6 +1967,24 @@ ipcMain.handle("read-font-file", async (_e, fontPath: string) => {
   } catch (err) {
     console.error("read-font-file failed:", err);
     return null;
+  }
+});
+
+ipcMain.handle("local-file-icon", async (_event, filePath: string) => {
+  try {
+    const icon = await app.getFileIcon(filePath, { size: "normal" });
+    return icon.isEmpty() ? null : icon.toDataURL();
+  } catch (err) {
+    console.error("local-file-icon failed:", err);
+    return null;
+  }
+});
+
+ipcMain.handle("local-path-exists", async (_event, filePath: string) => {
+  try {
+    return fs.pathExists(filePath);
+  } catch {
+    return false;
   }
 });
 
@@ -1740,7 +2059,7 @@ ipcMain.on("install-update", async (event) => {
   autoUpdater.quitAndInstall(true, true);
 });
 
-ipcMain.on("save-app-config", (_e, data: AppConfig) => {
+ipcMain.handle("save-app-config", (_e, data: AppConfig) => {
   const currentData = getUserData();
   currentData.app = { ...currentData.app, ...data };
   fs.writeFileSync(
@@ -1804,6 +2123,16 @@ ipcMain.on("open-external", (_event, url: string) => {
 
 ipcMain.on("open-default-browser", (_event, url: string) => {
   openUrlInDefaultBrowser(url);
+});
+
+ipcMain.on("open-local-path", (_event, filePath: string) => {
+  shell.openPath(filePath).catch((err) => {
+    console.error("Failed to open local path", filePath, err);
+  });
+});
+
+ipcMain.on("show-favorites-popup", (event) => {
+  showFavoritesPopup(BrowserWindow.fromWebContents(event.sender));
 });
 
 ipcMain.handle("cache-path", () => app.getPath("sessionData"));

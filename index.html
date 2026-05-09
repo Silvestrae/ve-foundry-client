@@ -632,74 +632,6 @@
                 </div>
               </div>
             </div>
-            <div class="user-configuration hidden">
-              <div class="game-name-field field-large">
-                <input
-                  class="game-name-edit input-large"
-                  placeholder="Game Name"
-                  type="text"
-                  value
-                />
-              </div>
-              <div class="game-url-field field-large">
-                <input
-                  class="game-url-edit input-large"
-                  placeholder="Game URL"
-                  type="text"
-                  value
-                />
-              </div>
-              <div class="user-name-field field-large">
-                <input
-                  class="user-name input-large"
-                  placeholder="Username"
-                  type="text"
-                  value
-                />
-              </div>
-              <div class="user-password-field password-field field-large">
-                <input
-                  class="user-password input-large"
-                  placeholder="Password"
-                  type="password"
-                  value
-                />
-                <div class="password-main-button">
-                  <div class="password-button-wrapper">
-                    <button type="button" class="toggle-password">
-                      <i class="fa-solid fa-eye"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="admin-password-field password-field field-large">
-                <input
-                  class="admin-password input-large"
-                  placeholder="Admin Password"
-                  type="password"
-                  value
-                />
-                <div class="password-main-button">
-                  <div class="password-button-wrapper">
-                    <button type="button" class="toggle-password">
-                      <i class="fa-solid fa-eye"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <label class="server-auto-refresh-field field-large">
-                <input class="server-auto-refresh-disabled" type="checkbox" />
-                Exclude from automatic server status refresh
-              </label>
-              <label class="server-auto-login-field field-large">
-                <input class="server-auto-login-enabled" type="checkbox" />
-                Automatically log in after autofill
-              </label>
-              <div class="game-button-group">
-                <button class="save-user-data">Save</button>
-                <button class="delete-game">Delete</button>
-              </div>
-            </div>
           </li>
         </template>
         </ul>
@@ -713,6 +645,9 @@
         <div class="section-header">
           <span class="section-title">Favorites</span>
         </div>
+        <p id="favorite-shortcut-hint" class="favorite-shortcut-hint">
+          Press Ctrl+Alt+F in game to open favourites.
+        </p>
         <div id="favorite-column-control" class="favorite-column-control">
           <span class="favorite-column-label">Columns</span>
           <div
@@ -751,14 +686,147 @@
         </p>
         <ul id="favorite-list" class="favorite-list"></ul>
         <div id="add-favorite-wrapper">
-          <input id="favorite-name" placeholder="Website Name" type="text" />
-          <input id="favorite-url" placeholder="Website URL" type="text" />
+          <input id="favorite-name" placeholder="Name" type="text" />
+          <input id="favorite-url" placeholder="URL or file path" type="text" />
+          <div class="favorite-picker-group" aria-label="Favourite options">
+            <button
+              id="choose-favorite-file"
+              class="favorite-picker-button"
+              type="button"
+              aria-label="Choose file"
+            >
+              <i class="fa-solid fa-folder-open"></i>
+            </button>
+            <button
+              id="choose-favorite-icon"
+              class="favorite-picker-button"
+              type="button"
+              aria-label="Choose icon"
+            >
+              <i class="fa-solid fa-image"></i>
+            </button>
+          </div>
           <button id="add-favorite">Add Favorite</button>
           <button id="cancel-favorite-edit" class="hidden-display">
             Cancel
           </button>
         </div>
       </section>
+
+      <div id="server-settings-modal" class="modal-overlay hidden-display">
+        <div
+          class="server-settings-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="server-settings-title"
+        >
+          <div class="server-settings-header">
+            <h2 id="server-settings-title">Server Settings</h2>
+            <button
+              id="close-server-settings"
+              class="server-settings-close"
+              type="button"
+              aria-label="Close server settings"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="server-settings-layout">
+            <div class="server-settings-form">
+              <input
+                id="server-settings-name"
+                class="input-large"
+                placeholder="Server Name"
+                type="text"
+              />
+              <input
+                id="server-settings-url"
+                class="input-large"
+                placeholder="Server URL"
+                type="text"
+              />
+              <input
+                id="server-settings-user"
+                class="input-large"
+                placeholder="Username"
+                type="text"
+              />
+              <div class="password-field field-large">
+                <input
+                  id="server-settings-password"
+                  class="input-large"
+                  placeholder="Password"
+                  type="password"
+                />
+                <div class="password-main-button">
+                  <div class="password-button-wrapper">
+                    <button type="button" class="toggle-password">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="password-field field-large">
+                <input
+                  id="server-settings-admin-password"
+                  class="input-large"
+                  placeholder="Admin Password"
+                  type="password"
+                />
+                <div class="password-main-button">
+                  <div class="password-button-wrapper">
+                    <button type="button" class="toggle-password">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <label class="server-settings-check">
+                <input id="server-settings-disable-refresh" type="checkbox" />
+                Exclude from automatic server status refresh
+              </label>
+              <label class="server-settings-check">
+                <input id="server-settings-auto-login" type="checkbox" />
+                Automatically log in after autofill
+              </label>
+            </div>
+            <section class="server-autorun-panel">
+              <h3 id="server-autorun-title">Autorun Favourites</h3>
+              <p>
+                Add notes, adventure PDFs, local files, or URLs that should open
+                automatically when this server is launched.
+              </p>
+              <ul id="server-autorun-list" class="server-autorun-list"></ul>
+              <div class="server-autorun-add">
+                <input
+                  id="server-autorun-name"
+                  placeholder="Name"
+                  type="text"
+                />
+                <input
+                  id="server-autorun-target"
+                  placeholder="URL or file path"
+                  type="text"
+                />
+                <div class="server-autorun-actions">
+                  <button
+                    id="choose-server-autorun-file"
+                    type="button"
+                    aria-label="Choose file"
+                  >
+                    <i class="fa-solid fa-folder-open"></i>
+                  </button>
+                  <button id="add-server-autorun" type="button">Add</button>
+                </div>
+              </div>
+            </section>
+          </div>
+          <div class="server-settings-actions">
+            <button id="save-server-settings" type="button">Save</button>
+            <button id="delete-server-settings" type="button">Delete</button>
+          </div>
+        </div>
+      </div>
 
       <div id="custom-confirm" class="hidden2 hidden-display">
         <div class="confirm-box">

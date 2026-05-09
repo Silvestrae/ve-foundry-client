@@ -11,6 +11,17 @@ export const optionalUrl = z.preprocess((val) => {
 export const GameIdSchema = z.union([z.string(), z.number()]);
 export type GameId = z.infer<typeof GameIdSchema>;
 
+export const FavoriteConfigSchema = z.object({
+  name: z.string(),
+  type: z.enum(["website", "file"]).optional(),
+  url: z.string().optional(),
+  filePath: z.string().optional(),
+  id: GameIdSchema.optional(),
+  iconUrl: z.string().optional(),
+  iconOverrideUrl: z.string().optional(),
+});
+export type FavoriteConfig = z.infer<typeof FavoriteConfigSchema>;
+
 // GameConfig
 export const GameConfigSchema = z.object({
   name: z.string().optional(),
@@ -23,16 +34,9 @@ export const GameConfigSchema = z.object({
   backgroundImageLocalUrl: z.string().optional(),
   backgroundImageFileName: z.string().optional(),
   backgroundImageUpdatedAt: z.string().optional(),
+  autorunFavorites: z.array(FavoriteConfigSchema).optional().prefault([]),
 });
 export type GameConfig = z.infer<typeof GameConfigSchema>;
-
-export const FavoriteConfigSchema = z.object({
-  name: z.string(),
-  url: z.string(),
-  id: GameIdSchema.optional(),
-  iconUrl: z.string().optional(),
-});
-export type FavoriteConfig = z.infer<typeof FavoriteConfigSchema>;
 
 // ServerInfoOptions
 export const ServerInfoOptionsSchema = z

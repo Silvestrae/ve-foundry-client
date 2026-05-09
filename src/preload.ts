@@ -47,7 +47,7 @@ export type ContextBridgeApi = {
     autoLogin?: boolean,
   ) => void;
   clearCache: () => void;
-  saveAppConfig: (data: AppConfig) => void;
+  saveAppConfig: (data: AppConfig) => Promise<void>;
   saveThemeConfig: (data: ThemeConfig) => void;
   showNotification(callback: (message: string) => void): void;
   onShowPrompt: (
@@ -59,6 +59,10 @@ export type ContextBridgeApi = {
   ) => void;
   sendPromptResponse: (id: number, answer: boolean) => void;
   chooseFontFile(): Promise<string | null>;
+  chooseFavoriteFile(): Promise<{ path: string; name: string } | null>;
+  chooseFavoriteIcon(): Promise<{ dataUrl: string; name: string } | null>;
+  localFileIcon(path: string): Promise<string | null>;
+  localPathExists(path: string): Promise<boolean>;
   readFontFile(path: string): Promise<string | null>;
   openUserDataFolder: () => Promise<string>;
   showMenu: () => Promise<string>;
@@ -91,6 +95,8 @@ export type ContextBridgeApi = {
   installUpdate: () => void;
   openExternal: (url: string) => void;
   openDefaultBrowser: (url: string) => void;
+  openLocalPath: (path: string) => void;
+  showFavoritesPopup: () => void;
 };
 
 const exposedApi: ContextBridgeApi = {
@@ -147,7 +153,7 @@ const exposedApi: ContextBridgeApi = {
     ipcRenderer.send("cache-path", cachePath);
   },
   saveAppConfig(data: AppConfig) {
-    ipcRenderer.send("save-app-config", data);
+    return ipcRenderer.invoke("save-app-config", data) as Promise<void>;
   },
   saveThemeConfig(data: ThemeConfig) {
     ipcRenderer.send("save-theme-config", data);
@@ -180,6 +186,20 @@ const exposedApi: ContextBridgeApi = {
   },
   chooseFontFile: () =>
     ipcRenderer.invoke("dialog:choose-font") as Promise<string | null>,
+  chooseFavoriteFile: () =>
+    ipcRenderer.invoke("dialog:choose-favorite-file") as Promise<{
+      path: string;
+      name: string;
+    } | null>,
+  chooseFavoriteIcon: () =>
+    ipcRenderer.invoke("dialog:choose-favorite-icon") as Promise<{
+      dataUrl: string;
+      name: string;
+    } | null>,
+  localFileIcon: (path: string) =>
+    ipcRenderer.invoke("local-file-icon", path) as Promise<string | null>,
+  localPathExists: (path: string) =>
+    ipcRenderer.invoke("local-path-exists", path) as Promise<boolean>,
   readFontFile: (path: string) =>
     ipcRenderer.invoke("read-font-file", path) as Promise<string | null>,
   openUserDataFolder: () =>
@@ -236,6 +256,12 @@ const exposedApi: ContextBridgeApi = {
   },
   openDefaultBrowser: (url: string) => {
     ipcRenderer.send("open-default-browser", url);
+  },
+  openLocalPath: (path: string) => {
+    ipcRenderer.send("open-local-path", path);
+  },
+  showFavoritesPopup: () => {
+    ipcRenderer.send("show-favorites-popup");
   },
 };
 

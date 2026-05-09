@@ -17,13 +17,17 @@ type GameConfigType = {
   backgroundImageLocalUrl?: string;
   backgroundImageFileName?: string;
   backgroundImageUpdatedAt?: string;
+  autorunFavorites?: FavoriteConfig[];
 };
 
 type FavoriteConfig = {
   name: string;
-  url: string;
+  type?: "website" | "file";
+  url?: string;
+  filePath?: string;
   id?: GameId;
   iconUrl?: string;
+  iconOverrideUrl?: string;
 };
 
 type AppConfig = {
