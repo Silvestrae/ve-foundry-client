@@ -37,7 +37,6 @@ This app is currently unsigned. Windows Defender, SmartScreen, or antivirus soft
 
 ### Project
 
-- [Development](#development)
 - [Acknowledgments](#acknowledgments)
 - [Disclaimer](#disclaimer)
 
@@ -306,4 +305,4 @@ Client and Rich Presence icons were designed by [Freepik](http://www.freepik.com
 
 ## Disclaimer
 
-Changes in the fork have been vibe-coded in Codex. If you spot a bug, a rough edge, or something that could be improved, please open a [GitHub Issue](https://github.com/Silvestrae/ve-foundry-client/issues) or [Pull Request](https://github.com/Silvestrae/ve-foundry-client/pulls).
+Development in this fork has been vibe-coded in Codex. If you spot a bug, a rough edge, or something that could be improved, please open a [GitHub Issue](https://github.com/Silvestrae/ve-foundry-client/issues) or [Pull Request](https://github.com/Silvestrae/ve-foundry-client/pulls).
