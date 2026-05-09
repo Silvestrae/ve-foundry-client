@@ -10,6 +10,13 @@ async function getServerInfo(
   return window.api.pingServer(game.url);
 }
 
+function setWrapperDisplay(
+  wrapper: HTMLElement | null,
+  visible: boolean,
+): void {
+  if (wrapper) wrapper.style.display = visible ? "" : "none";
+}
+
 export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
   // Retrieve user config
   const { serverInfoEnabled = true, serverInfoOptions } =
@@ -57,16 +64,40 @@ export async function updateServerInfos(item: HTMLElement, game: GameConfig) {
   ) as HTMLElement;
   const usersWrapper = usersSpan.closest(".tooltip-wrapper") as HTMLElement;
 
-  if (statusWrapper) statusWrapper.style.display = statusEnabled ? "" : "none";
-  if (versionWrapper)
-    versionWrapper.style.display = foundryVersionEnabled ? "" : "none";
-  if (worldWrapper) worldWrapper.style.display = worldEnabled ? "" : "none";
-  if (systemWrapper)
-    systemWrapper.style.display = gameSystemEnabled ? "" : "none";
-  if (systemVersionWrapper)
-    systemVersionWrapper.style.display = gameSystemVersionEnabled ? "" : "none";
-  if (usersWrapper)
-    usersWrapper.style.display = onlinePlayersEnabled ? "" : "none";
+  if (game.serverInfoAutoRefreshDisabled) {
+    item.classList.remove("server-active");
+    setWrapperDisplay(statusWrapper, false);
+    setWrapperDisplay(usersWrapper, false);
+    setWrapperDisplay(versionWrapper, foundryVersionEnabled);
+    setWrapperDisplay(worldWrapper, worldEnabled);
+    setWrapperDisplay(systemWrapper, gameSystemEnabled);
+    setWrapperDisplay(systemVersionWrapper, gameSystemVersionEnabled);
+
+    if (foundryVersionEnabled) {
+      versionSpan.innerHTML = `<i class="fa-solid fa-dice-d20"></i> ${
+        game.cachedFoundryVersion ? `v${game.cachedFoundryVersion}` : "-"
+      }`;
+    }
+    if (worldEnabled) {
+      worldSpan.innerHTML = `<i class="fa-solid fa-globe"></i> -`;
+    }
+    if (gameSystemEnabled) {
+      systemSpan.innerHTML = `<i class="fa-solid fa-dice"></i> ${
+        game.cachedGameSystem?.toUpperCase() ?? "-"
+      }`;
+    }
+    if (gameSystemVersionEnabled) {
+      systemVersionSpan.innerHTML = `<i class="fa-solid fa-screwdriver-wrench"></i> ${game.cachedGameSystemVersion ?? "-"} <span class="server-refresh-disabled"><i class="fa-solid fa-ban"></i> Server refresh disabled</span>`;
+    }
+    return;
+  }
+
+  setWrapperDisplay(statusWrapper, statusEnabled);
+  setWrapperDisplay(versionWrapper, foundryVersionEnabled);
+  setWrapperDisplay(worldWrapper, worldEnabled);
+  setWrapperDisplay(systemWrapper, gameSystemEnabled);
+  setWrapperDisplay(systemVersionWrapper, gameSystemVersionEnabled);
+  setWrapperDisplay(usersWrapper, onlinePlayersEnabled);
 
   // Ping server
   let info: ServerStatusData | null = null;

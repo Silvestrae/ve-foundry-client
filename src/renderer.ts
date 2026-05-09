@@ -1843,6 +1843,15 @@ const shareOptionIds: Record<ShareSection, string> = {
   theme: "export-theme",
 };
 
+const shareSectionOrder: ShareSection[] = [
+  "clientSettings",
+  "theme",
+  "serverAddresses",
+  "serverCredentials",
+  "globalFavorites",
+  "serverAutorunFavorites",
+];
+
 function getChecked(id: string) {
   return (document.getElementById(id) as HTMLInputElement | null)?.checked;
 }
@@ -1856,12 +1865,6 @@ function getExportOptions(): ShareOptions {
     globalFavorites: !!getChecked(shareOptionIds.globalFavorites),
     theme: !!getChecked(shareOptionIds.theme),
   };
-}
-
-function selectedSections(options: Partial<ShareOptions>) {
-  return (Object.entries(options) as [ShareSection, boolean][])
-    .filter(([, enabled]) => enabled)
-    .map(([section]) => shareSectionLabels[section]);
 }
 
 function showShareSummary(title: string, lines: string[]) {
@@ -2024,11 +2027,6 @@ async function exportSettings() {
     2,
   );
 
-  const summary = selectedSections(options);
-  if (options.serverCredentials) {
-    summary.push(`${payload.credentials?.length ?? 0} credential records`);
-  }
-  showShareSummary("Export ready", summary);
   showNotification("Export ready");
 }
 
@@ -2079,14 +2077,16 @@ function showImportOptionsDialog(available: Partial<ShareOptions>) {
     optionsWrap.className = "share-import-options";
     const inputs = new Map<ShareSection, HTMLInputElement>();
 
-    (Object.keys(shareSectionLabels) as ShareSection[]).forEach((section) => {
-      if (!available[section]) return;
+    shareSectionOrder.forEach((section) => {
       const label = document.createElement("label");
       label.className = "share-option";
+      const isAvailable = !!available[section];
+      label.classList.toggle("is-disabled", !isAvailable);
 
       const input = document.createElement("input");
       input.type = "checkbox";
-      input.checked = true;
+      input.checked = isAvailable;
+      input.disabled = !isAvailable;
       inputs.set(section, input);
 
       const text = document.createElement("span");
@@ -2098,14 +2098,14 @@ function showImportOptionsDialog(available: Partial<ShareOptions>) {
     modal.append(optionsWrap);
 
     const actions = document.createElement("div");
-    actions.className = "server-settings-actions";
+    actions.className = "server-settings-actions share-import-actions";
     const cancel = document.createElement("button");
     cancel.type = "button";
     cancel.textContent = "Cancel";
     const confirm = document.createElement("button");
     confirm.type = "button";
     confirm.textContent = "Import Selected";
-    actions.append(cancel, confirm);
+    actions.append(confirm, cancel);
     modal.append(actions);
     overlay.append(modal);
     document.body.append(overlay);
@@ -2434,6 +2434,57 @@ async function saveToFile() {
   showNotification(`Saved ${a.download}`);
 }
 
+async function refreshServerMetadataOnLaunch(
+  item: HTMLElement,
+  game: GameConfig,
+  appConfig: AppConfig,
+) {
+  const gameId = game.id === undefined || game.id === null ? null : String(game.id);
+  const gameUrl = String(game.url ?? "").trim().toLowerCase();
+  const savedGameIndex = appConfig.games?.findIndex(
+    (storedGame) => {
+      const storedId =
+        storedGame.id === undefined || storedGame.id === null
+          ? null
+          : String(storedGame.id);
+      const storedUrl = String(storedGame.url ?? "").trim().toLowerCase();
+      return (
+        (gameId !== null && storedId === gameId) ||
+        (!!gameUrl && storedUrl === gameUrl)
+      );
+    },
+  );
+  if (savedGameIndex === undefined || savedGameIndex < 0) return;
+
+  const savedGame = appConfig.games[savedGameIndex];
+  if (!savedGame.serverInfoAutoRefreshDisabled) return;
+  const pingUrl = savedGame.url ?? game.url;
+  if (!pingUrl) return;
+
+  try {
+    const info = await window.api.pingServer(pingUrl);
+    if (!info) return;
+
+    const updatedGame: GameConfig = {
+      ...savedGame,
+      cachedFoundryVersion: info.version,
+      cachedGameSystem: info.system,
+      cachedGameSystemVersion: info.systemVersion,
+    };
+    const updatedGames = [...appConfig.games];
+    updatedGames[savedGameIndex] = updatedGame;
+    const updatedAppConfig = {
+      ...appConfig,
+      games: updatedGames,
+    };
+
+    await window.api.saveAppConfig(updatedAppConfig);
+    await updateServerInfos(item, updatedGame);
+  } catch (err) {
+    console.warn(`Could not refresh cached server info for ${game.name}:`, err);
+  }
+}
+
 function switchTab(event: MouseEvent, tabId: string): void {
   event.preventDefault();
   const tabs = document.querySelectorAll<HTMLButtonElement>(".tab-button");
@@ -2464,14 +2515,26 @@ async function createGameItem(game: GameConfig) {
   void applyCachedServerButtonBackground(li, game);
   li.querySelector(".game-main-button").addEventListener("click", async () => {
     const appConfig: AppConfig = await window.api.localAppConfig();
-    const savedGame = appConfig.games?.find(
-      (storedGame) => String(storedGame.id) === String(game.id),
-    );
+    const gameId =
+      game.id === undefined || game.id === null ? null : String(game.id);
+    const gameUrl = String(game.url ?? "").trim().toLowerCase();
+    const savedGame = appConfig.games?.find((storedGame) => {
+      const storedId =
+        storedGame.id === undefined || storedGame.id === null
+          ? null
+          : String(storedGame.id);
+      const storedUrl = String(storedGame.url ?? "").trim().toLowerCase();
+      return (
+        (gameId !== null && storedId === gameId) ||
+        (!!gameUrl && storedUrl === gameUrl)
+      );
+    });
     const shouldAutoLogin =
       savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
     window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
     openAutorunItems(savedGame?.autorunFavorites ?? game.autorunFavorites);
     await refreshServerButtonBackground(li, game);
+    await refreshServerMetadataOnLaunch(li, savedGame ?? game, appConfig);
     if (appConfig.discordRP) {
       if (window.richPresence?.enable) {
         window.richPresence.enable();
@@ -2480,9 +2543,7 @@ async function createGameItem(game: GameConfig) {
     window.location.href = game.url;
   });
   gameItemList.appendChild(li);
-  if (!game.serverInfoAutoRefreshDisabled) {
-    await updateServerInfos(li, game);
-  }
+  await updateServerInfos(li, game);
 
   // Retrieve app config from userData
   const appConfig = await window.api.localAppConfig();

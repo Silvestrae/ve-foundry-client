@@ -384,6 +384,14 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
     0 0 10px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 
+.server-refresh-disabled {
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  margin-left: 0.3rem;
+  white-space: nowrap;
+}
+
 @keyframes active-server-sheen {
   0%,
   22% {
@@ -1487,12 +1495,27 @@ body:not(.main-edit-mode) .favorite-open-button {
   border-radius: 12px;
 }
 
+.share-menu,
+.share-import-modal {
+  font-family: var(--font-secondary);
+}
+
+.share-menu button,
+.share-import-modal button {
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+}
+
 .share-options-panel,
 .share-import-options {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.45rem 0.55rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: 0 1.5rem 1rem;
+  margin: 0 1.5rem 0.8rem;
 }
 
 .share-option {
@@ -1502,9 +1525,14 @@ body:not(.main-edit-mode) .favorite-open-button {
   border-radius: 6px;
   cursor: pointer;
   display: flex;
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  font-weight: 600;
   gap: 0.55rem;
+  line-height: 1.25;
   min-width: 0;
-  padding: 0.65rem 0.75rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.65rem;
 }
 
 .share-option input {
@@ -1513,6 +1541,11 @@ body:not(.main-edit-mode) .favorite-open-button {
 
 .share-option span {
   min-width: 0;
+}
+
+.share-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .share-summary {
@@ -1547,12 +1580,17 @@ body:not(.main-edit-mode) .favorite-open-button {
 }
 
 .share-import-modal h2 {
-  font-family: var(--font-primary);
+  font-family: var(--font-secondary);
+  font-size: 1.35rem;
   margin: 0 0 1rem;
 }
 
 .share-import-modal .share-import-options {
   margin: 0 0 1rem;
+}
+
+.share-import-modal .share-import-actions {
+  width: 100%;
 }
 
 .share-output,
@@ -2212,7 +2250,9 @@ input[type="range"]:focus::-webkit-slider-thumb {
 }
 
 #export-settings {
+  display: block;
   margin: 0 1.5rem 1rem;
+  width: calc(100% - 3rem);
 }
 
 @media (max-width: 680px) {
