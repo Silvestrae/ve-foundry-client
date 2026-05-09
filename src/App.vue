@@ -2,13 +2,16 @@
 <template>
   <!-- header or toolbox here -->
 
-  <button
-    class="update-available"
-    :class="{ 'update-available-glow': isUpdateAvailable }"
-    @click="checkUpdates"
-  >
-    {{ isUpdateAvailable ? "Update Available" : "Check for updates" }}
-  </button>
+  <div class="update-widget">
+    <div class="app-version-label">Version {{ appVersion }}</div>
+    <button
+      class="update-available"
+      :class="{ 'update-available-glow': isUpdateAvailable }"
+      @click="checkUpdates"
+    >
+      {{ isUpdateAvailable ? "Update Available" : "Check for updates" }}
+    </button>
+  </div>
 
   <AppConfiguration
     v-model="appConfig"
@@ -46,6 +49,7 @@ import AppConfiguration from "./components/AppConfigurationModal.vue";
 const updaterStore = useUpdaterStore();
 const ui = useUiStore();
 const { appConfigVisible } = storeToRefs(ui);
+const appVersion = ref("");
 const isUpdateAvailable = computed(() =>
   ["available", "downloaded"].includes(updaterStore.status),
 );
@@ -99,6 +103,7 @@ async function loadAppConfigIntoForm() {
 
 onMounted(async () => {
   const cfg = await window.api.localAppConfig();
+  appVersion.value = await window.api.appVersion();
   await loadAppConfigIntoForm();
   await applyRuntimeAppConfig(cfg);
 });

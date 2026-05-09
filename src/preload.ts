@@ -60,7 +60,11 @@ export type ContextBridgeApi = {
   sendPromptResponse: (id: number, answer: boolean) => void;
   chooseFontFile(): Promise<string | null>;
   chooseFavoriteFile(): Promise<{ path: string; name: string } | null>;
-  chooseFavoriteIcon(): Promise<{ dataUrl: string; name: string } | null>;
+  chooseFavoriteIcon(): Promise<{
+    localUrl: string;
+    fileName: string;
+    name: string;
+  } | null>;
   localFileIcon(path: string): Promise<string | null>;
   localPathExists(path: string): Promise<boolean>;
   readFontFile(path: string): Promise<string | null>;
@@ -193,7 +197,8 @@ const exposedApi: ContextBridgeApi = {
     } | null>,
   chooseFavoriteIcon: () =>
     ipcRenderer.invoke("dialog:choose-favorite-icon") as Promise<{
-      dataUrl: string;
+      localUrl: string;
+      fileName: string;
       name: string;
     } | null>,
   localFileIcon: (path: string) =>

@@ -7,6 +7,8 @@
           <!-- Panel réel -->
           <div class="app-configuration">
             <div class="overflow">
+              <div class="settings-section-title">General</div>
+
               <!-- Cache Path -->
               <div class="cache-path-field">
                 <el-input
@@ -84,13 +86,94 @@
                 <label for="notification-timer"
                   >Notifications Timer (in Seconds)</label
                 >
-                <el-slider
-                  v-model="form.notificationTimer"
-                  :min="3"
-                  :max="10"
-                  :step="1"
-                  :show-tooltip="true"
-                  id="notification-timer"
+                <div class="slider-with-value">
+                  <el-slider
+                    v-model="form.notificationTimer"
+                    :min="3"
+                    :max="10"
+                    :step="1"
+                    :show-tooltip="true"
+                    id="notification-timer"
+                  />
+                  <span class="slider-value">{{ form.notificationTimer }}</span>
+                </div>
+              </div>
+
+              <!-- Force Full Screen -->
+              <div class="full-screen-toggle-field field">
+                <label class="switch-label">Force Full Screen</label>
+                <el-switch
+                  v-model="form.forceFullScreen"
+                  class="mt-2"
+                  size="large"
+                  style="
+                    margin-left: 24px;
+                    --el-switch-on-color: var(--color-accent);
+                    --el-switch-off-color: #000000;
+                  "
+                  inline-prompt
+                  :active-icon="Check"
+                  :inactive-icon="Close"
+                  id="full-screen-toggle"
+                />
+              </div>
+
+              <!-- Share Session between Windows -->
+              <div class="share-session-toggle-field field">
+                <label class="switch-label"
+                  >Share Session between Windows</label
+                >
+                <el-tooltip placement="bottom">
+                  <template #content
+                    >Does not affect already opened windows.</template
+                  >
+                  <el-switch
+                    v-model="form.shareSessionBetweenWindows"
+                    class="mt-2"
+                    size="large"
+                    style="
+                      margin-left: 24px;
+                      --el-switch-on-color: var(--color-accent);
+                      --el-switch-off-color: #000000;
+                    "
+                    inline-prompt
+                    :active-icon="Check"
+                    :inactive-icon="Close"
+                    id="share-session-toggle"
+                  />
+                </el-tooltip>
+              </div>
+
+              <!-- Discord Rich Presence -->
+              <div class="discord-rp-field field">
+                <div class="discord-rp-copy">
+                  <label class="switch-label">
+                    <i class="fa-brands fa-discord"></i>
+                    Enable Discord Rich Presence
+                  </label>
+                  <div class="download-link">
+                    Download the required module
+                    <a
+                      href="https://github.com/JeidoUran/fvtt-rich-presence"
+                      target="_blank"
+                    >
+                      here </a
+                    >!
+                  </div>
+                </div>
+                <el-switch
+                  v-model="form.enableDiscordRp"
+                  class="mt-2"
+                  size="large"
+                  style="
+                    margin-left: 24px;
+                    --el-switch-on-color: var(--color-accent);
+                    --el-switch-off-color: #000000;
+                  "
+                  inline-prompt
+                  :active-icon="Check"
+                  :inactive-icon="Close"
+                  id="discord-rp"
                 />
               </div>
 
@@ -233,101 +316,20 @@
                   <label for="server-infos-ping-rate">
                     Server Status Automatic Refresh Rate (in Seconds)
                   </label>
-                  <el-slider
-                    v-model="form.serverInfosPingRate"
-                    :min="15"
-                    :max="60"
-                    :step="1"
-                    :show-tooltip="true"
-                    id="server-infos-ping-rate"
-                  />
+                  <div class="slider-with-value">
+                    <el-slider
+                      v-model="form.serverInfosPingRate"
+                      :min="15"
+                      :max="60"
+                      :step="1"
+                      :show-tooltip="true"
+                      id="server-infos-ping-rate"
+                    />
+                    <span class="slider-value">
+                      {{ form.serverInfosPingRate }}
+                    </span>
+                  </div>
                 </div>
-              </div>
-
-              <!-- Force Full Screen -->
-              <div class="full-screen-toggle-field field">
-                <label class="switch-label">Force Full Screen</label>
-                <el-switch
-                  v-model="form.forceFullScreen"
-                  class="mt-2"
-                  size="large"
-                  style="
-                    margin-left: 24px;
-                    --el-switch-on-color: var(--color-accent);
-                    --el-switch-off-color: #000000;
-                  "
-                  inline-prompt
-                  :active-icon="Check"
-                  :inactive-icon="Close"
-                  id="full-screen-toggle"
-                />
-              </div>
-
-              <!-- Share Session between Windows -->
-              <div class="share-session-toggle-field field">
-                <label class="switch-label"
-                  >Share Session between Windows</label
-                >
-                <el-tooltip placement="bottom">
-                  <template #content
-                    >Does not affect already opened windows.</template
-                  >
-                  <el-switch
-                    v-model="form.shareSessionBetweenWindows"
-                    class="mt-2"
-                    size="large"
-                    style="
-                      margin-left: 24px;
-                      --el-switch-on-color: var(--color-accent);
-                      --el-switch-off-color: #000000;
-                    "
-                    inline-prompt
-                    :active-icon="Check"
-                    :inactive-icon="Close"
-                    id="share-session-toggle"
-                  />
-                </el-tooltip>
-              </div>
-
-              <!-- Discord Rich Presence -->
-              <div class="discord-rp-field field">
-                <label class="switch-label">
-                  <i class="fa-brands fa-discord"></i>
-                  Enable Discord Rich Presence
-                </label>
-                <el-tooltip placement="bottom">
-                  <template #content
-                    >Requires FoundryVTT Rich Presence module installed per
-                    server.<br />
-                    Turning this option off disables Discord Rich Presence
-                    globally, regardless of each server's module
-                    settings.</template
-                  >
-                  <el-switch
-                    v-model="form.enableDiscordRp"
-                    class="mt-2"
-                    size="large"
-                    style="
-                      margin-left: 24px;
-                      --el-switch-on-color: var(--color-accent);
-                      --el-switch-off-color: #000000;
-                    "
-                    inline-prompt
-                    :active-icon="Check"
-                    :inactive-icon="Close"
-                    id="discord-rp"
-                  />
-                </el-tooltip>
-              </div>
-
-              <div class="download-link">
-                Download the required module
-                <a
-                  href="https://github.com/JeidoUran/fvtt-rich-presence"
-                  target="_blank"
-                >
-                  here </a
-                >!
               </div>
             </div>
 
@@ -340,13 +342,13 @@
                 <el-button id="reset-client" type="warning" @click="onReset">
                   Reset Settings
                 </el-button>
-                <el-button id="clear-cache" type="danger" @click="onClearCache">
-                  Clear Cache
-                </el-button>
               </div>
               <div class="button-row">
                 <el-button id="open-user-data" @click="onOpenUserData">
                   Open User Data Folder
+                </el-button>
+                <el-button id="clear-cache" type="danger" @click="onClearCache">
+                  Clear Cache
                 </el-button>
               </div>
               <el-button id="cancel-app-config" @click="onCancel">

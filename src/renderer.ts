@@ -61,6 +61,19 @@ function toCssUrl(url: string) {
   return `url("${url.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")`;
 }
 
+function setParticlesControlsEnabled(enabled: boolean) {
+  const particlesConfig =
+    document.querySelector<HTMLElement>(".particles-config");
+  if (!particlesConfig) return;
+
+  particlesConfig.classList.toggle("is-disabled", !enabled);
+  particlesConfig
+    .querySelectorAll<HTMLInputElement>("input")
+    .forEach((input) => {
+      input.disabled = !enabled;
+    });
+}
+
 function applyServerButtonBackground(item: HTMLElement, localUrl?: string) {
   item.classList.remove("has-server-background");
   item.style.removeProperty("--server-background-image");
@@ -639,7 +652,7 @@ addServerAutorunButton.addEventListener("click", async () => {
 chooseFavoriteIconButton.addEventListener("click", async () => {
   const image = await window.api.chooseFavoriteIcon();
   if (!image) return;
-  selectedFavoriteIconOverrideUrl = image.dataUrl;
+  selectedFavoriteIconOverrideUrl = image.localUrl;
   chooseFavoriteIconButton.setAttribute("aria-label", "Change icon");
   chooseFavoriteIconButton.title = "Change icon";
   if (!favoriteNameField.value.trim()) {
@@ -909,9 +922,7 @@ function setMainEditMode(enabled: boolean) {
     "aria-label",
     enabled ? "Switch to Play Mode" : "Switch to Edit Mode",
   );
-  mainEditModeToggle.title = enabled
-    ? "Switch to Play Mode"
-    : "Switch to Edit Mode";
+  mainEditModeToggle.removeAttribute("title");
   mainEditModeToggle.innerHTML = enabled
     ? '<i class="fa-solid fa-pen-nib"></i>'
     : '<i class="fa-solid fa-lock"></i>';
@@ -980,9 +991,6 @@ document
     const closeUserConfig = e.target.closest(
       ".theme-configuration",
     ) as HTMLDivElement;
-    const themeSelector = document.querySelector(
-      "#theme-selector",
-    ) as HTMLSelectElement;
     const background = (
       closeUserConfig.querySelector("#background-image") as HTMLInputElement
     ).value;
@@ -1039,9 +1047,8 @@ document
     const customSecondary = document.querySelector<HTMLInputElement>(
       "#secondary-custom-font",
     )!;
-    const selectedBase = themeSelector?.value || existingConfig.baseTheme;
     const config = {
-      baseTheme: selectedBase,
+      baseTheme: "codex",
       accentColor,
       backgroundColor,
       background,
@@ -1190,12 +1197,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const appConfigStylesheet = document.getElementById(
     "client-settings-stylesheet",
   ) as HTMLLinkElement;
-  const themeSelector = document.getElementById(
-    "theme-selector",
-  ) as HTMLSelectElement;
 
-  if (!themeStylesheet || !themeSelector) {
-    console.error("Theme selector or stylesheet not found.");
+  if (!themeStylesheet) {
+    console.error("Theme stylesheet not found.");
     return;
   }
 
@@ -1208,23 +1212,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   )!;
   const primaryCustomField = document.getElementById("primary-custom-font")!;
   const primaryImportField = document.getElementById("primary-import-font")!;
+  const setPrimaryFontAuxControls = () => {
+    const customVisible = primaryFontSelect.value === "__custom";
+    const importVisible = primaryFontSelect.value === "__file";
+    primaryCustomField.style.display = customVisible ? "flex" : "none";
+    primaryCustomField.parentElement!.style.display = customVisible
+      ? "flex"
+      : "none";
+    primaryImportField.style.display = importVisible ? "block" : "none";
+    primaryImportField.parentElement!.style.display = importVisible
+      ? "flex"
+      : "none";
+  };
   if (themeConfig.fontPrimary === "__custom") {
-    primaryCustomField.style.display = "flex";
+    primaryFontSelect.value = "__custom";
   } else if (themeConfig.fontPrimary === "__file") {
-    primaryImportField.style.display = "block";
+    primaryFontSelect.value = "__file";
   }
-  primaryFontSelect.addEventListener("change", () => {
-    if (primaryFontSelect.value === "__custom") {
-      primaryCustomField.style.display = "flex";
-      primaryImportField.style.display = "none";
-    } else if (primaryFontSelect.value === "__file") {
-      primaryCustomField.style.display = "none";
-      primaryImportField.style.display = "block";
-    } else {
-      primaryCustomField.style.display = "none";
-      primaryImportField.style.display = "none";
-    }
-  });
+  setPrimaryFontAuxControls();
+  primaryFontSelect.addEventListener("change", setPrimaryFontAuxControls);
 
   const secondaryFontSelect = document.querySelector<HTMLSelectElement>(
     "#secondary-font-selector",
@@ -1235,24 +1241,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   const secondaryImportField = document.getElementById(
     "secondary-import-font",
   )!;
+  const setSecondaryFontAuxControls = () => {
+    const customVisible = secondaryFontSelect.value === "__custom";
+    const importVisible = secondaryFontSelect.value === "__file";
+    secondaryCustomField.style.display = customVisible ? "flex" : "none";
+    secondaryCustomField.parentElement!.style.display = customVisible
+      ? "flex"
+      : "none";
+    secondaryImportField.style.display = importVisible ? "block" : "none";
+    secondaryImportField.parentElement!.style.display = importVisible
+      ? "flex"
+      : "none";
+  };
 
   if (themeConfig.fontSecondary === "__custom") {
-    secondaryCustomField.style.display = "flex";
+    secondaryFontSelect.value = "__custom";
   } else if (themeConfig.fontSecondary === "__file") {
-    secondaryImportField.style.display = "block";
+    secondaryFontSelect.value = "__file";
   }
-  secondaryFontSelect.addEventListener("change", () => {
-    if (secondaryFontSelect.value === "__custom") {
-      secondaryCustomField.style.display = "flex";
-      secondaryImportField.style.display = "none";
-    } else if (secondaryFontSelect.value === "__file") {
-      secondaryCustomField.style.display = "none";
-      secondaryImportField.style.display = "block";
-    } else {
-      secondaryCustomField.style.display = "none";
-      secondaryImportField.style.display = "none";
-    }
-  });
+  setSecondaryFontAuxControls();
+  secondaryFontSelect.addEventListener("change", setSecondaryFontAuxControls);
 
   const loadPrimaryFontFileBtn = document.getElementById(
     "primary-import-font",
@@ -1407,22 +1415,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  const particlesConfig =
-    document.querySelector<HTMLElement>(".particles-config")!;
   const particlesCheckbox =
     document.querySelector<HTMLInputElement>("#particles-button")!;
-  if (themeConfig.particlesEnabled == true) {
-    particlesConfig.style.display = "block";
-  }
+  setParticlesControlsEnabled(themeConfig.particlesEnabled ?? true);
   particlesCheckbox.addEventListener("change", () => {
-    if (particlesCheckbox.checked == true) {
-      particlesConfig.style.display = "block";
-    } else {
-      particlesConfig.style.display = "none";
-    }
+    setParticlesControlsEnabled(particlesCheckbox.checked);
   });
 
-  const selectedTheme = themeConfig.baseTheme ?? "codex";
+  const selectedTheme = "codex";
   themeStylesheet.setAttribute("href", `styles/${selectedTheme}.css`);
   updaterStylesheet.setAttribute(
     "href",
@@ -1432,35 +1432,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "href",
     `styles/AppConfigurationModal-${selectedTheme}.css`,
   );
-  themeSelector.value = selectedTheme;
-
-  themeSelector.addEventListener("change", async () => {
-    const newTheme = themeSelector.value;
-    themeStylesheet.setAttribute("href", `styles/${newTheme}.css`);
-    updaterStylesheet.setAttribute(
-      "href",
-      `styles/UpdaterModal-${newTheme}.css`,
-    );
-    appConfigStylesheet.setAttribute(
-      "href",
-      `styles/AppConfigurationModal-${newTheme}.css`,
-    );
-    const themeConfigMenu = document.querySelector(
-      ".theme-configuration",
-    ) as HTMLDivElement;
-    if (themeConfigMenu) {
-      themeConfigMenu.classList.add("flex-display");
-      themeConfigMenu.classList.remove("hidden2");
-      themeConfigMenu.classList.remove("hidden-display");
-      themeConfigMenu.classList.add("show");
-    }
-
-    themeConfig.baseTheme = newTheme;
-    preventMenuClose = true;
-    await window.api.saveThemeConfig(themeConfig);
-    showNotification("Theme changed");
-    preventMenuClose = false;
-  });
+  themeConfig.baseTheme = selectedTheme;
 
   const resetAppearanceButton = document.getElementById(
     "reset-appearance",
@@ -1684,6 +1656,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     closeServerSettings();
     await createGameList();
+    const refreshedGame = findGameByKey(gameId);
+    const refreshedItem = gameItemList.querySelector<HTMLElement>(
+      `.game-item[data-game-id="${CSS.escape(String(gameId))}"]`,
+    );
+    if (refreshedGame && refreshedItem) {
+      await refreshServerButtonBackground(refreshedItem, refreshedGame, {
+        force: true,
+      });
+    }
     showNotification("Game settings saved");
   });
 
@@ -1919,6 +1900,7 @@ async function applyShareImport() {
   if (data.app && data.theme && typeof data.app === "object") {
     const mergedApp = await mergeImportedAppData(data.app);
     const mergedTheme = await mergeThemeData(data.theme);
+    mergedTheme.baseTheme = "codex";
     await window.api.saveAppConfig(mergedApp);
     window.api.saveLoginRecords(
       extractImportedLoginRecords(data, mergedApp.games ?? []),
@@ -1926,14 +1908,11 @@ async function applyShareImport() {
     await window.api.saveThemeConfig(mergedTheme);
     await applyRuntimeAppConfig(mergedApp);
     applyThemeConfig(mergedTheme);
-    themeStylesheet.href = `styles/${mergedTheme.baseTheme}.css`;
-    updaterStylesheet.setAttribute(
-      "href",
-      `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
-    );
+    themeStylesheet.href = "styles/codex.css";
+    updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
     appConfigStylesheet.setAttribute(
       "href",
-      `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+      "styles/AppConfigurationModal-codex.css",
     );
     await createGameList();
     return showNotification("Settings and login details imported");
@@ -1946,16 +1925,14 @@ async function applyShareImport() {
     typeof data.accentColor !== "undefined"
   ) {
     const mergedTheme = await mergeThemeData(data);
+    mergedTheme.baseTheme = "codex";
     await window.api.saveThemeConfig(mergedTheme);
     applyThemeConfig(mergedTheme);
-    themeStylesheet.href = `styles/${mergedTheme.baseTheme}.css`;
-    updaterStylesheet.setAttribute(
-      "href",
-      `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
-    );
+    themeStylesheet.href = "styles/codex.css";
+    updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
     appConfigStylesheet.setAttribute(
       "href",
-      `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+      "styles/AppConfigurationModal-codex.css",
     );
     return showNotification("Theme imported");
   }
@@ -1989,6 +1966,7 @@ async function importFromFile() {
     if (data.app && data.theme && typeof data.app === "object") {
       const mergedApp = await mergeImportedAppData(data.app);
       const mergedTheme = await mergeThemeData(data.theme);
+      mergedTheme.baseTheme = "codex";
       await window.api.saveAppConfig(mergedApp);
       window.api.saveLoginRecords(
         extractImportedLoginRecords(data, mergedApp.games ?? []),
@@ -1996,14 +1974,11 @@ async function importFromFile() {
       await window.api.saveThemeConfig(mergedTheme);
       await applyRuntimeAppConfig(mergedApp);
       applyThemeConfig(mergedTheme);
-      themeStylesheet.href = `styles/${mergedTheme.baseTheme}.css`;
-      updaterStylesheet.setAttribute(
-        "href",
-        `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
-      );
+      themeStylesheet.href = "styles/codex.css";
+      updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
       appConfigStylesheet.setAttribute(
         "href",
-        `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+        "styles/AppConfigurationModal-codex.css",
       );
       await createGameList();
       return showNotification("Settings and login details imported");
@@ -2016,16 +1991,14 @@ async function importFromFile() {
       typeof data.accentColor !== "undefined"
     ) {
       const mergedTheme = await mergeThemeData(data);
+      mergedTheme.baseTheme = "codex";
       await window.api.saveThemeConfig(mergedTheme);
       applyThemeConfig(mergedTheme);
-      themeStylesheet.href = `styles/${mergedTheme.baseTheme}.css`;
-      updaterStylesheet.setAttribute(
-        "href",
-        `styles/UpdaterModal-${mergedTheme.baseTheme}.css`,
-      );
+      themeStylesheet.href = "styles/codex.css";
+      updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
       appConfigStylesheet.setAttribute(
         "href",
-        `styles/AppConfigurationModal-${mergedTheme.baseTheme}.css`,
+        "styles/AppConfigurationModal-codex.css",
       );
       return showNotification("Theme imported");
     }
@@ -2159,9 +2132,6 @@ function applyThemeConfig(config: ThemeConfig) {
     "secondary-import-font",
   )!;
 
-  const particlesConfig = (document.querySelector(
-    ".particles-config",
-  ) as HTMLElement)!;
   const particlesCheckbox = (document.querySelector(
     "#particles-button",
   ) as HTMLInputElement)!;
@@ -2176,14 +2146,22 @@ function applyThemeConfig(config: ThemeConfig) {
 
   customPrimaryField.style.display =
     primaryFontSelect.value === "__custom" ? "flex" : "none";
+  customPrimaryField.parentElement!.style.display =
+    primaryFontSelect.value === "__custom" ? "flex" : "none";
   primaryImportField.style.display =
     primaryFontSelect.value === "__file" ? "block" : "none";
+  primaryImportField.parentElement!.style.display =
+    primaryFontSelect.value === "__file" ? "flex" : "none";
   customSecondaryField.style.display =
+    secondaryFontSelect.value === "__custom" ? "flex" : "none";
+  customSecondaryField.parentElement!.style.display =
     secondaryFontSelect.value === "__custom" ? "flex" : "none";
   secondaryImportField.style.display =
     secondaryFontSelect.value === "__file" ? "block" : "none";
+  secondaryImportField.parentElement!.style.display =
+    secondaryFontSelect.value === "__file" ? "flex" : "none";
 
-  particlesConfig.style.display = particlesCheckboxEnabled ? "block" : "none";
+  setParticlesControlsEnabled(particlesCheckboxEnabled);
 
   // Primary font modes: Google, Local file (data URI), or built-in
   if (config.fontPrimary === "__custom" && config.fontPrimaryUrl) {
@@ -2479,8 +2457,11 @@ function renderTooltips() {
   if (!layer) return;
 
   document.querySelectorAll(".tooltip-wrapper").forEach((wrapper) => {
+    const wrapperElement = wrapper as HTMLElement;
     const tooltip = wrapper.querySelector<HTMLElement>(".tooltip");
     if (!tooltip) return;
+    if (wrapperElement.dataset.tooltipBound === "true") return;
+    wrapperElement.dataset.tooltipBound = "true";
 
     // tries to find an input of type range
     const input = wrapper.querySelector<HTMLInputElement>("input[type=range]");
@@ -2492,7 +2473,7 @@ function renderTooltips() {
       clone.style.display = "block";
       clone.style.position = "fixed";
       clone.style.pointerEvents = "none";
-      clone.style.transform = "translateX(-50%)";
+      clone.style.transform = "none";
       clone.style.left = `${rect.left + rect.width / 2}px`;
       clone.style.top = `${rect.bottom + 5}px`;
 
@@ -2509,6 +2490,12 @@ function renderTooltips() {
       }
 
       layer.appendChild(clone);
+      const cloneRect = clone.getBoundingClientRect();
+      const left = Math.min(
+        Math.max(8, rect.left + rect.width / 2 - cloneRect.width / 2),
+        window.innerWidth - cloneRect.width - 8,
+      );
+      clone.style.left = `${left}px`;
 
       // On mouseleave, clean clone and listener
       wrapper.addEventListener(
@@ -2534,10 +2521,12 @@ function applyButtonTooltips() {
       .closest(".tooltip-wrapper")
       ?.querySelector<HTMLElement>(".tooltip")
       ?.textContent?.trim();
+    if (wrapperTooltip) {
+      button.removeAttribute("title");
+      return;
+    }
     const label =
-      wrapperTooltip ||
-      button.getAttribute("aria-label") ||
-      button.textContent?.trim();
+      button.getAttribute("aria-label") || button.textContent?.trim();
 
     if (label) {
       button.title = label.replace(/\s+/g, " ");
@@ -2641,11 +2630,28 @@ async function createFavoriteList() {
         customIconUrl || fileIconUrl
           ? "favorite-icon-image"
           : "favorite-favicon";
-      image.addEventListener("error", () => {
-        const snapshotUrl =
-          !customIconUrl && !fileIconUrl && favorite.url
-            ? getWebsiteSnapshotUrl(favorite.url)
+      image.addEventListener("error", async () => {
+        const fallbackFileIconUrl =
+          customIconUrl && isFileFavorite(favorite) && favorite.filePath
+            ? await window.api.localFileIcon(favorite.filePath)
             : "";
+        if (fallbackFileIconUrl && image.src !== fallbackFileIconUrl) {
+          image.className = "favorite-icon-image";
+          image.src = fallbackFileIconUrl;
+          return;
+        }
+        const fallbackFaviconUrl =
+          customIconUrl && !isFileFavorite(favorite)
+            ? favorite.iconUrl || getFaviconUrl(favorite.url ?? "")
+            : "";
+        if (fallbackFaviconUrl && image.src !== fallbackFaviconUrl) {
+          image.className = "favorite-favicon";
+          image.src = fallbackFaviconUrl;
+          return;
+        }
+        const snapshotUrl = favorite.url
+          ? getWebsiteSnapshotUrl(favorite.url)
+          : "";
         if (snapshotUrl && image.src !== snapshotUrl) {
           image.className = "favorite-icon-image";
           image.src = snapshotUrl;
@@ -2741,7 +2747,7 @@ async function createGameList() {
     buttonColor: "#14141e",
     buttonColorHoverAlpha: 0.95,
     buttonColorHover: "#28283c",
-    baseTheme: undefined,
+    baseTheme: "codex",
     particlesEnabled: true,
   };
 

@@ -38,6 +38,7 @@ import path from "path";
 import fs from "fs-extra";
 import { fileURLToPath, pathToFileURL } from "url";
 import { execFile } from "child_process";
+import crypto from "crypto";
 import log from "electron-log";
 import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
@@ -944,6 +945,23 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
         img.src = imageUrl;
         img.alt = "";
         img.addEventListener("error", () => {
+          if (!img.dataset.triedDefaultIcon && favorite.iconOverrideUrl && favorite.iconUrl) {
+            img.dataset.triedDefaultIcon = "true";
+            img.src = favorite.iconUrl;
+            return;
+          }
+          if (!img.dataset.triedFileIcon && favorite.iconOverrideUrl && isFileFavorite(favorite) && target(favorite)) {
+            img.dataset.triedFileIcon = "true";
+            window.api.localFileIcon(target(favorite)).then((iconUrl) => {
+              if (iconUrl) {
+                img.src = iconUrl;
+                return;
+              }
+              img.remove();
+              icon.textContent = "file";
+            });
+            return;
+          }
           img.remove();
           icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
         });
@@ -1952,10 +1970,17 @@ ipcMain.handle("dialog:choose-favorite-icon", async () => {
   const imagePath = filePaths[0];
   const image = nativeImage.createFromPath(imagePath);
   if (image.isEmpty()) return null;
+  const iconsDir = path.join(app.getPath("userData"), "favorite-icons");
+  fs.ensureDirSync(iconsDir);
+  const fileName = `${Date.now()}-${crypto.randomUUID()}.png`;
+  const outputPath = path.join(iconsDir, fileName);
+  fs.writeFileSync(
+    outputPath,
+    image.resize({ width: 128, height: 128, quality: "best" }).toPNG(),
+  );
   return {
-    dataUrl: image
-      .resize({ width: 128, height: 128, quality: "best" })
-      .toDataURL(),
+    fileName,
+    localUrl: pathToFileURL(outputPath).toString(),
     name: path.parse(imagePath).name,
   };
 });

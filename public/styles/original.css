@@ -247,6 +247,10 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   margin: 0.1rem auto 0.75rem;
 }
 
+body.main-edit-mode .favorites-section {
+  margin-top: 0.55rem;
+}
+
 .servers-section.server-columns-active {
   width: min(92vw, 1140px);
 }
@@ -737,13 +741,244 @@ body:not(.main-edit-mode) .favorite-open-button {
 }
 
 .theme-configuration {
-  max-height: 70vh;
+  max-height: min(92vh, 820px);
   box-shadow: 0 0 5px black;
+  display: flex;
   flex-direction: column;
   border: 2px solid var(--color-text-primary);
   padding: 0.5rem;
   background: var(--color-background);
   pointer-events: all;
+  width: min(94vw, 1024px);
+}
+
+.theme-configuration .overflow {
+  display: grid;
+  gap: 0.45rem 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0.45rem 0.35rem 0.25rem;
+}
+
+.theme-configuration .theme-column {
+  align-content: start;
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.theme-configuration .field {
+  align-items: center;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(8, 14, 22, 0.2)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-left: 3px solid
+    color-mix(in srgb, var(--color-accent) 45%, transparent);
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: minmax(9rem, 0.75fr) minmax(0, 1fr);
+  min-height: 2.4rem;
+  padding: 0.45rem 0.65rem 0.45rem 0.7rem;
+  min-width: 0;
+}
+
+.theme-configuration label {
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.theme-configuration .theme-section-title {
+  align-items: center;
+  color: var(--color-text-primary);
+  display: flex;
+  font-family: var(--font-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  grid-column: 1 / -1;
+  letter-spacing: 0.08em;
+  margin: 0.15rem 0 -0.1rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+}
+
+.theme-configuration .theme-section-title::after {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-accent) 70%, transparent),
+    transparent
+  );
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+
+.theme-configuration
+  input:not([type="color"], [type="checkbox"], [type="range"]),
+.theme-configuration select {
+  box-sizing: border-box;
+  font-size: 0.88rem;
+  margin: 0;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+}
+
+.theme-configuration select {
+  grid-column: 2;
+  justify-self: stretch;
+  width: 100%;
+}
+
+.theme-configuration .background-image-field,
+.theme-configuration .primary-custom-font-field,
+.theme-configuration .secondary-custom-font-field {
+  background: rgba(8, 14, 22, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid
+    color-mix(in srgb, var(--color-accent) 45%, transparent);
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+}
+
+.theme-configuration
+  .primary-custom-font-field:has(input[style*="display: none"]),
+.theme-configuration
+  .secondary-custom-font-field:has(input[style*="display: none"]) {
+  display: none;
+}
+
+.theme-configuration .background-image-field input[type="text"],
+.theme-configuration .primary-custom-font-field input[type="text"],
+.theme-configuration .secondary-custom-font-field input[type="text"] {
+  font-size: 0.88rem;
+  margin: 0;
+  padding: 0.35rem 0;
+  width: 100%;
+}
+
+.theme-configuration .field .range-wrapper {
+  display: flex;
+  grid-column: 2;
+  justify-content: stretch;
+  min-width: 0;
+}
+
+.theme-configuration .field .range-wrapper input[type="range"],
+.theme-configuration .field > .tooltip-wrapper input[type="range"] {
+  min-width: 0;
+  width: 100%;
+}
+
+.theme-configuration .field > .tooltip-wrapper {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.theme-configuration .field .color-wrapper {
+  grid-column: 2;
+  justify-self: end;
+  margin-left: 0;
+}
+
+.theme-configuration .field > .switch {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.theme-configuration .button-color-field,
+.theme-configuration .button-color-hover-field,
+.theme-configuration .particles-color-field {
+  grid-template-columns: minmax(9rem, 0.75fr) minmax(0, 1fr) max-content;
+}
+
+.theme-configuration .button-color-field .color-wrapper,
+.theme-configuration .button-color-hover-field .color-wrapper,
+.theme-configuration .particles-color-field .color-wrapper {
+  grid-column: 3;
+}
+
+.theme-configuration .particles-config {
+  background: rgba(8, 14, 22, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 0.45rem;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr;
+  padding: 0.7rem;
+}
+
+.theme-configuration .particles-config.is-disabled {
+  opacity: 0.48;
+}
+
+.theme-configuration .particles-config.is-disabled input {
+  cursor: not-allowed;
+}
+
+.theme-configuration .button-row {
+  gap: 0.65rem;
+}
+
+.theme-configuration .overflow > .button-row,
+.theme-configuration .theme-column > .button-row {
+  display: none;
+  grid-column: 1 / -1;
+}
+
+.theme-configuration
+  .overflow
+  > .button-row:has(button:not([style*="display: none"])),
+.theme-configuration
+  .theme-column
+  > .button-row:has(button:not([style*="display: none"])) {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.theme-configuration .button-group {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+}
+
+.theme-configuration .button-group button {
+  min-height: 2.5rem;
+}
+
+@media (max-width: 760px) {
+  .theme-configuration .overflow,
+  .theme-configuration .particles-config {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-configuration .field {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  .theme-configuration select,
+  .theme-configuration .field .range-wrapper,
+  .theme-configuration .field > .tooltip-wrapper {
+    grid-column: 1 / -1;
+  }
+
+  .theme-configuration .button-color-field,
+  .theme-configuration .button-color-hover-field,
+  .theme-configuration .particles-color-field {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  .theme-configuration .field .color-wrapper,
+  .theme-configuration .field > .switch {
+    grid-column: 2;
+  }
 }
 
 .app-configuration.show,
@@ -1052,11 +1287,25 @@ code.share-output {
   resize: vertical;
 }
 
-.update-available {
+.update-widget {
+  align-items: center;
+  display: inline-flex;
+  flex-direction: column;
   position: absolute;
-  bottom: 0;
-  left: 0;
+  bottom: 2rem;
+  left: 2rem;
   z-index: 1;
+}
+
+.app-version-label {
+  color: var(--color-text-primary);
+  font-family: var(--font-secondary);
+  font-size: 0.9rem;
+  margin: 0 0 0.35rem;
+  opacity: 0.88;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  width: 100%;
 }
 
 .update-available-glow {
