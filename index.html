@@ -509,6 +509,7 @@
             <button class="tab-button active" data-tab="import">Import</button>
             <button class="tab-button" data-tab="export">Export</button>
           </div>
+          <div id="share-summary" class="share-summary hidden-display"></div>
 
           <div id="tab-import" class="tab-content active">
             <textarea
@@ -528,10 +529,33 @@
           </div>
 
           <div id="tab-export" class="tab-content">
-            <div class="button-row">
-              <button id="export-settings">Export Settings</button>
-              <button id="export-theme">Export Theme</button>
+            <div class="share-options-panel">
+              <label class="share-option">
+                <input id="export-client-settings" type="checkbox" checked />
+                <span>Client settings</span>
+              </label>
+              <label class="share-option">
+                <input id="export-server-addresses" type="checkbox" checked />
+                <span>Server addresses</span>
+              </label>
+              <label class="share-option">
+                <input id="export-server-credentials" type="checkbox" />
+                <span>Server usernames/passwords</span>
+              </label>
+              <label class="share-option">
+                <input id="export-server-autorun" type="checkbox" checked />
+                <span>Per-server autorun favourites</span>
+              </label>
+              <label class="share-option">
+                <input id="export-global-favorites" type="checkbox" checked />
+                <span>Main screen favourites</span>
+              </label>
+              <label class="share-option">
+                <input id="export-theme" type="checkbox" checked />
+                <span>Theme</span>
+              </label>
             </div>
+            <button id="export-settings">Export Selected</button>
             <pre><code id="share-output" class="share-output"></code></pre>
             <div class="button-row">
               <button id="share-save-as">Save As…</button>

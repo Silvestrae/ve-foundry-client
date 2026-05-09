@@ -8,7 +8,6 @@ import {
   GameId,
 } from "./schemas";
 import { mergeAppData, mergeThemeData } from "./utils/mergeData";
-import { extractImportedLoginRecords } from "./utils/importLoginRecords";
 import { showNotification, initNotificationTimer } from "./utils/notifications";
 import {
   applyRuntimeAppConfig,
@@ -1743,11 +1742,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         "";
       (document.getElementById("share-output")! as HTMLElement).textContent =
         "";
+      hideShareSummary();
     });
   });
   document.getElementById("close-share")?.addEventListener("click", () => {
     (document.getElementById("share-input")! as HTMLTextAreaElement).value = "";
     (document.getElementById("share-output")! as HTMLElement).textContent = "";
+    hideShareSummary();
     toggleMenu("#share-menu");
   });
   document.querySelector("#share-copy").addEventListener("click", async () => {
@@ -1761,9 +1762,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   document
     .getElementById("export-settings")!
     .addEventListener("click", exportSettings);
-  document
-    .getElementById("export-theme")!
-    .addEventListener("click", exportTheme);
   document
     .getElementById("share-apply-import")!
     .addEventListener("click", applyShareImport);
@@ -1783,42 +1781,389 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Export Settings
 const appVersion = await window.api.appVersion();
-async function exportSettings() {
-  const app = await window.api.localAppConfig();
-  const rawTheme = await window.api.localThemeConfig();
-  // Clean with Zod in order to apply defaults
+type ShareSection =
+  | "clientSettings"
+  | "serverAddresses"
+  | "serverCredentials"
+  | "serverAutorunFavorites"
+  | "globalFavorites"
+  | "theme";
+
+type ShareOptions = Record<ShareSection, boolean>;
+
+type ExportedCredential = {
+  adminPassword?: string;
+  gameId?: GameId;
+  password?: string;
+  serverName?: string;
+  serverUrl?: string;
+  user?: string;
+};
+
+type SharePayload = {
+  app?: Partial<AppConfig>;
+  clientVersion?: string;
+  credentials?: ExportedCredential[];
+  exportedAt?: string;
+  exportVersion?: number;
+  sections?: Partial<ShareOptions>;
+  theme?: Partial<ThemeConfig>;
+};
+
+type ImportDetection = {
+  data: SharePayload;
+  available: Partial<ShareOptions>;
+};
+
+type ImportSummary = {
+  autorunFavorites: number;
+  credentials: number;
+  favorites: number;
+  serversAdded: number;
+  serversSkipped: number;
+  settings: boolean;
+  theme: boolean;
+};
+
+const shareSectionLabels: Record<ShareSection, string> = {
+  clientSettings: "Client settings",
+  serverAddresses: "Server addresses",
+  serverCredentials: "Server usernames/passwords",
+  serverAutorunFavorites: "Per-server autorun favourites",
+  globalFavorites: "Main screen favourites",
+  theme: "Theme",
+};
+
+const shareOptionIds: Record<ShareSection, string> = {
+  clientSettings: "export-client-settings",
+  serverAddresses: "export-server-addresses",
+  serverCredentials: "export-server-credentials",
+  serverAutorunFavorites: "export-server-autorun",
+  globalFavorites: "export-global-favorites",
+  theme: "export-theme",
+};
+
+function getChecked(id: string) {
+  return (document.getElementById(id) as HTMLInputElement | null)?.checked;
+}
+
+function getExportOptions(): ShareOptions {
+  return {
+    clientSettings: !!getChecked(shareOptionIds.clientSettings),
+    serverAddresses: !!getChecked(shareOptionIds.serverAddresses),
+    serverCredentials: !!getChecked(shareOptionIds.serverCredentials),
+    serverAutorunFavorites: !!getChecked(shareOptionIds.serverAutorunFavorites),
+    globalFavorites: !!getChecked(shareOptionIds.globalFavorites),
+    theme: !!getChecked(shareOptionIds.theme),
+  };
+}
+
+function selectedSections(options: Partial<ShareOptions>) {
+  return (Object.entries(options) as [ShareSection, boolean][])
+    .filter(([, enabled]) => enabled)
+    .map(([section]) => shareSectionLabels[section]);
+}
+
+function showShareSummary(title: string, lines: string[]) {
+  const summary = document.getElementById("share-summary") as HTMLElement | null;
+  if (!summary) return;
+  summary.innerHTML = "";
+
+  const heading = document.createElement("strong");
+  heading.textContent = title;
+  summary.append(heading);
+
+  const list = document.createElement("ul");
+  for (const line of lines) {
+    const item = document.createElement("li");
+    item.textContent = line;
+    list.append(item);
+  }
+  summary.append(list);
+  summary.classList.remove("hidden-display");
+}
+
+function hideShareSummary() {
+  const summary = document.getElementById("share-summary") as HTMLElement | null;
+  if (!summary) return;
+  summary.innerHTML = "";
+  summary.classList.add("hidden-display");
+}
+
+function cleanThemeForSharing(rawTheme: ThemeConfig) {
   const parsed = ThemeConfigSchema.parse(rawTheme);
   const cleanTheme = { ...parsed };
   delete cleanTheme.fontPrimaryName;
   delete cleanTheme.fontPrimaryFilePath;
   delete cleanTheme.fontSecondaryName;
   delete cleanTheme.fontSecondaryFilePath;
-  const full = { clientVersion: appVersion, app, theme: cleanTheme };
-  document.getElementById("share-output")!.textContent = JSON.stringify(
-    full,
-    null,
-    2,
+  return cleanTheme;
+}
+
+function appSettingsForSharing(app: AppConfig): Partial<AppConfig> {
+  const settings = { ...app };
+  delete settings.games;
+  delete settings.favorites;
+  delete settings.windowBounds;
+  return settings;
+}
+
+function gameForSharing(game: GameConfig, includeAutorun: boolean): GameConfig {
+  return {
+    ...game,
+    autorunFavorites: includeAutorun ? (game.autorunFavorites ?? []) : [],
+  };
+}
+
+function favoriteKey(favorite: FavoriteConfig) {
+  return [
+    favorite.type ?? "website",
+    favorite.url ?? "",
+    favorite.filePath ?? "",
+    favorite.name ?? "",
+  ].join("|");
+}
+
+function serverUrlKey(game: Partial<GameConfig>) {
+  return String(game.url ?? "").trim().toLowerCase();
+}
+
+function hasFavoriteData(favorites: unknown): favorites is FavoriteConfig[] {
+  return Array.isArray(favorites) && favorites.length > 0;
+}
+
+function hasAutorunData(games: unknown): games is GameConfig[] {
+  return (
+    Array.isArray(games) &&
+    games.some(
+      (game) =>
+        Array.isArray((game as GameConfig).autorunFavorites) &&
+        ((game as GameConfig).autorunFavorites?.length ?? 0) > 0,
+    )
   );
 }
 
-// Export Theme
-async function exportTheme() {
-  const rawTheme = await window.api.localThemeConfig();
-  // Clean with Zod in order to apply defaults
-  const parsed = ThemeConfigSchema.parse(rawTheme);
+function hasClientSettingsData(app: Partial<AppConfig> | undefined) {
+  if (!app) return false;
+  return Object.keys(app).some(
+    (key) => !["games", "favorites"].includes(key),
+  );
+}
 
-  const cleanTheme = { ...parsed };
-  delete cleanTheme.fontPrimaryName;
-  delete cleanTheme.fontPrimaryFilePath;
-  delete cleanTheme.fontSecondaryName;
-  delete cleanTheme.fontSecondaryFilePath;
+async function collectCredentials(games: GameConfig[]) {
+  const credentials: ExportedCredential[] = [];
+
+  for (const game of games) {
+    const gameId = game.id ?? game.name;
+    if (gameId === undefined || gameId === null) continue;
+    const login = await window.api.userData(gameId);
+    if (!login.user && !login.password && !login.adminPassword) continue;
+    credentials.push({
+      gameId,
+      serverName: game.name,
+      serverUrl: game.url,
+      user: login.user,
+      password: login.password,
+      adminPassword: login.adminPassword,
+    });
+  }
+
+  return credentials;
+}
+
+async function exportSettings() {
+  const options = getExportOptions();
+  if (!Object.values(options).some(Boolean)) {
+    await safePrompt("Choose at least one thing to export.", { mode: "alert" });
+    return;
+  }
+
+  if (options.serverCredentials) {
+    const confirmed = await safePrompt(
+      "This export will include server usernames and passwords in readable text. Only share it with people you trust. Continue?",
+    );
+    if (!confirmed) return;
+  }
+
+  const app = await window.api.localAppConfig();
+  const payload: SharePayload = {
+    clientVersion: appVersion,
+    exportedAt: new Date().toISOString(),
+    exportVersion: 1,
+    sections: options,
+  };
+
+  if (
+    options.clientSettings ||
+    options.serverAddresses ||
+    options.globalFavorites
+  ) {
+    payload.app = {};
+  }
+  if (options.clientSettings) {
+    Object.assign(payload.app!, appSettingsForSharing(app));
+  }
+  if (options.serverAddresses) {
+    payload.app!.games = (app.games ?? []).map((game) =>
+      gameForSharing(game, options.serverAutorunFavorites),
+    );
+  }
+  if (options.globalFavorites) {
+    payload.app!.favorites = app.favorites ?? [];
+  }
+  if (options.serverCredentials) {
+    payload.credentials = await collectCredentials(app.games ?? []);
+  }
+  if (options.theme) {
+    payload.theme = cleanThemeForSharing(await window.api.localThemeConfig());
+  }
+
   document.getElementById("share-output")!.textContent = JSON.stringify(
-    {
-      clientVersion: appVersion,
-      theme: cleanTheme,
-    },
+    payload,
     null,
     2,
+  );
+
+  const summary = selectedSections(options);
+  if (options.serverCredentials) {
+    summary.push(`${payload.credentials?.length ?? 0} credential records`);
+  }
+  showShareSummary("Export ready", summary);
+  showNotification("Export ready");
+}
+
+function normalizeSharePayload(data: any): ImportDetection | null {
+  if (!data || typeof data !== "object") return null;
+  const payload: SharePayload = { ...data };
+
+  if (!payload.theme && typeof data.backgroundColor !== "undefined") {
+    payload.theme = data;
+  }
+
+  const available: Partial<ShareOptions> = {};
+  if (hasClientSettingsData(payload.app)) available.clientSettings = true;
+  if (Array.isArray(payload.app?.games) && payload.app.games.length > 0) {
+    available.serverAddresses = true;
+  }
+  if (Array.isArray(payload.credentials) && payload.credentials.length > 0) {
+    available.serverCredentials = true;
+  }
+  if (hasAutorunData(payload.app?.games)) {
+    available.serverAutorunFavorites = true;
+  }
+  if (hasFavoriteData(payload.app?.favorites)) {
+    available.globalFavorites = true;
+  }
+  if (payload.theme && typeof payload.theme === "object") {
+    available.theme = true;
+  }
+
+  return Object.values(available).some(Boolean) ? { data: payload, available } : null;
+}
+
+function showImportOptionsDialog(available: Partial<ShareOptions>) {
+  return new Promise<ShareOptions | null>((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay flex-display share-import-overlay";
+
+    const modal = document.createElement("div");
+    modal.className = "share-import-modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+
+    const heading = document.createElement("h2");
+    heading.textContent = "Choose What To Import";
+    modal.append(heading);
+
+    const optionsWrap = document.createElement("div");
+    optionsWrap.className = "share-import-options";
+    const inputs = new Map<ShareSection, HTMLInputElement>();
+
+    (Object.keys(shareSectionLabels) as ShareSection[]).forEach((section) => {
+      if (!available[section]) return;
+      const label = document.createElement("label");
+      label.className = "share-option";
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = true;
+      inputs.set(section, input);
+
+      const text = document.createElement("span");
+      text.textContent = shareSectionLabels[section];
+      label.append(input, text);
+      optionsWrap.append(label);
+    });
+
+    modal.append(optionsWrap);
+
+    const actions = document.createElement("div");
+    actions.className = "server-settings-actions";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.textContent = "Import Selected";
+    actions.append(cancel, confirm);
+    modal.append(actions);
+    overlay.append(modal);
+    document.body.append(overlay);
+
+    const cleanup = () => overlay.remove();
+    cancel.addEventListener("click", () => {
+      cleanup();
+      resolve(null);
+    });
+    confirm.addEventListener("click", () => {
+      const selected = {} as ShareOptions;
+      (Object.keys(shareSectionLabels) as ShareSection[]).forEach((section) => {
+        selected[section] = inputs.get(section)?.checked ?? false;
+      });
+      cleanup();
+      resolve(selected);
+    });
+  });
+}
+
+async function confirmImportRisks(options: ShareOptions) {
+  if (options.serverCredentials) {
+    const confirmed = await safePrompt(
+      "This import includes server usernames and passwords. Only import credentials from sources you trust. Continue?",
+    );
+    if (!confirmed) return false;
+  }
+
+  if (options.globalFavorites || options.serverAutorunFavorites) {
+    const confirmed = await safePrompt(
+      "Favourites can open websites or local files. Only import favourites and autorun favourites from trusted sources. Continue?",
+    );
+    if (!confirmed) return false;
+  }
+
+  return true;
+}
+
+async function applyThemeImport(theme: Partial<ThemeConfig>) {
+  const themeStylesheet = document.getElementById(
+    "theme-stylesheet",
+  ) as HTMLLinkElement;
+  const updaterStylesheet = document.getElementById(
+    "updater-stylesheet",
+  ) as HTMLLinkElement;
+  const appConfigStylesheet = document.getElementById(
+    "client-settings-stylesheet",
+  ) as HTMLLinkElement;
+
+  const mergedTheme = await mergeThemeData(theme);
+  mergedTheme.baseTheme = "codex";
+  await window.api.saveThemeConfig(mergedTheme);
+  applyThemeConfig(mergedTheme);
+  themeStylesheet.href = "styles/codex.css";
+  updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
+  appConfigStylesheet.setAttribute(
+    "href",
+    "styles/AppConfigurationModal-codex.css",
   );
 }
 
@@ -1875,19 +2220,136 @@ async function mergeImportedAppData(app: Partial<AppConfig>) {
   return mergeAppData(await removeUnavailableImportedFileFavorites(app));
 }
 
-// Apply import
-async function applyShareImport() {
-  const themeStylesheet = document.getElementById(
-    "theme-stylesheet",
-  ) as HTMLLinkElement;
-  const updaterStylesheet = document.getElementById(
-    "updater-stylesheet",
-  ) as HTMLLinkElement;
-  const appConfigStylesheet = document.getElementById(
-    "client-settings-stylesheet",
-  ) as HTMLLinkElement;
-  const txt = (document.getElementById("share-input") as HTMLTextAreaElement)
-    .value;
+function mergeFavorites(existing: FavoriteConfig[], incoming: FavoriteConfig[]) {
+  const seen = new Set(existing.map(favoriteKey));
+  const merged = [...existing];
+  let added = 0;
+
+  for (const favorite of incoming) {
+    const key = favoriteKey(favorite);
+    if (seen.has(key)) continue;
+    merged.push(favorite);
+    seen.add(key);
+    added += 1;
+  }
+
+  return { added, favorites: merged };
+}
+
+async function applySharePayload(
+  payload: SharePayload,
+  options: ShareOptions,
+): Promise<ImportSummary> {
+  const summary: ImportSummary = {
+    autorunFavorites: 0,
+    credentials: 0,
+    favorites: 0,
+    serversAdded: 0,
+    serversSkipped: 0,
+    settings: false,
+    theme: false,
+  };
+
+  if (options.theme && payload.theme) {
+    await applyThemeImport(payload.theme);
+    summary.theme = true;
+  }
+
+  const currentApp = await window.api.localAppConfig();
+  let nextApp: AppConfig = { ...currentApp };
+  const importedApp = await removeUnavailableImportedFileFavorites(
+    payload.app ?? {},
+  );
+
+  if (options.clientSettings && payload.app) {
+    const clientSettings = { ...payload.app };
+    delete clientSettings.games;
+    delete clientSettings.favorites;
+    nextApp = await mergeImportedAppData(clientSettings);
+    summary.settings = true;
+  }
+
+  if (options.serverAddresses && Array.isArray(importedApp.games)) {
+    const existingUrls = new Set((nextApp.games ?? []).map(serverUrlKey));
+    const games = [...(nextApp.games ?? [])];
+
+    for (const importedGame of importedApp.games) {
+      const urlKey = serverUrlKey(importedGame);
+      if (!urlKey || existingUrls.has(urlKey)) {
+        summary.serversSkipped += 1;
+        continue;
+      }
+
+      const gameToImport = { ...importedGame };
+      if (!options.serverAutorunFavorites) {
+        delete gameToImport.autorunFavorites;
+      }
+      games.push(gameToImport);
+      existingUrls.add(urlKey);
+      summary.serversAdded += 1;
+      summary.autorunFavorites += gameToImport.autorunFavorites?.length ?? 0;
+    }
+    nextApp = { ...nextApp, games };
+  }
+
+  if (options.globalFavorites && Array.isArray(importedApp.favorites)) {
+    const result = mergeFavorites(nextApp.favorites ?? [], importedApp.favorites);
+    nextApp = { ...nextApp, favorites: result.favorites };
+    summary.favorites = result.added;
+  }
+
+  await window.api.saveAppConfig(nextApp);
+  await applyRuntimeAppConfig(nextApp);
+
+  if (options.serverCredentials && Array.isArray(payload.credentials)) {
+    for (const credential of payload.credentials) {
+      const matchedGame =
+        nextApp.games?.find(
+          (game) =>
+            serverUrlKey(game) ===
+              String(credential.serverUrl ?? "").trim().toLowerCase() ||
+            String(game.id ?? "") === String(credential.gameId ?? ""),
+        ) ?? null;
+      const gameId = matchedGame?.id ?? matchedGame?.name ?? credential.gameId;
+      if (gameId === undefined || gameId === null) continue;
+      window.api.saveUserData({
+        gameId,
+        user: credential.user ?? "",
+        password: credential.password ?? "",
+        adminPassword: credential.adminPassword ?? "",
+      });
+      summary.credentials += 1;
+    }
+  }
+
+  await createGameList();
+  return summary;
+}
+
+function summarizeImport(summary: ImportSummary, options: ShareOptions) {
+  const lines: string[] = [];
+  if (summary.settings) lines.push("Client settings imported");
+  if (options.serverAddresses) {
+    lines.push(
+      `${summary.serversAdded} servers added, ${summary.serversSkipped} skipped`,
+    );
+  }
+  if (options.globalFavorites) {
+    lines.push(`${summary.favorites} main screen favourites added`);
+  }
+  if (options.serverAutorunFavorites) {
+    lines.push(
+      `${summary.autorunFavorites} autorun favourites kept on imported servers`,
+    );
+  }
+  if (options.serverCredentials) {
+    lines.push(`${summary.credentials} credential records imported`);
+  }
+  if (summary.theme) lines.push("Theme settings imported");
+  return lines.length > 0 ? lines : ["No selected data was imported"];
+}
+
+async function importShareText(txt: string, sourceLabel: string) {
   let data: any;
   try {
     data = JSON.parse(txt);
@@ -1896,114 +2358,36 @@ async function applyShareImport() {
     return;
   }
 
-  // full settings import
-  if (data.app && data.theme && typeof data.app === "object") {
-    const mergedApp = await mergeImportedAppData(data.app);
-    const mergedTheme = await mergeThemeData(data.theme);
-    mergedTheme.baseTheme = "codex";
-    await window.api.saveAppConfig(mergedApp);
-    window.api.saveLoginRecords(
-      extractImportedLoginRecords(data, mergedApp.games ?? []),
-    );
-    await window.api.saveThemeConfig(mergedTheme);
-    await applyRuntimeAppConfig(mergedApp);
-    applyThemeConfig(mergedTheme);
-    themeStylesheet.href = "styles/codex.css";
-    updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
-    appConfigStylesheet.setAttribute(
-      "href",
-      "styles/AppConfigurationModal-codex.css",
-    );
-    await createGameList();
-    return showNotification("Settings and login details imported");
+  const detected = normalizeSharePayload(data);
+  if (!detected) {
+    await safePrompt(`Could not recognise ${sourceLabel} format.`, {
+      mode: "alert",
+    });
+    return;
   }
 
-  // theme-only import
-  if (
-    typeof data.backgroundColor !== "undefined" &&
-    typeof data.textColor !== "undefined" &&
-    typeof data.accentColor !== "undefined"
-  ) {
-    const mergedTheme = await mergeThemeData(data);
-    mergedTheme.baseTheme = "codex";
-    await window.api.saveThemeConfig(mergedTheme);
-    applyThemeConfig(mergedTheme);
-    themeStylesheet.href = "styles/codex.css";
-    updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
-    appConfigStylesheet.setAttribute(
-      "href",
-      "styles/AppConfigurationModal-codex.css",
-    );
-    return showNotification("Theme imported");
-  }
+  const options = await showImportOptionsDialog(detected.available);
+  if (!options || !Object.values(options).some(Boolean)) return;
+  if (!(await confirmImportRisks(options))) return;
 
-  await safePrompt("Could not recognise text format.", { mode: "alert" });
+  const summary = await applySharePayload(detected.data, options);
+  showShareSummary("Import complete", summarizeImport(summary, options));
+  showNotification("Import complete");
+}
+
+async function applyShareImport() {
+  const txt = (document.getElementById("share-input") as HTMLTextAreaElement)
+    .value;
+  await importShareText(txt, "text");
 }
 
 async function importFromFile() {
-  const themeStylesheet = document.getElementById(
-    "theme-stylesheet",
-  ) as HTMLLinkElement;
-  const updaterStylesheet = document.getElementById(
-    "updater-stylesheet",
-  ) as HTMLLinkElement;
-  const appConfigStylesheet = document.getElementById(
-    "client-settings-stylesheet",
-  ) as HTMLLinkElement;
   const fileInput = document.getElementById("import-file") as HTMLInputElement;
   fileInput.onchange = async () => {
-    const file = fileInput.files![0];
-    const txt = await file.text();
-    let data: any;
-    try {
-      data = JSON.parse(txt);
-    } catch {
-      await safePrompt("Invalid JSON data.", { mode: "alert" });
-      return;
-    }
-
-    // full settings import
-    if (data.app && data.theme && typeof data.app === "object") {
-      const mergedApp = await mergeImportedAppData(data.app);
-      const mergedTheme = await mergeThemeData(data.theme);
-      mergedTheme.baseTheme = "codex";
-      await window.api.saveAppConfig(mergedApp);
-      window.api.saveLoginRecords(
-        extractImportedLoginRecords(data, mergedApp.games ?? []),
-      );
-      await window.api.saveThemeConfig(mergedTheme);
-      await applyRuntimeAppConfig(mergedApp);
-      applyThemeConfig(mergedTheme);
-      themeStylesheet.href = "styles/codex.css";
-      updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
-      appConfigStylesheet.setAttribute(
-        "href",
-        "styles/AppConfigurationModal-codex.css",
-      );
-      await createGameList();
-      return showNotification("Settings and login details imported");
-    }
-
-    // theme-only import
-    if (
-      typeof data.backgroundColor !== "undefined" &&
-      typeof data.textColor !== "undefined" &&
-      typeof data.accentColor !== "undefined"
-    ) {
-      const mergedTheme = await mergeThemeData(data);
-      mergedTheme.baseTheme = "codex";
-      await window.api.saveThemeConfig(mergedTheme);
-      applyThemeConfig(mergedTheme);
-      themeStylesheet.href = "styles/codex.css";
-      updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
-      appConfigStylesheet.setAttribute(
-        "href",
-        "styles/AppConfigurationModal-codex.css",
-      );
-      return showNotification("Theme imported");
-    }
-
-    await safePrompt("Could not recognise file format.", { mode: "alert" });
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    await importShareText(await file.text(), "file");
+    fileInput.value = "";
   };
   fileInput.click();
 }

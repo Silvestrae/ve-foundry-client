@@ -1472,7 +1472,7 @@ body:not(.main-edit-mode) .favorite-open-button {
 }
 
 .share-menu {
-  width: 30vw;
+  width: min(92vw, 760px);
   height: 70vh;
   flex-direction: column;
   box-shadow: 0 0 5px black;
@@ -1485,6 +1485,74 @@ body:not(.main-edit-mode) .favorite-open-button {
   background: var(--color-background);
   pointer-events: all;
   border-radius: 12px;
+}
+
+.share-options-panel,
+.share-import-options {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 1.5rem 1rem;
+}
+
+.share-option {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+}
+
+.share-option input {
+  flex: 0 0 auto;
+}
+
+.share-option span {
+  min-width: 0;
+}
+
+.share-summary {
+  background: color-mix(in srgb, var(--color-accent) 13%, rgba(0, 0, 0, 0.28));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
+  border-radius: 8px;
+  margin: 0 1.5rem 1rem;
+  padding: 0.8rem 1rem;
+}
+
+.share-summary strong {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}
+
+.share-summary ul {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.share-import-modal {
+  background: var(--color-background);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
+  color: var(--color-text-primary);
+  max-width: 620px;
+  padding: 1.25rem;
+  width: min(92vw, 620px);
+}
+
+.share-import-modal h2 {
+  font-family: var(--font-primary);
+  margin: 0 0 1rem;
+}
+
+.share-import-modal .share-import-options {
+  margin: 0 0 1rem;
 }
 
 .share-output,
@@ -2141,6 +2209,17 @@ input[type="range"]:focus::-webkit-slider-thumb {
   flex: 1 1 0;
   min-width: 0;
   white-space: nowrap;
+}
+
+#export-settings {
+  margin: 0 1.5rem 1rem;
+}
+
+@media (max-width: 680px) {
+  .share-options-panel,
+  .share-import-options {
+    grid-template-columns: 1fr;
+  }
 }
 
 .theme-selector-field {
