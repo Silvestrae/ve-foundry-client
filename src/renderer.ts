@@ -94,6 +94,38 @@ function getServerListHeightForRows(rows: number) {
   return padding + rows * (tileHeight + tileMargins);
 }
 
+function getLauncherFlowHeight() {
+  if (!launcherContent) return window.innerHeight;
+
+  const styles = getComputedStyle(launcherContent);
+  const padding =
+    parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+  const childrenHeight = Array.from(launcherContent.children).reduce(
+    (total, child) => {
+      if (!(child instanceof HTMLElement)) return total;
+
+      const childStyles = getComputedStyle(child);
+      if (
+        childStyles.display === "none" ||
+        childStyles.position === "fixed" ||
+        childStyles.position === "absolute"
+      ) {
+        return total;
+      }
+
+      return (
+        total +
+        child.getBoundingClientRect().height +
+        parseFloat(childStyles.marginTop) +
+        parseFloat(childStyles.marginBottom)
+      );
+    },
+    0,
+  );
+
+  return padding + childrenHeight;
+}
+
 function updateServerListViewport() {
   if (!launcherContent || !serverListForSizing) return;
 
@@ -114,7 +146,7 @@ function updateServerListViewport() {
 
   serverListForSizing.style.maxHeight = `${maxHeight}px`;
 
-  const contentHeight = launcherContent.scrollHeight;
+  const contentHeight = getLauncherFlowHeight();
   const serverHeight = serverListForSizing.getBoundingClientRect().height;
   const nonServerHeight = contentHeight - serverHeight;
   const availableServerHeight = window.innerHeight - nonServerHeight;
@@ -137,7 +169,7 @@ function updateLauncherScale() {
     updateServerListViewport();
 
     window.requestAnimationFrame(() => {
-      const naturalHeight = launcherContent.scrollHeight;
+      const naturalHeight = getLauncherFlowHeight();
       const availableHeight = window.innerHeight;
       const nextScale = Math.min(
         1,
