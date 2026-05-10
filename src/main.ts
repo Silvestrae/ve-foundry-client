@@ -796,6 +796,9 @@ function openUrlInAppWindow(url: string, parent?: BrowserWindow | null) {
       sandbox: true,
     },
   });
+  hookMenuShortcut(child);
+  hookFavoritePopupShortcut(child);
+  hookExternalLinkHandling(child);
   child.loadURL(url);
 }
 
@@ -871,6 +874,7 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
     },
   });
   favoritesPopupWindow = popup;
+  hookMenuShortcut(popup);
   popup.on("closed", () => {
     if (favoritesPopupWindow === popup) {
       favoritesPopupWindow = null;
@@ -1136,6 +1140,7 @@ function hookExternalLinkHandling(win: BrowserWindow) {
   });
 
   win.webContents.on("did-create-window", (childWindow) => {
+    hookMenuShortcut(childWindow);
     hookExternalLinkHandling(childWindow);
     hookFavoritePopupShortcut(childWindow);
   });
@@ -1167,6 +1172,29 @@ function hookFullScreenEvents(win: BrowserWindow) {
   });
   win.on("leave-full-screen", () => {
     win.webContents.send("fullscreen-changed", false);
+  });
+}
+
+function showApplicationMenu(win?: BrowserWindow | null) {
+  const targetWindow = win ?? BrowserWindow.getFocusedWindow();
+  if (targetWindow && !targetWindow.isDestroyed()) {
+    Menu.getApplicationMenu()?.popup({ window: targetWindow });
+  }
+}
+
+function hookMenuShortcut(win: BrowserWindow) {
+  win.webContents.on("before-input-event", (event, input) => {
+    if (
+      input.type === "keyDown" &&
+      input.key === "F1" &&
+      !input.alt &&
+      !input.control &&
+      !input.meta &&
+      !input.shift
+    ) {
+      event.preventDefault();
+      showApplicationMenu(win);
+    }
   });
 }
 
@@ -1330,6 +1358,7 @@ function createWindow(): BrowserWindow {
   });
 
   hookFullScreenEvents(win);
+  hookMenuShortcut(win);
   hookWindowBoundsPersistence(win);
   hookExternalLinkHandling(win);
   hookFavoritePopupShortcut(win);
@@ -1991,10 +2020,7 @@ app.whenReady().then(async () => {
 });
 
 ipcMain.handle("show-menu", () => {
-  const w = BrowserWindow.getFocusedWindow();
-  if (w) {
-    Menu.getApplicationMenu()?.popup({ window: w });
-  }
+  showApplicationMenu();
 });
 
 ipcMain.on("enable-discord-rpc", (event) => {

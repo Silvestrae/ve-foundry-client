@@ -2471,6 +2471,12 @@ function serverUrlKey(game: Partial<GameConfig>) {
   return String(game.url ?? "").trim().toLowerCase();
 }
 
+function favoriteForImport(favorite: FavoriteConfig): FavoriteConfig {
+  const importedFavorite = { ...favorite };
+  delete importedFavorite.iconOverrideUrl;
+  return importedFavorite;
+}
+
 function hasFavoriteData(favorites: unknown): favorites is FavoriteConfig[] {
   return Array.isArray(favorites) && favorites.length > 0;
 }
@@ -2713,14 +2719,15 @@ async function removeUnavailableImportedFileFavorites(app: Partial<AppConfig>) {
   const gamesToImport = app.games;
 
   for (const favorite of favoritesToImport) {
+    const importedFavorite = favoriteForImport(favorite);
     if (!isFileFavorite(favorite)) {
-      availableFavorites.push(favorite);
+      availableFavorites.push(importedFavorite);
       continue;
     }
 
     const filePath = favorite.filePath ?? "";
     if (filePath && (await window.api.localPathExists(filePath))) {
-      availableFavorites.push(favorite);
+      availableFavorites.push(importedFavorite);
     }
   }
 
@@ -2730,14 +2737,15 @@ async function removeUnavailableImportedFileFavorites(app: Partial<AppConfig>) {
           const autorunFavorites: FavoriteConfig[] = [];
 
           for (const favorite of game.autorunFavorites ?? []) {
+            const importedFavorite = favoriteForImport(favorite);
             if (!isFileFavorite(favorite)) {
-              autorunFavorites.push(favorite);
+              autorunFavorites.push(importedFavorite);
               continue;
             }
 
             const filePath = favorite.filePath ?? "";
             if (filePath && (await window.api.localPathExists(filePath))) {
-              autorunFavorites.push(favorite);
+              autorunFavorites.push(importedFavorite);
             }
           }
 
