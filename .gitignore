@@ -237,3 +237,6 @@ typings/
 # Electron-Forge
 out/
 dev-app-update.yml
+
+# Local Codex project instructions
+AGENTS.md
