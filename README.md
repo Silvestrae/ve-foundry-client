@@ -62,7 +62,7 @@ Discord Rich Presence, server status, the theme editor, and basic settings/theme
 | Cached server artwork         | Save Foundry login artwork for server tiles so the launcher stays more visual.         |
 | Window position restore       | Reopen the launcher at the size and position you used last time.                       |
 
-> Screenshot placeholder: main launcher in play mode, showing server tiles and favourites.
+![Main launcher in play mode, showing server tiles and favourites](docs/screenshots/launcher.png)
 
 ## Platform Support
 
@@ -72,15 +72,13 @@ The app is unsigned. Windows may warn you the first time you download, install, 
 
 ## Download And Install
 
-GitHub releases can include:
+GitHub releases include:
 
-- A Windows installer
-- A portable Windows build
-- A zipped Windows build
+- A Windows installer (32bit and 64bit)
+- A portable Windows build (64bit only)
+- A zipped Windows build (64bit only)
 
-Use the installer if you want a normal Windows app. Use the portable build if you want to keep the app and its data together in one folder.
-
-> Screenshot placeholder: GitHub release assets showing installer, portable, and zip downloads.
+Use the installer if you want a normal Windows app. Use the portable build if you want to keep the app and its data together in one folder for easy use from any PC/USB drive on the go.
 
 ## Server Launcher
 
@@ -101,7 +99,7 @@ Server tiles can show the server status, Foundry version, world name, game syste
 
 You can turn status details on or off in client settings. You can also disable automatic status refresh for a single server, which is useful if polling a cloud-hosted server may wake it up.
 
-> Screenshot placeholder: server settings modal with credentials, auto-login, and status refresh options.
+![Server settings modal with credentials, auto-login, and status refresh options.](docs/screenshots/serversettings.png)
 
 ## Favourites
 
@@ -121,7 +119,7 @@ Website favourites open in your default browser. File and folder favourites open
 
 Favourites can use custom icons, favicons, website previews, or Windows file icons. In edit mode, you can drag favourites into the order you want.
 
-> Screenshot placeholder: favourites section with website and local-file favourites.
+![Favourites section with website and local-file favourites](docs/screenshots/favs.png)
 
 ## Server Autorun Favourites
 
@@ -137,7 +135,7 @@ Good uses include:
 
 Each server has its own autorun list. Autorun favourites do not need to appear in the main favourites section.
 
-> Screenshot placeholder: server autorun favourites section inside server settings.
+![server autorun favourites section inside server settings](docs/screenshots/autorun.png)
 
 ## In-Game Favourites Popup
 
@@ -145,7 +143,7 @@ Press `Ctrl+Shift+F` from any client window to open your favourites while you ar
 
 Use this when you want a reference site, PDF, local note, or folder without returning to the launcher screen.
 
-> Screenshot placeholder: favourites popup over a Foundry window.
+![favourites popup over a Foundry window.](docs/screenshots/favsingame.png)
 
 ## Play Mode And Edit Mode
 
@@ -156,6 +154,8 @@ The launcher has two modes.
 **Edit mode** is for setup. It shows add buttons, settings buttons, layout controls, refresh buttons, edit buttons, delete buttons, and drag reordering.
 
 In edit mode, clicking a server or favourite does not open it. Drag the tile instead if you want to reorder it.
+
+https://github.com/user-attachments/assets/813c4028-8b2b-4abd-a200-20dcf93a29cf
 
 ## Keyboard Shortcuts
 
@@ -187,7 +187,7 @@ Client settings include:
 
 Saving client settings does not remove your servers, favourites, theme, layout choices, or saved window position.
 
-> Screenshot placeholder: client settings modal.
+![client settings modal](docs/screenshots/clientsettings.png)
 
 ## Theme Editor
 
@@ -207,7 +207,7 @@ You can adjust:
 
 Theme imports do not include local font-file paths, because those paths only work on the computer where they were chosen.
 
-> Screenshot placeholder: theme editor with colour and background controls.
+![theme editor with colour and background controls](docs/screenshots/theme.png)
 
 ## Import, Export, And Sharing
 
@@ -226,7 +226,7 @@ Imports can be pasted as JSON text or loaded from a JSON file.
 
 Credentials are only included if you explicitly choose to export them. Local-file favourites are checked during import and skipped if the target file does not exist on the current computer.
 
-> Screenshot placeholder: Share menu showing export checkboxes and import controls.
+![Share menu showing export checkboxes and import controls.](docs/screenshots/exportimport.png)
 
 ## Original Client Import
 
@@ -245,7 +245,8 @@ When an update is available:
 - The update button changes state.
 - The updater modal shows release notes.
 
-> Screenshot placeholder: update modal with release notes.
+![update button.](docs/screenshots/update2.png)
+![update modal with release notes.](docs/screenshots/update1.png)
 
 ## Discord Rich Presence
 
