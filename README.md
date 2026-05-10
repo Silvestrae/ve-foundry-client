@@ -203,11 +203,11 @@ You can adjust:
 - Button colours and opacity
 - Particle effects
 - Google Font URLs
-- Local font files
+- Local font files 
 
 Theme imports do not include local font-file paths, because those paths only work on the computer where they were chosen.
 
-![theme editor with colour and background controls](docs/screenshots/theme.png)
+![theme editor with colour and background controls.](docs/screenshots/theme.png)
 
 ## Import, Export, And Sharing
 
