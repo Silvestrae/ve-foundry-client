@@ -1806,6 +1806,8 @@ code.share-output {
   position: absolute;
   bottom: 2rem;
   left: 2rem;
+  transform: scale(var(--launcher-scale));
+  transform-origin: bottom left;
   z-index: 90;
 }
 
