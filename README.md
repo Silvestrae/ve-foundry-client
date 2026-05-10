@@ -9,6 +9,8 @@
 
 VE Foundry Client is an independent, privately maintained Windows fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). It keeps the original goal of a lightweight Foundry VTT desktop launcher and adds practical Windows-focused tools for day-to-day play.
 
+VE Foundry Client is currently built and released for Windows only. The codebase still keeps macOS and Linux in mind where practical. If you want a macOS or Linux build and are happy to test that platform, open an issue and one can be provided.
+
 This app is currently unsigned. Windows Defender, SmartScreen, or antivirus software may warn you when downloading or installing it. If you do not want to trust an unsigned private-use build, do not use it.
 
 ## Contents
