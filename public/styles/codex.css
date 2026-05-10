@@ -3,6 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 
 :root {
+  --launcher-scale: 1;
   --color-background: #0e1a23;
   --color-accent: #98e4f7;
   --color-text-primary: #88c0a9;
@@ -33,7 +34,8 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  position: absolute;
+  position: fixed;
+  inset: 0;
   gap: 1rem;
 }
 
@@ -106,6 +108,11 @@ body {
   padding: 0;
 }
 
+.content,
+.content * {
+  box-sizing: border-box;
+}
+
 body::after {
   content: "";
   position: fixed;
@@ -139,7 +146,11 @@ body::after {
 
 .content {
   user-select: none;
-  position: absolute;
+  position: fixed;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%) scale(var(--launcher-scale));
+  transform-origin: top center;
   color: var(--color-text-primary);
   font-family:
     Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
@@ -147,14 +158,20 @@ body::after {
   font-size: 16px;
   line-height: 1.5;
   margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
+  padding: 4.85rem 1rem 2rem;
+  width: calc(100vw / var(--launcher-scale));
+  height: calc(100vh / var(--launcher-scale));
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+}
+
+.content.launcher-scale-overflow {
+  overflow-y: auto;
 }
 
 input:not([type="color"], [type="checkbox"], [type="range"]) {
@@ -372,7 +389,9 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   z-index: 5;
 }
 
-body.main-edit-mode:not(.server-reorder-dragging) .game-item:hover .server-reorder-overlay {
+body.main-edit-mode:not(.server-reorder-dragging)
+  .game-item:hover
+  .server-reorder-overlay {
   opacity: 1;
 }
 
@@ -728,7 +747,9 @@ body.main-edit-mode .favorites-section.favorites-empty .favorite-empty-state {
   z-index: 5;
 }
 
-body.main-edit-mode:not(.favorite-reorder-dragging) .favorite-item:hover .favorite-reorder-overlay {
+body.main-edit-mode:not(.favorite-reorder-dragging)
+  .favorite-item:hover
+  .favorite-reorder-overlay {
   opacity: 1;
 }
 
@@ -957,9 +978,8 @@ td {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
-  position: absolute;
+  inset: 0;
+  position: fixed;
   z-index: 100;
   pointer-events: none;
   gap: 1rem;
@@ -1006,7 +1026,7 @@ td {
 }
 
 .button-controls {
-  position: absolute;
+  position: fixed;
   top: 2rem;
   right: 2rem;
   display: flex;
@@ -2706,7 +2726,7 @@ input:checked + .slider:before {
 #game-list {
   box-sizing: border-box;
   display: block;
-  max-height: min(54vh, 36rem);
+  max-height: min(64vh, 41rem);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;

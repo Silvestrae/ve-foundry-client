@@ -400,7 +400,7 @@ const form = reactive<AppConfigurationForm>({
   serverInfosPingRate: 30,
   forceFullScreen: false,
   shareSessionBetweenWindows: false,
-  enableDiscordRp: false,
+  enableDiscordRp: true,
 });
 
 // Sync entrée -> copie locale

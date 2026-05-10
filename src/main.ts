@@ -109,6 +109,38 @@ const DEFAULT_WINDOW_BOUNDS: WindowBounds = {
   height: 600,
 };
 
+function fitBoundsToWorkArea(bounds: WindowBounds): WindowBounds {
+  const nearestDisplay = screen.getDisplayMatching({
+    x: bounds.x ?? 0,
+    y: bounds.y ?? 0,
+    width: bounds.width,
+    height: bounds.height,
+  });
+  const { workArea } = nearestDisplay;
+  const width = Math.min(bounds.width, workArea.width);
+  const height = Math.min(bounds.height, workArea.height);
+  const fitted: WindowBounds = {
+    ...bounds,
+    width,
+    height,
+  };
+
+  if (typeof fitted.x === "number") {
+    fitted.x = Math.min(
+      Math.max(fitted.x, workArea.x),
+      workArea.x + workArea.width - width,
+    );
+  }
+  if (typeof fitted.y === "number") {
+    fitted.y = Math.min(
+      Math.max(fitted.y, workArea.y),
+      workArea.y + workArea.height - height,
+    );
+  }
+
+  return fitted;
+}
+
 const ORIGINAL_APP_USER_DATA_DIR_NAMES = [
   "FVTT Desktop Client",
   "FVTT Player Client",
@@ -1233,7 +1265,7 @@ function getSavedWindowBounds(): WindowBounds {
       savedBounds.y < workArea.y + workArea.height &&
       savedBounds.y + height > workArea.y);
 
-  return isVisible ? savedBounds : { width, height };
+  return fitBoundsToWorkArea(isVisible ? savedBounds : { width, height });
 }
 
 function saveWindowBounds(win: BrowserWindow) {

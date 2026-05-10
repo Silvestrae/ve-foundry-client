@@ -62,6 +62,113 @@ let mainEditModeEnabled = false;
 let editingServerId: GameId | null = null;
 let editingServerAutorunItems: FavoriteConfig[] = [];
 
+const MIN_LAUNCHER_SCALE = 0.72;
+const launcherContent = document.querySelector<HTMLElement>(".content");
+const serverListForSizing = document.querySelector<HTMLElement>("#game-list");
+let launcherScaleFrame = 0;
+
+function getServerListHeightForRows(rows: number) {
+  if (!serverListForSizing || rows <= 0) return 0;
+
+  const firstTile =
+    serverListForSizing.querySelector<HTMLElement>(".game-item");
+  const listStyles = getComputedStyle(serverListForSizing);
+  const padding =
+    parseFloat(listStyles.paddingTop) + parseFloat(listStyles.paddingBottom);
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+  if (!firstTile) {
+    return padding + rows * 6.5 * rem;
+  }
+
+  const tileStyles = getComputedStyle(firstTile);
+  const tileHeight = firstTile.getBoundingClientRect().height || 5.5 * rem;
+
+  if (serverListForSizing.classList.contains("server-columns-2")) {
+    const rowGap = parseFloat(listStyles.rowGap) || 0.5 * rem;
+    return padding + rows * tileHeight + Math.max(0, rows - 1) * rowGap;
+  }
+
+  const tileMargins =
+    parseFloat(tileStyles.marginTop) + parseFloat(tileStyles.marginBottom);
+  return padding + rows * (tileHeight + tileMargins);
+}
+
+function updateServerListViewport() {
+  if (!launcherContent || !serverListForSizing) return;
+
+  const tiles = serverListForSizing.querySelectorAll<HTMLElement>(".game-item");
+  if (!tiles.length) {
+    serverListForSizing.style.removeProperty("max-height");
+    return;
+  }
+
+  const columnCount = serverListForSizing.classList.contains("server-columns-2")
+    ? 2
+    : 1;
+  const rowCount = Math.ceil(tiles.length / columnCount);
+  const minRows = Math.min(3, rowCount);
+  const maxRows = Math.min(6, rowCount);
+  const minHeight = getServerListHeightForRows(minRows);
+  const maxHeight = getServerListHeightForRows(maxRows);
+
+  serverListForSizing.style.maxHeight = `${maxHeight}px`;
+
+  const contentHeight = launcherContent.scrollHeight;
+  const serverHeight = serverListForSizing.getBoundingClientRect().height;
+  const nonServerHeight = contentHeight - serverHeight;
+  const availableServerHeight = window.innerHeight - nonServerHeight;
+  const nextHeight = Math.min(
+    maxHeight,
+    Math.max(minHeight, availableServerHeight),
+  );
+
+  serverListForSizing.style.maxHeight = `${Math.round(nextHeight)}px`;
+}
+
+function updateLauncherScale() {
+  if (!launcherContent) return;
+  if (launcherScaleFrame) window.cancelAnimationFrame(launcherScaleFrame);
+
+  launcherScaleFrame = window.requestAnimationFrame(() => {
+    launcherScaleFrame = 0;
+    launcherContent.style.setProperty("--launcher-scale", "1");
+    launcherContent.classList.remove("launcher-scale-overflow");
+    updateServerListViewport();
+
+    window.requestAnimationFrame(() => {
+      const naturalHeight = launcherContent.scrollHeight;
+      const availableHeight = window.innerHeight;
+      const nextScale = Math.min(
+        1,
+        Math.max(MIN_LAUNCHER_SCALE, availableHeight / naturalHeight),
+      );
+      const roundedScale = Number(nextScale.toFixed(3));
+
+      launcherContent.style.setProperty(
+        "--launcher-scale",
+        String(roundedScale),
+      );
+      launcherContent.classList.toggle(
+        "launcher-scale-overflow",
+        naturalHeight * roundedScale > availableHeight + 1,
+      );
+    });
+  });
+}
+
+if (launcherContent) {
+  const mutationObserver = new MutationObserver(updateLauncherScale);
+  mutationObserver.observe(launcherContent, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  });
+  window.addEventListener("resize", updateLauncherScale);
+  window.addEventListener("load", updateLauncherScale);
+  updateLauncherScale();
+}
+
 const mainEditModeToggle = document.querySelector(
   "#toggle-main-edit-mode",
 ) as HTMLButtonElement;
@@ -490,6 +597,7 @@ function applyServerColumnCount(columnCount: 1 | 2) {
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   });
+  updateLauncherScale();
 }
 
 function applyFavoriteColumnCount(columnCount: 2 | 3 | 4) {
@@ -501,6 +609,7 @@ function applyFavoriteColumnCount(columnCount: 2 | 3 | 4) {
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   });
+  updateLauncherScale();
 }
 
 function normalizeFavoriteUrl(url: string) {
@@ -612,6 +721,7 @@ function setFavoriteEditMode(favorite?: FavoriteConfig) {
     ? "Change icon"
     : "Choose icon";
   cancelFavoriteEditButton.classList.toggle("hidden-display", !favorite);
+  updateLauncherScale();
 }
 
 chooseFavoriteFileButton.addEventListener("click", async () => {
@@ -1344,6 +1454,7 @@ function setMainEditMode(enabled: boolean) {
   }
 
   renderTooltips();
+  updateLauncherScale();
 }
 
 mainEditModeToggle.addEventListener("click", () => {
@@ -3614,6 +3725,7 @@ async function createGameList() {
     favorites: favorites,
     favoriteColumnCount: 3,
     serverInfoEnabled: true,
+    discordRP: true,
     serverColumnCount: 1,
   };
   const defaults: ThemeConfig = {
