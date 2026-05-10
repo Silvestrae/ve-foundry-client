@@ -40,7 +40,19 @@ This app is currently unsigned. Windows Defender, SmartScreen, or antivirus soft
 - [Acknowledgments](#acknowledgments)
 - [Disclaimer](#disclaimer)
 
-## Feature Overview
+## Original player clients
+
+| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | jeidouran |
+| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: |
+| Back to server select button in setup screen |                                ✔️                                |                               ✔️                               |    ✔️     |
+| Back to server select button in login screen |                                ✔️                                |                               ✔️                               |    ✔️     |
+| Back to server select button in game         |                                ❌                                |                               ✔️                               |    ✔️     |
+| Foundry v13 Compatibility                    |                                ❌                                |                               ❌                               |    ✔️     |
+| Discord Rich Presence                        |                                ❌                                |                               ❌                               |    ✔️     |
+| Server status on game buttons                |                                ❌                                |                               ❌                               |    ✔️     |
+| Theme editor                                 |                                ❌                                |                               ❌                               |    ✔️     |
+
+## VE Client Feature Overview
 
 ### Server Management
 
