@@ -60,6 +60,7 @@ Discord Rich Presence, server status, the theme editor, and basic settings/theme
 | Launcher layout controls      | Reorder server and favourite tiles, then choose compact or wider column layouts.       |
 | Per-server refresh control    | Stop automatic status checks for servers where polling is not wanted.                  |
 | Cached server artwork         | Save Foundry login artwork for server tiles so the launcher stays more visual.         |
+| Active server effect          | Highlight the server you launched so it is easy to see which world is currently open.  |
 | Window position restore       | Reopen the launcher at the size and position you used last time.                       |
 
 ![Main launcher in play mode, showing server tiles and favourites](docs/screenshots/launcher.png)
@@ -97,7 +98,13 @@ Each server can store:
 
 Server tiles can show the server status, Foundry version, world name, game system, system version, online player count, and cached login artwork.
 
+When you launch a server, its tile shows an active visual effect so you can quickly tell which server is currently open.
+
+https://github.com/user-attachments/assets/cb4333c2-7067-4865-9391-0bebaaaffea9
+
 You can turn status details on or off in client settings. You can also disable automatic status refresh for a single server, which is useful if polling a cloud-hosted server may wake it up.
+
+![Server tile with automatic status refresh disabled.](docs/screenshots/norefresh.png)
 
 ![Server settings modal with credentials, auto-login, and status refresh options.](docs/screenshots/serversettings.png)
 
