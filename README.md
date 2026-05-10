@@ -42,7 +42,7 @@ This app is currently unsigned. Windows Defender, SmartScreen, or antivirus soft
 
 ## Original player clients
 
-| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | jeidouran |
+| Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | [jeidouran](https://github.com/JeidoUran/fvtt-player-client) |
 | -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: |
 | Back to server select button in setup screen |                                ✔️                                |                               ✔️                               |    ✔️     |
 | Back to server select button in login screen |                                ✔️                                |                               ✔️                               |    ✔️     |
