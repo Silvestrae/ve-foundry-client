@@ -1,4 +1,4 @@
-# VE Foundry Client
+# ![VE Foundry Client logo](VE.png) VE Foundry Client
 
 ![Foundry v11](https://img.shields.io/badge/Foundry-v11-lightgreen)
 ![Foundry v12](https://img.shields.io/badge/Foundry-v12-lightgreen)
