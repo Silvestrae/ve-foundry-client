@@ -245,7 +245,8 @@ When an update is available:
 - The update button changes state.
 - The updater modal shows release notes.
 
-![update button.](docs/screenshots/update2.png)
+![update button.](docs/screenshots/update2.png)  
+
 ![update modal with release notes.](docs/screenshots/update1.png)
 
 ## Discord Rich Presence
