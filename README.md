@@ -207,7 +207,7 @@ You can adjust:
 
 Theme imports do not include local font-file paths, because those paths only work on the computer where they were chosen.
 
-![theme editor with colour and background controls.](docs/screenshots/theme.png)
+![theme editor with colour and background controls.](docs/screenshots/theme2.png)
 
 ## Import, Export, And Sharing
 
