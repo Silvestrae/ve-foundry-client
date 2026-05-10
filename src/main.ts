@@ -777,6 +777,18 @@ function getFavoriteTarget(favorite: FavoriteConfig) {
     : (favorite.url ?? "");
 }
 
+function getPopupImageUrl(imageUrl?: string) {
+  if (!imageUrl?.startsWith("file://")) return imageUrl;
+
+  try {
+    const image = nativeImage.createFromPath(fileURLToPath(imageUrl));
+    return image.isEmpty() ? imageUrl : image.toDataURL();
+  } catch (err) {
+    console.error("Could not prepare favorite popup icon:", err);
+    return imageUrl;
+  }
+}
+
 function getFavoriteLabels() {
   const commonwealthLocales = new Set([
     "au",
@@ -804,9 +816,12 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
     return;
   }
 
-  const favorites = (getAppConfig().favorites ?? []).filter((favorite) =>
-    Boolean(getFavoriteTarget(favorite)),
-  );
+  const favorites = (getAppConfig().favorites ?? [])
+    .filter((favorite) => Boolean(getFavoriteTarget(favorite)))
+    .map((favorite) => ({
+      ...favorite,
+      iconOverrideUrl: getPopupImageUrl(favorite.iconOverrideUrl),
+    }));
   const favoriteLabels = getFavoriteLabels();
   const popup = new BrowserWindow({
     width: 520,
@@ -940,6 +955,24 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
     const list = document.getElementById("list");
     const isFileFavorite = (favorite) => favorite.type === "file" || (!!favorite.filePath && !favorite.url);
     const target = (favorite) => isFileFavorite(favorite) ? favorite.filePath : favorite.url;
+    const getFaviconUrl = (url) => {
+      if (!url) return "";
+      try {
+        const parsed = new URL(url);
+        return "https://www.google.com/s2/favicons?domain_url=" + encodeURIComponent(parsed.origin) + "&sz=64";
+      } catch {
+        return "";
+      }
+    };
+    const getWebsiteSnapshotUrl = (url) => {
+      if (!url) return "";
+      try {
+        const parsed = new URL(url);
+        return "https://api.microlink.io/?url=" + encodeURIComponent(parsed.href) + "&screenshot=true&embed=screenshot.url";
+      } catch {
+        return "";
+      }
+    };
     if (!favorites.length) {
       const empty = document.createElement("p");
       empty.className = "empty";
@@ -951,15 +984,16 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
       button.type = "button";
       const icon = document.createElement("span");
       icon.className = "icon";
-      const imageUrl = favorite.iconOverrideUrl || favorite.iconUrl;
+      const faviconUrl = !isFileFavorite(favorite) ? (favorite.iconUrl || getFaviconUrl(target(favorite))) : "";
+      const imageUrl = favorite.iconOverrideUrl || faviconUrl;
       if (imageUrl) {
         const img = document.createElement("img");
         img.src = imageUrl;
         img.alt = "";
         img.addEventListener("error", () => {
-          if (!img.dataset.triedDefaultIcon && favorite.iconOverrideUrl && favorite.iconUrl) {
+          if (!img.dataset.triedDefaultIcon && favorite.iconOverrideUrl && faviconUrl) {
             img.dataset.triedDefaultIcon = "true";
-            img.src = favorite.iconUrl;
+            img.src = faviconUrl;
             return;
           }
           if (!img.dataset.triedFileIcon && favorite.iconOverrideUrl && isFileFavorite(favorite) && target(favorite)) {
@@ -972,6 +1006,12 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
               img.remove();
               icon.textContent = "file";
             });
+            return;
+          }
+          const snapshotUrl = getWebsiteSnapshotUrl(target(favorite));
+          if (!img.dataset.triedSnapshot && snapshotUrl) {
+            img.dataset.triedSnapshot = "true";
+            img.src = snapshotUrl;
             return;
           }
           img.remove();

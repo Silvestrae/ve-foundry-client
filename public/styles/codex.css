@@ -644,6 +644,7 @@ body.main-edit-mode .favorites-section.favorites-empty .favorite-empty-state {
 
 .favorite-list.favorite-columns-4 {
   --favorite-column-count: 4;
+  width: min(92vw, 1072px);
 }
 
 .favorite-list::-webkit-scrollbar {
