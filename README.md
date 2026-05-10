@@ -98,7 +98,7 @@ Each server can store:
 
 Server tiles can show the server status, Foundry version, world name, game system, system version, online player count, and cached login artwork.
 
-When you launch a server, its tile shows an active visual effect so you can quickly tell which server is currently open.
+Whenever a server has users logged in, its tile shows a nice visual effect so you can quickly see which servers are active.
 
 https://github.com/user-attachments/assets/cb4333c2-7067-4865-9391-0bebaaaffea9
 
