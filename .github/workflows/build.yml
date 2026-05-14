@@ -35,4 +35,46 @@ jobs:
       - name: Package for Windows x64
         run: npx electron-builder --win --x64 --publish always
 
+  # Primary support is for windows only, linux is comunity supported
+  # Separate step makes it easier to add linux support without breaking the windows build
+  build-linux :
+    runs-on: ubuntu-latest
+    # allow electron-builder to upload to GitHub Releases
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      matrix:
+        # for multi-arch on Linux:
+        arch: [ x64, arm64 ]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Yarn
+        uses: threeal/setup-yarn-action@v2.0.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 25
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build main, preload & renderer
+        run: yarn build
+
+      - name: Package for Linux ${{ matrix.arch }}
+        shell: bash
+        run: |
+          # determine the arch flag
+          case "${{ matrix.arch }}" in
+            "x64")    ARCH_FLAG="--x64" ;;
+            "arm64")  ARCH_FLAG="--arm64" ;;
+          esac
+          
+          # run electron-builder with publish
+          npx electron-builder --linux "$ARCH_FLAG" --publish always
+
     # artifacts are automatically attached by electron-builder to the GitHub release
