@@ -6,14 +6,15 @@
 ![Foundry v14](https://img.shields.io/badge/Foundry-v14-lightgreen)
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
 ![Linux](https://img.shields.io/badge/Platform-Linux-blue)
+![macOS](https://img.shields.io/badge/Platform-macOS-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow)
 
 VE Foundry Client is an independent, privately maintained fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). It keeps the original goal of a lightweight Foundry VTT desktop launcher and adds practical tools for day-to-day play for my gaming group's needs.
 
-VE Foundry Client is built and released for Windows and Linux. Windows remains the primary day-to-day target. Linux is supported and included with full releases, with testing helped by community feedback across different
-distributions.
+VE Foundry Client is built and released for Windows, Linux, and macOS. Windows remains the primary day-to-day target. Linux and macOS are supported and included with full releases, with testing helped by community feedback across different
+distributions and devices.
 
-This app is currently unsigned. Windows Defender, SmartScreen, or antivirus software may warn you when downloading or installing it. If you do not want to trust an unsigned private-use build, do not use it.
+This app is currently unsigned. Windows Defender, SmartScreen, macOS Gatekeeper, Linux package managers, or antivirus software may warn you when downloading or installing it. If you do not want to trust an unsigned private-use build, do not use it.
 
 ## Contents
 
@@ -71,12 +72,12 @@ Discord Rich Presence, server status, the theme editor, and basic settings/theme
 
 ## Platform Support
 
-VE Foundry Client is built and released for Windows and Linux.
+VE Foundry Client is built and released for Windows, Linux, and macOS.
 
-Windows remains the primary daily-use target. Linux is supported through release builds and relies on community testing across distributions, desktop environments, and package formats. Packaging coverage is limited to the
+Windows remains the primary daily-use target. Linux and macOS are supported through release builds and rely on community testing across distributions, desktop environments, package formats, and Apple hardware. Packaging coverage is limited to the
 artifacts listed below.
 
-The app is unsigned. Windows may warn you the first time you download, install, or run it. Linux package managers or desktop environments may also warn about unsigned packages.
+The app is unsigned. Windows may warn you the first time you download, install, or run it. Linux package managers or desktop environments may warn about unsigned packages. macOS may require you to explicitly allow the app in Privacy & Security before it will open.
 
 ## Download And Install
 
@@ -89,10 +90,14 @@ GitHub releases include:
 - Linux `.deb` builds (64bit and arm64)
 - Linux `.rpm` builds (64bit and arm64)
 - Linux zipped and `.tar.gz` builds (64bit and arm64)
+- macOS `.dmg` builds (Intel and Apple Silicon)
+- macOS zipped builds (Intel and Apple Silicon)
 
 Use the installer if you want a normal Windows app. Use the portable build if you want to keep the app and its data together in one folder for easy use from any PC/USB drive on the go.
 
 On Linux, start with the AppImage unless you specifically want a package for a Debian/Ubuntu-style or RPM-based system.
+
+On macOS, use the Apple Silicon build on M-series Macs and the Intel build on older Intel Macs. These builds are unsigned, so Gatekeeper may require a manual allow step.
 
 ## Server Launcher
 

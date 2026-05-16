@@ -1913,10 +1913,10 @@ autoUpdater.on("download-progress", (progress) => {
   sendUpdateStatus("progress", progress, lastUpdateRequestingWindow);
 });
 
-let downloadedVersion: string | null = null;
+let downloadedUpdateFile: string | null = null;
 
 autoUpdater.on("update-downloaded", (info) => {
-  downloadedVersion = info.version;
+  downloadedUpdateFile = info.downloadedFile ?? null;
   sendUpdateStatus("downloaded", info, lastUpdateRequestingWindow);
 });
 
@@ -2626,27 +2626,6 @@ ipcMain.handle("local-file-icon", async (_event, filePath: string) => {
   }
 });
 
-ipcMain.handle("remote-image-exists", async (_event, rawUrl: string) => {
-  try {
-    const url = new URL(rawUrl);
-    if (!["http:", "https:"].includes(url.protocol)) return false;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3500);
-    try {
-      const response = await fetch(url, {
-        method: "HEAD",
-        signal: controller.signal,
-      });
-      return response.ok;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return false;
-  }
-});
-
 ipcMain.handle("local-path-exists", async (_event, filePath: string) => {
   try {
     return fs.pathExists(filePath);
@@ -2695,30 +2674,12 @@ ipcMain.on("check-for-updates", (event) => {
 ipcMain.on("download-update", () => autoUpdater.downloadUpdate());
 ipcMain.on("install-update", async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  const version = downloadedVersion ?? app.getVersion();
   if (process.platform === "linux") {
-    const pkgTypeFile = path.join(process.resourcesPath, "package-type");
-    let pkgType: string | undefined;
-    try {
-      if (fs.existsSync(pkgTypeFile)) {
-        pkgType = fs.readFileSync(pkgTypeFile, "utf-8").trim();
-        console.log("Detected package-type:", pkgType);
-      }
-    } catch (e) {
-      console.warn("Could not read package-type:", e);
-    }
-    switch (pkgType) {
-      case "deb": {
-        sendUpdateStatus("installing", undefined, win);
-        installDebUpdate(version);
-        return;
-      }
-      case "rpm":
-        break;
-      case "pacman":
-        break;
-      default:
-        break;
+    const downloadedFile = downloadedUpdateFile ?? "";
+    if (downloadedFile.toLowerCase().endsWith(".deb")) {
+      sendUpdateStatus("installing", undefined, win);
+      installDebUpdate(downloadedFile);
+      return;
     }
   }
   // Windows / macOS / Linux RPM

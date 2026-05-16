@@ -240,6 +240,10 @@ async function applyCachedServerButtonBackground(
   item: HTMLElement,
   game: GameConfig,
 ) {
+  if (game.backgroundImageLocalUrl) {
+    applyServerButtonBackground(item, game.backgroundImageLocalUrl);
+  }
+
   if (game.backgroundImageFileName) {
     const localUrl = await window.api.serverBackgroundLocalUrl(
       game.backgroundImageFileName,
@@ -251,7 +255,9 @@ async function applyCachedServerButtonBackground(
     }
   }
 
-  applyServerButtonBackground(item, game.backgroundImageLocalUrl);
+  if (!game.backgroundImageLocalUrl) {
+    applyServerButtonBackground(item);
+  }
 }
 
 async function refreshServerButtonBackground(
@@ -3719,11 +3725,7 @@ async function createFavoriteList() {
       !customIconUrl && !fileIconUrl && !isFileFavorite(favorite)
         ? favorite.iconUrl || getFaviconUrl(favorite.url ?? "")
         : "";
-    const safeFaviconUrl =
-      faviconUrl && (await window.api.remoteImageExists(faviconUrl))
-        ? faviconUrl
-        : "";
-    const iconUrl = customIconUrl || fileIconUrl || safeFaviconUrl;
+    const iconUrl = customIconUrl || fileIconUrl || faviconUrl;
     if (iconUrl) {
       const image = document.createElement("img");
       image.src = iconUrl;
@@ -3878,11 +3880,11 @@ async function createGameList() {
   gameItemList.querySelectorAll("li").forEach((li) => li.remove());
 
   games.forEach(createGameItem);
-  await createFavoriteList();
-  setMainEditMode(mainEditModeEnabled);
 
   await applyRuntimeAppConfig(appConfig);
   applyThemeConfig(themeConfig);
+  await createFavoriteList();
+  setMainEditMode(mainEditModeEnabled);
   applyButtonTooltips();
   setServerTileNativeTooltipsEnabled(!mainEditModeEnabled);
 }

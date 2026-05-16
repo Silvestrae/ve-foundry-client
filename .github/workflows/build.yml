@@ -34,8 +34,8 @@ jobs:
       - name: Build main, preload & renderer
         run: yarn build
 
-      - name: Package for Windows x64
-        run: npx electron-builder --win --x64 --publish always
+      - name: Package for Windows x64 and ia32
+        run: npx electron-builder --win --x64 --ia32 --publish always
 
   # Build supported Linux packages separately so a Linux packaging failure does not block Windows output.
   build-linux:
@@ -79,3 +79,33 @@ jobs:
           npx electron-builder --linux "$ARCH_FLAG" --publish always
 
     # artifacts are automatically attached by electron-builder to the GitHub release
+
+  build-macos:
+    runs-on: macos-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Yarn
+        uses: threeal/setup-yarn-action@v2.0.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 25
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build main, preload & renderer
+        run: yarn build
+
+      - name: Package for macOS ${{ matrix.arch }}
+        run: npx electron-builder --mac --${{ matrix.arch }} --publish always

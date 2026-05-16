@@ -55,6 +55,8 @@ module.exports = {
   mac: {
     target: ["dmg", "zip"],
     icon: "src/icons/mac/icon.icns",
+    identity: null,
+    gatekeeperAssess: false,
     artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
 
