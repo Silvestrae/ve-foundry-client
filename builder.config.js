@@ -68,7 +68,7 @@ module.exports = {
   publish: [
     {
       provider: "github",
-      releaseType: "draft",
+      releaseType: "release",
       vPrefixedTagName: "false",
     },
     // {
