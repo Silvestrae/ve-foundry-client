@@ -1880,7 +1880,7 @@ const CHROMIUM_DIAGNOSTICS_FLUSH_MS = 2000;
 const CHROMIUM_DIAGNOSTICS_MAX_QUEUE = 1000;
 const CHROMIUM_DIAGNOSTICS_MAX_FIELD_LENGTH = 4000;
 
-let chromiumDiagnosticsQueue: string[] = [];
+const chromiumDiagnosticsQueue: string[] = [];
 let chromiumDiagnosticsFlushTimer: NodeJS.Timeout | null = null;
 let chromiumDiagnosticsFlushInProgress = false;
 let chromiumDiagnosticsDropped = 0;
