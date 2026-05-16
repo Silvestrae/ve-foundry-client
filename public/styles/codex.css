@@ -1788,9 +1788,9 @@ code.share-output {
   display: inline-flex;
   flex-direction: column;
   pointer-events: auto;
-  position: absolute;
-  bottom: 2rem;
-  left: 2rem;
+  position: fixed;
+  bottom: calc(2rem * var(--launcher-scale));
+  left: calc(2rem * var(--launcher-scale));
   transform: scale(var(--launcher-scale));
   transform-origin: bottom left;
   z-index: 90;

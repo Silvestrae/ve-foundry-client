@@ -857,18 +857,36 @@ function getFavoriteLabels() {
     : { singular: "Favorite", plural: "Favorites" };
 }
 
+function preparePopupFavorites(favorites: FavoriteConfig[] = []) {
+  return favorites
+    .filter((favorite) => Boolean(getFavoriteTarget(favorite)))
+    .map((favorite) => ({
+      ...favorite,
+      iconOverrideUrl: getPopupImageUrl(favorite.iconOverrideUrl),
+    }));
+}
+
 function showFavoritesPopup(parent?: BrowserWindow | null) {
   if (favoritesPopupWindow && !favoritesPopupWindow.isDestroyed()) {
     favoritesPopupWindow.close();
     return;
   }
 
-  const favorites = (getAppConfig().favorites ?? [])
-    .filter((favorite) => Boolean(getFavoriteTarget(favorite)))
-    .map((favorite) => ({
-      ...favorite,
-      iconOverrideUrl: getPopupImageUrl(favorite.iconOverrideUrl),
-    }));
+  const appConfig = getAppConfig();
+  const favorites = preparePopupFavorites(appConfig.favorites ?? []);
+  const parentWindowData = parent ? windowsData[parent.webContents.id] : null;
+  const parentGameId = parentWindowData?.gameId;
+  const activeGame =
+    parentWindowData?.selectedServerName &&
+    parentGameId !== undefined &&
+    parentGameId !== null
+      ? appConfig.games?.find(
+          (game) => String(game.id ?? game.name) === String(parentGameId),
+        )
+      : null;
+  const serverFavorites = preparePopupFavorites(
+    activeGame?.autorunFavorites ?? [],
+  );
   const favoriteLabels = getFavoriteLabels();
   const popup = new BrowserWindow({
     width: 520,
@@ -894,7 +912,9 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
   });
 
   const data = JSON.stringify(favorites);
+  const serverData = JSON.stringify(serverFavorites);
   const labels = JSON.stringify(favoriteLabels);
+  const serverName = JSON.stringify(activeGame?.name ?? "");
   const html = `<!doctype html>
 <html>
 <head>
@@ -902,13 +922,21 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
   <title>${favoriteLabels.plural}</title>
   <style>
     :root { color-scheme: dark; }
+    html,
+    body {
+      height: 100%;
+    }
     body {
       background: #101722;
       color: #f3edc8;
+      display: flex;
+      flex-direction: column;
       font-family: Georgia, "Times New Roman", serif;
       margin: 0;
       overflow-x: hidden;
+      overflow-y: hidden;
       padding: 1rem;
+      box-sizing: border-box;
     }
     h1 {
       font-size: 1.35rem;
@@ -925,10 +953,31 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
     .list {
       display: grid;
       gap: 0.55rem;
-      max-height: 20.5rem;
+      overflow-x: hidden;
+      overflow-y: visible;
+      padding-right: 0.25rem;
+    }
+    #content {
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
       padding-right: 0.25rem;
+    }
+    .section {
+      min-height: 0;
+    }
+    .section + .section {
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      margin-top: 0.9rem;
+      padding-top: 0.85rem;
+    }
+    .section-title {
+      color: rgba(243, 237, 200, 0.84);
+      font-size: 0.84rem;
+      letter-spacing: 0.06em;
+      margin: 0 0 0.55rem;
+      text-transform: uppercase;
     }
     button {
       align-items: center;
@@ -996,11 +1045,13 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
 <body>
   <h1>${favoriteLabels.plural}</h1>
   <p class="hint">Ctrl+Shift+F toggles this popup from any client window.</p>
-  <div id="list" class="list"></div>
+  <main id="content"></main>
   <script>
     const favorites = ${data};
+    const serverFavorites = ${serverData};
     const favoriteLabels = ${labels};
-    const list = document.getElementById("list");
+    const serverName = ${serverName};
+    const content = document.getElementById("content");
     const isFileFavorite = (favorite) => favorite.type === "file" || (!!favorite.filePath && !favorite.url);
     const target = (favorite) => isFileFavorite(favorite) ? favorite.filePath : favorite.url;
     const getFaviconUrl = (url) => {
@@ -1021,91 +1072,118 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
         return "";
       }
     };
-    if (!favorites.length) {
-      const empty = document.createElement("p");
-      empty.className = "empty";
-      empty.textContent = "No " + favoriteLabels.plural.toLowerCase() + " have been added yet.";
-      list.replaceWith(empty);
-    }
-    favorites.forEach((favorite) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      const icon = document.createElement("span");
-      icon.className = "icon";
-      const faviconUrl = !isFileFavorite(favorite) ? (favorite.iconUrl || getFaviconUrl(target(favorite))) : "";
-      const imageUrl = favorite.iconOverrideUrl || faviconUrl;
-      if (imageUrl) {
-        const img = document.createElement("img");
-        img.src = imageUrl;
-        img.alt = "";
-        img.addEventListener("error", () => {
-          if (!img.dataset.triedDefaultIcon && favorite.iconOverrideUrl && faviconUrl) {
-            img.dataset.triedDefaultIcon = "true";
-            img.src = faviconUrl;
-            return;
-          }
-          if (!img.dataset.triedFileIcon && favorite.iconOverrideUrl && isFileFavorite(favorite) && target(favorite)) {
-            img.dataset.triedFileIcon = "true";
-            window.api.localFileIcon(target(favorite)).then((iconUrl) => {
-              if (iconUrl) {
-                img.src = iconUrl;
-                return;
-              }
+    function renderFavoriteList(list, items) {
+      items.forEach((favorite) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        const icon = document.createElement("span");
+        icon.className = "icon";
+        const faviconUrl = !isFileFavorite(favorite) ? (favorite.iconUrl || getFaviconUrl(target(favorite))) : "";
+        const imageUrl = favorite.iconOverrideUrl || faviconUrl;
+        if (imageUrl) {
+          const img = document.createElement("img");
+          img.src = imageUrl;
+          img.alt = "";
+          img.addEventListener("error", () => {
+            if (!img.dataset.triedDefaultIcon && favorite.iconOverrideUrl && faviconUrl) {
+              img.dataset.triedDefaultIcon = "true";
+              img.src = faviconUrl;
+              return;
+            }
+            if (!img.dataset.triedFileIcon && favorite.iconOverrideUrl && isFileFavorite(favorite) && target(favorite)) {
+              img.dataset.triedFileIcon = "true";
+              window.api.localFileIcon(target(favorite)).then((iconUrl) => {
+                if (iconUrl) {
+                  img.src = iconUrl;
+                  return;
+                }
+                img.remove();
+                icon.textContent = "file";
+              });
+              return;
+            }
+            const snapshotUrl = getWebsiteSnapshotUrl(target(favorite));
+            if (!img.dataset.triedSnapshot && snapshotUrl) {
+              img.dataset.triedSnapshot = "true";
+              img.src = snapshotUrl;
+              return;
+            }
+            img.remove();
+            icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
+          });
+          icon.append(img);
+        } else if (isFileFavorite(favorite) && target(favorite)) {
+          window.api.localFileIcon(target(favorite)).then((iconUrl) => {
+            if (!iconUrl) {
+              icon.textContent = "file";
+              return;
+            }
+            const img = document.createElement("img");
+            img.src = iconUrl;
+            img.alt = "";
+            img.addEventListener("error", () => {
               img.remove();
               icon.textContent = "file";
             });
-            return;
-          }
-          const snapshotUrl = getWebsiteSnapshotUrl(target(favorite));
-          if (!img.dataset.triedSnapshot && snapshotUrl) {
-            img.dataset.triedSnapshot = "true";
-            img.src = snapshotUrl;
-            return;
-          }
-          img.remove();
-          icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
-        });
-        icon.append(img);
-      } else if (isFileFavorite(favorite) && target(favorite)) {
-        window.api.localFileIcon(target(favorite)).then((iconUrl) => {
-          if (!iconUrl) {
-            icon.textContent = "file";
-            return;
-          }
-          const img = document.createElement("img");
-          img.src = iconUrl;
-          img.alt = "";
-          img.addEventListener("error", () => {
-            img.remove();
-            icon.textContent = "file";
+            icon.replaceChildren(img);
           });
-          icon.replaceChildren(img);
-        });
-      } else {
-        icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
-      }
-      const text = document.createElement("span");
-      text.className = "text";
-      const name = document.createElement("span");
-      name.className = "name";
-      name.textContent = favorite.name || favoriteLabels.singular;
-      const targetText = document.createElement("span");
-      targetText.className = "target";
-      targetText.textContent = target(favorite) || "";
-      text.append(name, targetText);
-      button.append(icon, text);
-      button.addEventListener("click", () => {
-        const value = target(favorite);
-        if (!value) return;
-        if (isFileFavorite(favorite)) {
-          window.api.openLocalPath(value);
         } else {
-          window.api.openDefaultBrowser(value);
+          icon.textContent = isFileFavorite(favorite) ? "file" : (favorite.name || "?").charAt(0).toUpperCase();
         }
-        window.api.closeWindow();
+        const text = document.createElement("span");
+        text.className = "text";
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = favorite.name || favoriteLabels.singular;
+        const targetText = document.createElement("span");
+        targetText.className = "target";
+        targetText.textContent = target(favorite) || "";
+        text.append(name, targetText);
+        button.append(icon, text);
+        button.addEventListener("click", () => {
+          const value = target(favorite);
+          if (!value) return;
+          if (isFileFavorite(favorite)) {
+            window.api.openLocalPath(value);
+          } else {
+            window.api.openDefaultBrowser(value);
+          }
+          window.api.closeWindow();
+        });
+        list.append(button);
       });
-      list.append(button);
-    });
+    }
+
+    function createSection(title, items, globalOnly = false) {
+      const section = document.createElement("section");
+      section.className = "section";
+      if (title) {
+        const heading = document.createElement("h2");
+        heading.className = "section-title";
+        heading.textContent = title;
+        section.append(heading);
+      }
+      const list = document.createElement("div");
+      list.className = "list" + (globalOnly ? " global-only" : "");
+      section.append(list);
+      renderFavoriteList(list, items);
+      return section;
+    }
+
+    if (!favorites.length && !serverFavorites.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "No " + favoriteLabels.plural.toLowerCase() + " have been added yet.";
+      content.replaceChildren(empty);
+    } else {
+      content.replaceChildren();
+      if (favorites.length) {
+        content.append(createSection(serverFavorites.length ? "Main " + favoriteLabels.plural : "", favorites, !serverFavorites.length));
+      }
+      if (serverFavorites.length) {
+        content.append(createSection((serverName || "Server") + " Autorun " + favoriteLabels.plural, serverFavorites));
+      }
+    }
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") window.api.closeWindow();
     });

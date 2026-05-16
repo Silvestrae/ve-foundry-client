@@ -165,6 +165,7 @@ function updateLauncherScale() {
   launcherScaleFrame = window.requestAnimationFrame(() => {
     launcherScaleFrame = 0;
     launcherContent.style.setProperty("--launcher-scale", "1");
+    document.documentElement.style.setProperty("--launcher-scale", "1");
     launcherContent.classList.remove("launcher-scale-overflow");
     updateServerListViewport();
 
@@ -178,6 +179,10 @@ function updateLauncherScale() {
       const roundedScale = Number(nextScale.toFixed(3));
 
       launcherContent.style.setProperty(
+        "--launcher-scale",
+        String(roundedScale),
+      );
+      document.documentElement.style.setProperty(
         "--launcher-scale",
         String(roundedScale),
       );
@@ -2340,6 +2345,11 @@ type ExportedCredential = {
   user?: string;
 };
 
+type ShareThemePayload = Partial<ThemeConfig> & {
+  favoriteColumnCount?: AppConfig["favoriteColumnCount"];
+  serverColumnCount?: AppConfig["serverColumnCount"];
+};
+
 type SharePayload = {
   app?: Partial<AppConfig>;
   clientVersion?: string;
@@ -2347,7 +2357,7 @@ type SharePayload = {
   exportedAt?: string;
   exportVersion?: number;
   sections?: Partial<ShareOptions>;
-  theme?: Partial<ThemeConfig>;
+  theme?: ShareThemePayload;
 };
 
 type ImportDetection = {
@@ -2437,9 +2447,13 @@ function hideShareSummary() {
   summary.classList.add("hidden-display");
 }
 
-function cleanThemeForSharing(rawTheme: ThemeConfig) {
+function cleanThemeForSharing(rawTheme: ThemeConfig, app: AppConfig) {
   const parsed = ThemeConfigSchema.parse(rawTheme);
-  const cleanTheme = { ...parsed };
+  const cleanTheme: ShareThemePayload = {
+    ...parsed,
+    favoriteColumnCount: getFavoriteColumnCount(app),
+    serverColumnCount: getServerColumnCount(app),
+  };
   delete cleanTheme.fontPrimaryName;
   delete cleanTheme.fontPrimaryFilePath;
   delete cleanTheme.fontSecondaryName;
@@ -2568,7 +2582,10 @@ async function exportSettings() {
     payload.credentials = await collectCredentials(app.games ?? []);
   }
   if (options.theme) {
-    payload.theme = cleanThemeForSharing(await window.api.localThemeConfig());
+    payload.theme = cleanThemeForSharing(
+      await window.api.localThemeConfig(),
+      app,
+    );
   }
 
   document.getElementById("share-output")!.textContent = JSON.stringify(
@@ -2696,7 +2713,7 @@ async function confirmImportRisks(options: ShareOptions) {
   return true;
 }
 
-async function applyThemeImport(theme: Partial<ThemeConfig>) {
+async function applyThemeImport(theme: ShareThemePayload) {
   const themeStylesheet = document.getElementById(
     "theme-stylesheet",
   ) as HTMLLinkElement;
@@ -2717,6 +2734,26 @@ async function applyThemeImport(theme: Partial<ThemeConfig>) {
     "href",
     "styles/AppConfigurationModal-codex.css",
   );
+
+  const nextAppConfig = await window.api.localAppConfig();
+  let appConfigChanged = false;
+  if (theme.serverColumnCount === 1 || theme.serverColumnCount === 2) {
+    nextAppConfig.serverColumnCount = theme.serverColumnCount;
+    applyServerColumnCount(theme.serverColumnCount);
+    appConfigChanged = true;
+  }
+  if (
+    theme.favoriteColumnCount === 2 ||
+    theme.favoriteColumnCount === 3 ||
+    theme.favoriteColumnCount === 4
+  ) {
+    nextAppConfig.favoriteColumnCount = theme.favoriteColumnCount;
+    applyFavoriteColumnCount(theme.favoriteColumnCount);
+    appConfigChanged = true;
+  }
+  if (appConfigChanged) {
+    await window.api.saveAppConfig(nextAppConfig);
+  }
 }
 
 async function removeUnavailableImportedFileFavorites(app: Partial<AppConfig>) {
