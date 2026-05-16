@@ -34,7 +34,7 @@ module.exports = {
 
   win: {
     target: [
-      { target: "nsis", arch: ["x64", "ia32"] },
+      { target: "nsis", arch: ["x64"] },
       { target: "portable", arch: ["x64"] },
       "zip",
     ],

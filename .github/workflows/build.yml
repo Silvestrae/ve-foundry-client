@@ -34,8 +34,8 @@ jobs:
       - name: Build main, preload & renderer
         run: yarn build
 
-      - name: Package for Windows x64 and ia32
-        run: npx electron-builder --win --x64 --ia32 --publish always
+      - name: Package for Windows x64
+        run: npx electron-builder --win --x64 --publish always
 
   # Build supported Linux packages separately so a Linux packaging failure does not block Windows output.
   build-linux:

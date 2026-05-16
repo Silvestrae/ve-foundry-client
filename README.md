@@ -83,7 +83,7 @@ The app is unsigned. Windows may warn you the first time you download, install, 
 
 GitHub releases include:
 
-- A Windows installer (32bit and 64bit)
+- A Windows installer (64bit only)
 - A portable Windows build (64bit only)
 - A zipped Windows build (64bit only)
 - Linux AppImage builds (64bit and arm64)
