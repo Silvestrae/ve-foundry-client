@@ -14,5 +14,7 @@ export interface AppConfigurationForm {
   serverInfosPingRate: number;
   forceFullScreen: boolean;
   shareSessionBetweenWindows: boolean;
+  enableChromiumDiagnostics: boolean;
+  disableHardwareAcceleration: boolean;
   enableDiscordRp: boolean;
 }

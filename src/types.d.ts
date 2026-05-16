@@ -50,6 +50,8 @@ type AppConfig = {
   serverInfoPingRate?: number;
   fullScreenEnabled?: boolean;
   shareSessionWindows?: boolean;
+  chromiumDiagnosticsEnabled?: boolean;
+  disableHardwareAcceleration?: boolean;
   windowBounds?: WindowBounds;
 };
 
@@ -102,6 +104,7 @@ type ThemeConfig = {
   buttonColorHover: string;
   baseTheme?: string;
   particlesEnabled?: boolean;
+  serverTileBackgroundImagesEnabled?: boolean;
   particleOptions?: ParticleOptions;
 };
 

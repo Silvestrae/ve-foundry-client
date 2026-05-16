@@ -42,6 +42,8 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
     serverInfoPingRate: form.serverInfosPingRate,
     fullScreenEnabled: form.forceFullScreen,
     shareSessionWindows: form.shareSessionBetweenWindows,
+    chromiumDiagnosticsEnabled: form.enableChromiumDiagnostics,
+    disableHardwareAcceleration: form.disableHardwareAcceleration,
   };
 
   const result = AppConfigSchema.safeParse(rawConfig);

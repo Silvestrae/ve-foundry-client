@@ -144,6 +144,47 @@
                 </el-tooltip>
               </div>
 
+              <div class="chromium-diagnostics-field field">
+                <label class="switch-label">Enable Chromium Diagnostics</label>
+                <el-switch
+                  v-model="form.enableChromiumDiagnostics"
+                  class="mt-2"
+                  size="large"
+                  style="
+                    margin-left: 24px;
+                    --el-switch-on-color: var(--color-accent);
+                    --el-switch-off-color: #000000;
+                  "
+                  inline-prompt
+                  :active-icon="Check"
+                  :inactive-icon="Close"
+                  id="chromium-diagnostics-toggle"
+                />
+              </div>
+
+              <div class="hardware-acceleration-field field">
+                <label class="switch-label"
+                  >Disable Hardware Acceleration</label
+                >
+                <el-tooltip placement="bottom">
+                  <template #content>Requires an app restart.</template>
+                  <el-switch
+                    v-model="form.disableHardwareAcceleration"
+                    class="mt-2"
+                    size="large"
+                    style="
+                      margin-left: 24px;
+                      --el-switch-on-color: var(--color-accent);
+                      --el-switch-off-color: #000000;
+                    "
+                    inline-prompt
+                    :active-icon="Check"
+                    :inactive-icon="Close"
+                    id="disable-hardware-acceleration-toggle"
+                  />
+                </el-tooltip>
+              </div>
+
               <!-- Discord Rich Presence -->
               <div class="discord-rp-field field">
                 <div class="discord-rp-copy">
@@ -400,6 +441,8 @@ const form = reactive<AppConfigurationForm>({
   serverInfosPingRate: 30,
   forceFullScreen: false,
   shareSessionBetweenWindows: false,
+  enableChromiumDiagnostics: false,
+  disableHardwareAcceleration: false,
   enableDiscordRp: true,
 });
 

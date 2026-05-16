@@ -43,6 +43,12 @@ export async function mergeAppData(
     fullScreenEnabled: imported.fullScreenEnabled ?? existing.fullScreenEnabled,
     shareSessionWindows:
       imported.shareSessionWindows ?? existing.shareSessionWindows,
+    chromiumDiagnosticsEnabled:
+      imported.chromiumDiagnosticsEnabled ??
+      existing.chromiumDiagnosticsEnabled,
+    disableHardwareAcceleration:
+      imported.disableHardwareAcceleration ??
+      existing.disableHardwareAcceleration,
   };
 
   return merged;
@@ -75,6 +81,9 @@ export async function mergeThemeData(
     buttonColorHover: imported.buttonColorHover ?? existing.buttonColorHover,
 
     particlesEnabled: imported.particlesEnabled ?? existing.particlesEnabled,
+    serverTileBackgroundImagesEnabled:
+      imported.serverTileBackgroundImagesEnabled ??
+      existing.serverTileBackgroundImagesEnabled,
     particleOptions: {
       count: imported.particleOptions?.count ?? existing.particleOptions.count,
       speedYMin:

@@ -972,10 +972,7 @@ function getServerGridInsertBeforeElement(
   const rowGap = parseFloat(styles.rowGap) || columnGap;
   const contentLeft = listRect.left + paddingLeft;
   const contentTop = listRect.top + paddingTop;
-  const contentWidth = Math.max(
-    1,
-    listRect.width - paddingLeft - paddingRight,
-  );
+  const contentWidth = Math.max(1, listRect.width - paddingLeft - paddingRight);
   const columnWidth = Math.max(1, (contentWidth - columnGap) / columnCount);
   const columnSpan = columnWidth + columnGap;
   const column = Math.max(
@@ -1033,10 +1030,7 @@ function getFavoriteGridInsertBeforeElement(
   const rowGap = parseFloat(styles.rowGap) || columnGap;
   const contentLeft = listRect.left + paddingLeft;
   const contentTop = listRect.top + paddingTop;
-  const contentWidth = Math.max(
-    1,
-    listRect.width - paddingLeft - paddingRight,
-  );
+  const contentWidth = Math.max(1, listRect.width - paddingLeft - paddingRight);
   const columnWidth = Math.max(
     1,
     (contentWidth - columnGap * (columnCount - 1)) / columnCount,
@@ -1469,16 +1463,12 @@ function setMainEditMode(enabled: boolean) {
   }
   setServerTileNativeTooltipsEnabled(!enabled);
 
-  document
-    .querySelectorAll<HTMLElement>(".favorite-item")
-    .forEach((handle) => {
-      handle.draggable = false;
-    });
-  document
-    .querySelectorAll<HTMLElement>(".reorder-game")
-    .forEach((handle) => {
-      handle.draggable = false;
-    });
+  document.querySelectorAll<HTMLElement>(".favorite-item").forEach((handle) => {
+    handle.draggable = false;
+  });
+  document.querySelectorAll<HTMLElement>(".reorder-game").forEach((handle) => {
+    handle.draggable = false;
+  });
 
   if (!enabled) {
     setFavoriteEditMode();
@@ -1559,6 +1549,11 @@ document
     const particlesEnabled = (
       closeUserConfig.querySelector("#particles-button") as HTMLInputElement
     ).checked;
+    const serverTileBackgroundImagesEnabled = (
+      closeUserConfig.querySelector(
+        "#server-tile-backgrounds",
+      ) as HTMLInputElement
+    ).checked;
     const particlesCount = Number(
       (closeUserConfig.querySelector("#particles-count") as HTMLInputElement)
         .value,
@@ -1597,6 +1592,7 @@ document
       buttonColorHoverAlpha,
       buttonColorHover,
       particlesEnabled,
+      serverTileBackgroundImagesEnabled,
       particleOptions: {
         count: particlesCount,
         speedYMin: particlesSpeed / 2,
@@ -1956,6 +1952,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const particlesCheckbox =
     document.querySelector<HTMLInputElement>("#particles-button")!;
+  (
+    document.querySelector("#server-tile-backgrounds") as HTMLInputElement
+  ).checked = themeConfig.serverTileBackgroundImagesEnabled ?? true;
   setParticlesControlsEnabled(themeConfig.particlesEnabled ?? true);
   particlesCheckbox.addEventListener("change", () => {
     setParticlesControlsEnabled(particlesCheckbox.checked);
@@ -1998,6 +1997,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       themeConfig.fontPrimaryUrl = "";
       themeConfig.fontSecondary = "";
       themeConfig.fontSecondaryUrl = "";
+      themeConfig.serverTileBackgroundImagesEnabled = true;
       themeConfig.particleOptions.color = "#63b0c4";
       themeConfig.particleOptions.alpha = 0.15;
       themeConfig.particleOptions.count = 100;
@@ -2408,7 +2408,9 @@ function getExportOptions(): ShareOptions {
 }
 
 function showShareSummary(title: string, lines: string[]) {
-  const summary = document.getElementById("share-summary") as HTMLElement | null;
+  const summary = document.getElementById(
+    "share-summary",
+  ) as HTMLElement | null;
   if (!summary) return;
   summary.innerHTML = "";
 
@@ -2427,7 +2429,9 @@ function showShareSummary(title: string, lines: string[]) {
 }
 
 function hideShareSummary() {
-  const summary = document.getElementById("share-summary") as HTMLElement | null;
+  const summary = document.getElementById(
+    "share-summary",
+  ) as HTMLElement | null;
   if (!summary) return;
   summary.innerHTML = "";
   summary.classList.add("hidden-display");
@@ -2468,7 +2472,9 @@ function favoriteKey(favorite: FavoriteConfig) {
 }
 
 function serverUrlKey(game: Partial<GameConfig>) {
-  return String(game.url ?? "").trim().toLowerCase();
+  return String(game.url ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function favoriteForImport(favorite: FavoriteConfig): FavoriteConfig {
@@ -2494,9 +2500,7 @@ function hasAutorunData(games: unknown): games is GameConfig[] {
 
 function hasClientSettingsData(app: Partial<AppConfig> | undefined) {
   if (!app) return false;
-  return Object.keys(app).some(
-    (key) => !["games", "favorites"].includes(key),
-  );
+  return Object.keys(app).some((key) => !["games", "favorites"].includes(key));
 }
 
 async function collectCredentials(games: GameConfig[]) {
@@ -2602,7 +2606,9 @@ function normalizeSharePayload(data: any): ImportDetection | null {
     available.theme = true;
   }
 
-  return Object.values(available).some(Boolean) ? { data: payload, available } : null;
+  return Object.values(available).some(Boolean)
+    ? { data: payload, available }
+    : null;
 }
 
 function showImportOptionsDialog(available: Partial<ShareOptions>) {
@@ -2768,7 +2774,10 @@ async function mergeImportedAppData(app: Partial<AppConfig>) {
   return mergeAppData(await removeUnavailableImportedFileFavorites(app));
 }
 
-function mergeFavorites(existing: FavoriteConfig[], incoming: FavoriteConfig[]) {
+function mergeFavorites(
+  existing: FavoriteConfig[],
+  incoming: FavoriteConfig[],
+) {
   const seen = new Set(existing.map(favoriteKey));
   const merged = [...existing];
   let added = 0;
@@ -2841,7 +2850,10 @@ async function applySharePayload(
   }
 
   if (options.globalFavorites && Array.isArray(importedApp.favorites)) {
-    const result = mergeFavorites(nextApp.favorites ?? [], importedApp.favorites);
+    const result = mergeFavorites(
+      nextApp.favorites ?? [],
+      importedApp.favorites,
+    );
     nextApp = { ...nextApp, favorites: result.favorites };
     summary.favorites = result.added;
   }
@@ -2855,7 +2867,9 @@ async function applySharePayload(
         nextApp.games?.find(
           (game) =>
             serverUrlKey(game) ===
-              String(credential.serverUrl ?? "").trim().toLowerCase() ||
+              String(credential.serverUrl ?? "")
+                .trim()
+                .toLowerCase() ||
             String(game.id ?? "") === String(credential.gameId ?? ""),
         ) ?? null;
       const gameId = matchedGame?.id ?? matchedGame?.name ?? credential.gameId;
@@ -2987,21 +3001,24 @@ async function refreshServerMetadataOnLaunch(
   game: GameConfig,
   appConfig: AppConfig,
 ) {
-  const gameId = game.id === undefined || game.id === null ? null : String(game.id);
-  const gameUrl = String(game.url ?? "").trim().toLowerCase();
-  const savedGameIndex = appConfig.games?.findIndex(
-    (storedGame) => {
-      const storedId =
-        storedGame.id === undefined || storedGame.id === null
-          ? null
-          : String(storedGame.id);
-      const storedUrl = String(storedGame.url ?? "").trim().toLowerCase();
-      return (
-        (gameId !== null && storedId === gameId) ||
-        (!!gameUrl && storedUrl === gameUrl)
-      );
-    },
-  );
+  const gameId =
+    game.id === undefined || game.id === null ? null : String(game.id);
+  const gameUrl = String(game.url ?? "")
+    .trim()
+    .toLowerCase();
+  const savedGameIndex = appConfig.games?.findIndex((storedGame) => {
+    const storedId =
+      storedGame.id === undefined || storedGame.id === null
+        ? null
+        : String(storedGame.id);
+    const storedUrl = String(storedGame.url ?? "")
+      .trim()
+      .toLowerCase();
+    return (
+      (gameId !== null && storedId === gameId) ||
+      (!!gameUrl && storedUrl === gameUrl)
+    );
+  });
   if (savedGameIndex === undefined || savedGameIndex < 0) return;
 
   const savedGame = appConfig.games[savedGameIndex];
@@ -3061,40 +3078,47 @@ async function createGameItem(game: GameConfig) {
   li.querySelector("a").innerText = game.name;
   setupServerReorder(li);
   void applyCachedServerButtonBackground(li, game);
-  li.querySelector(".game-main-button").addEventListener("click", async (event) => {
-    if (mainEditModeEnabled) {
-      event.preventDefault();
-      return;
-    }
-
-    const appConfig: AppConfig = await window.api.localAppConfig();
-    const gameId =
-      game.id === undefined || game.id === null ? null : String(game.id);
-    const gameUrl = String(game.url ?? "").trim().toLowerCase();
-    const savedGame = appConfig.games?.find((storedGame) => {
-      const storedId =
-        storedGame.id === undefined || storedGame.id === null
-          ? null
-          : String(storedGame.id);
-      const storedUrl = String(storedGame.url ?? "").trim().toLowerCase();
-      return (
-        (gameId !== null && storedId === gameId) ||
-        (!!gameUrl && storedUrl === gameUrl)
-      );
-    });
-    const shouldAutoLogin =
-      savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
-    window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
-    openAutorunItems(savedGame?.autorunFavorites ?? game.autorunFavorites);
-    await refreshServerButtonBackground(li, game);
-    await refreshServerMetadataOnLaunch(li, savedGame ?? game, appConfig);
-    if (appConfig.discordRP) {
-      if (window.richPresence?.enable) {
-        window.richPresence.enable();
+  li.querySelector(".game-main-button").addEventListener(
+    "click",
+    async (event) => {
+      if (mainEditModeEnabled) {
+        event.preventDefault();
+        return;
       }
-    }
-    window.location.href = game.url;
-  });
+
+      const appConfig: AppConfig = await window.api.localAppConfig();
+      const gameId =
+        game.id === undefined || game.id === null ? null : String(game.id);
+      const gameUrl = String(game.url ?? "")
+        .trim()
+        .toLowerCase();
+      const savedGame = appConfig.games?.find((storedGame) => {
+        const storedId =
+          storedGame.id === undefined || storedGame.id === null
+            ? null
+            : String(storedGame.id);
+        const storedUrl = String(storedGame.url ?? "")
+          .trim()
+          .toLowerCase();
+        return (
+          (gameId !== null && storedId === gameId) ||
+          (!!gameUrl && storedUrl === gameUrl)
+        );
+      });
+      const shouldAutoLogin =
+        savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
+      window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
+      openAutorunItems(savedGame?.autorunFavorites ?? game.autorunFavorites);
+      await refreshServerButtonBackground(li, game);
+      await refreshServerMetadataOnLaunch(li, savedGame ?? game, appConfig);
+      if (appConfig.discordRP) {
+        if (window.richPresence?.enable) {
+          window.richPresence.enable();
+        }
+      }
+      window.location.href = game.url;
+    },
+  );
   gameItemList.appendChild(li);
   await updateServerInfos(li, game);
 
@@ -3141,6 +3165,13 @@ function applyThemeConfig(config: ThemeConfig) {
 
   const particlesCheckboxEnabled = config.particlesEnabled ?? true;
   particlesCheckbox.checked = particlesCheckboxEnabled;
+  (
+    document.querySelector("#server-tile-backgrounds") as HTMLInputElement
+  ).checked = config.serverTileBackgroundImagesEnabled ?? true;
+  document.body.classList.toggle(
+    "server-tile-backgrounds-disabled",
+    !(config.serverTileBackgroundImagesEnabled ?? true),
+  );
 
   customPrimaryField.style.display =
     primaryFontSelect.value === "__custom" ? "flex" : "none";
@@ -3336,6 +3367,18 @@ function applyThemeConfig(config: ThemeConfig) {
     (document.querySelector("#accent-color") as HTMLInputElement).value =
       config.accentColor.substring(0, 7);
   }
+  const accent =
+    config.accentColor ??
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--color-accent")
+      .trim() ??
+    "#000000";
+  const labelColor = getContrastColor(accent);
+  document.documentElement.style.setProperty(
+    "--switch-label-color",
+    labelColor,
+  );
+
   if (config.buttonColorAlpha != null) {
     const alphaStr = config.buttonColorAlpha.toString();
 
@@ -3398,14 +3441,6 @@ function applyThemeConfig(config: ThemeConfig) {
     lastParticleOptions = null;
     return;
   }
-
-  // Calculates Switch Label color from accentColor
-  const accent = config.accentColor;
-  const labelColor = getContrastColor(accent);
-  document.documentElement.style.setProperty(
-    "--switch-label-color",
-    labelColor,
-  );
 
   const sameOpts =
     lastParticleOptions !== null &&
@@ -3647,7 +3682,11 @@ async function createFavoriteList() {
       !customIconUrl && !fileIconUrl && !isFileFavorite(favorite)
         ? favorite.iconUrl || getFaviconUrl(favorite.url ?? "")
         : "";
-    const iconUrl = customIconUrl || fileIconUrl || faviconUrl;
+    const safeFaviconUrl =
+      faviconUrl && (await window.api.remoteImageExists(faviconUrl))
+        ? faviconUrl
+        : "";
+    const iconUrl = customIconUrl || fileIconUrl || safeFaviconUrl;
     if (iconUrl) {
       const image = document.createElement("img");
       image.src = iconUrl;
@@ -3780,6 +3819,7 @@ async function createGameList() {
     buttonColorHover: "#28283c",
     baseTheme: "codex",
     particlesEnabled: true,
+    serverTileBackgroundImagesEnabled: true,
   };
 
   const appConfig: AppConfig = {

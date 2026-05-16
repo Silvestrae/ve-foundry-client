@@ -5,11 +5,13 @@
 ![Foundry v13](https://img.shields.io/badge/Foundry-v13-lightgreen)
 ![Foundry v14](https://img.shields.io/badge/Foundry-v14-lightgreen)
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
+![Linux](https://img.shields.io/badge/Platform-Linux-blue)
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow)
 
-VE Foundry Client is an independent, privately maintained Windows fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). It keeps the original goal of a lightweight Foundry VTT desktop launcher and adds practical Windows-focused tools for day-to-day play for my gaming group's needs.
+VE Foundry Client is an independent, privately maintained fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). It keeps the original goal of a lightweight Foundry VTT desktop launcher and adds practical tools for day-to-day play for my gaming group's needs.
 
-VE Foundry Client is currently built and released for Windows only. The codebase still keeps macOS and Linux in mind where practical. If you want a macOS or Linux build and are happy to test that platform, open an issue and one can be provided.
+VE Foundry Client is built and released for Windows and Linux. Windows remains the primary day-to-day target. Linux is supported and included with full releases, with testing helped by community feedback across different
+distributions.
 
 This app is currently unsigned. Windows Defender, SmartScreen, or antivirus software may warn you when downloading or installing it. If you do not want to trust an unsigned private-use build, do not use it.
 
@@ -35,14 +37,14 @@ This app is currently unsigned. Windows Defender, SmartScreen, or antivirus soft
 ## Original player clients
 
 | Feature                                      | [theripper93](https://github.com/theripper93/fvtt-player-client) | [omegarogue](https://github.com/OmegaRogue/fvtt-player-client) | [jeidouran](https://github.com/JeidoUran/fvtt-player-client) |
-| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :-------: |
-| Back to server select button in setup screen |                                ✔️                                |                               ✔️                               |    ✔️     |
-| Back to server select button in login screen |                                ✔️                                |                               ✔️                               |    ✔️     |
-| Back to server select button in game         |                                ❌                                |                               ✔️                               |    ✔️     |
-| Foundry v13 Compatibility                    |                                ❌                                |                               ❌                               |    ✔️     |
-| Discord Rich Presence                        |                                ❌                                |                               ❌                               |    ✔️     |
-| Server status on game buttons                |                                ❌                                |                               ❌                               |    ✔️     |
-| Theme editor                                 |                                ❌                                |                               ❌                               |    ✔️     |
+| -------------------------------------------- | :--------------------------------------------------------------: | :------------------------------------------------------------: | :----------------------------------------------------------: |
+| Back to server select button in setup screen |                                ✔️                                |                               ✔️                               |                              ✔️                              |
+| Back to server select button in login screen |                                ✔️                                |                               ✔️                               |                              ✔️                              |
+| Back to server select button in game         |                                ❌                                |                               ✔️                               |                              ✔️                              |
+| Foundry v13 Compatibility                    |                                ❌                                |                               ❌                               |                              ✔️                              |
+| Discord Rich Presence                        |                                ❌                                |                               ❌                               |                              ✔️                              |
+| Server status on game buttons                |                                ❌                                |                               ❌                               |                              ✔️                              |
+| Theme editor                                 |                                ❌                                |                               ❌                               |                              ✔️                              |
 
 ## What VE Foundry Client Adds
 
@@ -53,25 +55,28 @@ Discord Rich Presence, server status, the theme editor, and basic settings/theme
 | Added in VE Foundry Client    | What it means for you                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------- |
 | Website and file favourites   | Keep campaign links, PDFs, notes, images, folders, and other tools in one launcher.   |
-| Server autorun favourites     | Open selected favourites automatically when you launch a specific Foundry server.      |
-| In-game favourites popup      | Press `Ctrl+Shift+F` while inside Foundry to open saved links or files.                |
-| Expanded sharing controls     | Export selected settings, servers, credentials, themes, and favourites separately.      |
-| Import checks for local files | Skip imported file favourites that do not exist on the current Windows computer.       |
-| Original client import        | Bring across settings from older FVTT Desktop Client installs on first run.            |
-| Portable Windows builds       | Use the app without a normal install, with portable app data kept beside the build.    |
-| Launcher layout controls      | Reorder server and favourite tiles, then choose compact or wider column layouts.       |
-| Per-server refresh control    | Stop automatic status checks for servers where polling is not wanted.                  |
-| Cached server artwork         | Save Foundry login artwork for server tiles so the launcher stays more visual.         |
-| Active server effect          | Highlight the server you launched so it is easy to see which world is currently open.  |
-| Window position restore       | Reopen the launcher at the size and position you used last time.                       |
+| Server autorun favourites     | Open selected favourites automatically when you launch a specific Foundry server.     |
+| In-game favourites popup      | Press `Ctrl+Shift+F` while inside Foundry to open saved links or files.               |
+| Expanded sharing controls     | Export selected settings, servers, credentials, themes, and favourites separately.    |
+| Import checks for local files | Skip imported file favourites that do not exist on the current computer.              |
+| Original client import        | Bring across settings from older FVTT Desktop Client installs on first run.           |
+| Portable Windows builds       | Use the app without a normal install, with portable app data kept beside the build.   |
+| Launcher layout controls      | Reorder server and favourite tiles, then choose compact or wider column layouts.      |
+| Per-server refresh control    | Stop automatic status checks for servers where polling is not wanted.                 |
+| Cached server artwork         | Save Foundry login artwork for server tiles so the launcher stays more visual.        |
+| Active server effect          | Highlight the server you launched so it is easy to see which world is currently open. |
+| Window position restore       | Reopen the launcher at the size and position you used last time.                      |
 
 ![Main launcher in play mode, showing server tiles and favourites](docs/screenshots/launcher.png)
 
 ## Platform Support
 
-VE Foundry Client is currently built and released for Windows only.
+VE Foundry Client is built and released for Windows and Linux.
 
-The app is unsigned. Windows may warn you the first time you download, install, or run it.
+Windows remains the primary daily-use target. Linux is supported through release builds and relies on community testing across distributions, desktop environments, and package formats. Packaging coverage is limited to the
+artifacts listed below.
+
+The app is unsigned. Windows may warn you the first time you download, install, or run it. Linux package managers or desktop environments may also warn about unsigned packages.
 
 ## Download And Install
 
@@ -80,8 +85,14 @@ GitHub releases include:
 - A Windows installer (32bit and 64bit)
 - A portable Windows build (64bit only)
 - A zipped Windows build (64bit only)
+- Linux AppImage builds (64bit and arm64)
+- Linux `.deb` builds (64bit and arm64)
+- Linux `.rpm` builds (64bit and arm64)
+- Linux zipped and `.tar.gz` builds (64bit and arm64)
 
 Use the installer if you want a normal Windows app. Use the portable build if you want to keep the app and its data together in one folder for easy use from any PC/USB drive on the go.
+
+On Linux, start with the AppImage unless you specifically want a package for a Debian/Ubuntu-style or RPM-based system.
 
 ## Server Launcher
 
@@ -168,16 +179,16 @@ https://github.com/user-attachments/assets/813c4028-8b2b-4abd-a200-20dcf93a29cf
 
 ## Keyboard Shortcuts
 
-| Shortcut                    | Action                                              |
-| --------------------------- | --------------------------------------------------- |
-| `Ctrl+Shift+F`              | Open or close the favourites popup.                 |
-| `Ctrl+Shift+S`              | Return to the server select screen.                 |
-| `Ctrl+R` or `F5`            | Reload the current page.                            |
-| `Ctrl+Shift+R` or `Ctrl+F5` | Force reload the current page.                      |
-| `Ctrl++` / `Ctrl+Shift++`   | Zoom in.                                            |
-| `Ctrl+-`                    | Zoom out.                                           |
-| `Ctrl+0`                    | Reset zoom.                                         |
-| `Ctrl+Shift+I` or `F12`     | Open developer tools.                               |
+| Shortcut                    | Action                              |
+| --------------------------- | ----------------------------------- |
+| `Ctrl+Shift+F`              | Open or close the favourites popup. |
+| `Ctrl+Shift+S`              | Return to the server select screen. |
+| `Ctrl+R` or `F5`            | Reload the current page.            |
+| `Ctrl+Shift+R` or `Ctrl+F5` | Force reload the current page.      |
+| `Ctrl++` / `Ctrl+Shift++`   | Zoom in.                            |
+| `Ctrl+-`                    | Zoom out.                           |
+| `Ctrl+0`                    | Reset zoom.                         |
+| `Ctrl+Shift+I` or `F12`     | Open developer tools.               |
 
 ## Client Settings
 
@@ -212,7 +223,7 @@ You can adjust:
 - Button colours and opacity
 - Particle effects
 - Google Font URLs
-- Local font files 
+- Local font files
 
 Theme imports do not include local font-file paths, because those paths only work on the computer where they were chosen.
 
@@ -254,7 +265,7 @@ When an update is available:
 - The update button changes state.
 - The updater modal shows release notes.
 
-![update button.](docs/screenshots/update2.png)  
+![update button.](docs/screenshots/update2.png)
 
 ![update modal with release notes.](docs/screenshots/update1.png)
 

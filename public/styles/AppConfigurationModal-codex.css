@@ -88,11 +88,10 @@
 }
 
 .app-configuration .server-infos-configuration {
-  background: rgba(8, 14, 22, 0.3);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  padding: 0.65rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .app-configuration .server-infos-configuration::before {
@@ -149,10 +148,11 @@
 
 .app-configuration .slider-value {
   align-items: center;
-  background: rgba(8, 14, 22, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--color-accent);
+  border: 1px solid
+    color-mix(in srgb, var(--switch-label-color) 34%, transparent);
   border-radius: 6px;
-  color: var(--color-text-primary);
+  color: var(--switch-label-color);
   display: inline-flex;
   font-family: var(--font-secondary);
   font-size: 0.8rem;
@@ -160,6 +160,7 @@
   height: 1.55rem;
   justify-content: center;
   min-width: 2.35rem;
+  text-shadow: none;
 }
 
 .app-configuration .el-input__inner {
@@ -258,13 +259,9 @@
 }
 
 .app-configuration .cache-path-field {
-  background: rgba(18, 56, 73, 0.42);
-  background: rgba(8, 14, 22, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 3px solid
-    color-mix(in srgb, var(--color-accent) 45%, transparent);
-  border-radius: 8px;
-  padding: 0.35rem 1.75rem;
+  background: transparent;
+  border: 0;
+  padding: 0 1.75rem;
 }
 
 .app-configuration .cache-path-field .el-input__inner {
@@ -319,8 +316,16 @@
   order: 10;
 }
 
-.app-configuration .server-infos-configuration {
+.app-configuration .chromium-diagnostics-field {
   order: 11;
+}
+
+.app-configuration .hardware-acceleration-field {
+  order: 12;
+}
+
+.app-configuration .server-infos-configuration {
+  order: 13;
 }
 
 .app-configuration .button-group {

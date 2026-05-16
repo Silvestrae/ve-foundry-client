@@ -249,7 +249,6 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   ):not(.toggle-password):hover {
   background: var(--color-button-hover-rgba);
   box-shadow: 0 0 10px var(--color-accent);
-  text-shadow: 0 0 4px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
   transform: scale(1.01);
@@ -352,6 +351,14 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   z-index: 1;
 }
 
+body.server-tile-backgrounds-disabled .game-item.has-server-background {
+  background-image: none;
+}
+
+body.server-tile-backgrounds-disabled .game-item.has-server-background::before {
+  display: none;
+}
+
 .game-item.dragging {
   opacity: 0.55;
   transform: scale(0.98);
@@ -388,7 +395,6 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   pointer-events: none;
   position: absolute;
   text-align: center;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.92);
   transition: opacity 0.16s ease;
   z-index: 5;
 }
@@ -500,9 +506,6 @@ body.main-edit-mode #tooltip-layer .active-tooltip:not(.server-action-tooltip) {
 .game-item.server-active .users {
   color: color-mix(in srgb, var(--color-accent) 72%, white);
   font-weight: 800;
-  text-shadow:
-    0 0 4px color-mix(in srgb, var(--color-accent) 65%, transparent),
-    0 0 10px color-mix(in srgb, var(--color-accent) 35%, transparent);
 }
 
 .server-refresh-disabled {
@@ -582,9 +585,6 @@ body.main-edit-mode .favorites-section {
   gap: 0.75rem;
   letter-spacing: 0.04em;
   line-height: 1;
-  text-shadow:
-    0 0 4px rgba(0, 0, 0, 0.85),
-    0 0 8px rgba(152, 228, 247, 0.22);
 }
 
 .servers-section .section-title {
@@ -638,7 +638,6 @@ body.main-edit-mode .favorites-section.favorites-empty .favorite-empty-state {
   max-width: min(92vw, 36rem);
   padding: 0.16rem 0.75rem;
   text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 .favorite-list {
@@ -745,7 +744,6 @@ body.main-edit-mode .favorites-section.favorites-empty .favorite-empty-state {
   position: absolute;
   right: 2rem;
   text-align: center;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.92);
   top: 0;
   transition: opacity 0.16s ease;
   z-index: 5;
@@ -779,7 +777,6 @@ body.main-edit-mode .favorite-item:active {
 
 .favorite-open-button:hover {
   background: var(--color-button-hover-rgba);
-  text-shadow: 0 0 3px var(--color-text-primary);
 }
 
 body.main-edit-mode .favorite-open-button:hover {
@@ -862,7 +859,6 @@ body.main-edit-mode .favorite-open-button:hover {
 
 .favorite-action:hover {
   color: var(--color-accent);
-  text-shadow: 0 0 4px var(--color-accent);
 }
 
 #add-game-wrapper,
@@ -892,7 +888,6 @@ body.main-edit-mode .favorite-open-button:hover {
   margin-block: 0;
   min-width: 0;
   padding-block: 0.35rem;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 #add-game-wrapper input::placeholder,
@@ -1240,14 +1235,9 @@ body:not(.main-edit-mode) .favorite-open-button {
 .theme-configuration .background-image-field,
 .theme-configuration .primary-custom-font-field,
 .theme-configuration .secondary-custom-font-field {
-  background: rgba(8, 14, 22, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 3px solid
-    color-mix(in srgb, var(--color-accent) 45%, transparent);
-  border-radius: 8px;
   grid-column: 1 / -1;
   margin: 0;
-  padding: 0.35rem 0.65rem;
+  padding: 0 0.65rem;
 }
 
 .theme-configuration
@@ -1308,16 +1298,11 @@ body:not(.main-edit-mode) .favorite-open-button {
 }
 
 .theme-configuration .particles-config {
-  background: rgba(8, 14, 22, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-top: 1px solid color-mix(in srgb, var(--color-accent) 50%, transparent);
-  border-radius: 10px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: grid;
   gap: 0.45rem;
   grid-column: 1 / -1;
   grid-template-columns: 1fr;
-  padding: 0.7rem;
+  padding: 0;
 }
 
 .theme-configuration .particles-config.is-disabled {
@@ -1818,7 +1803,6 @@ code.share-output {
   margin: 0 0 0.35rem;
   opacity: 0.88;
   text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
   width: 100%;
 }
 
@@ -1828,7 +1812,6 @@ code.share-output {
     0 0 8px var(--color-accent),
     0 0 18px rgba(58, 231, 231, 0.45);
   color: var(--color-text-primary);
-  text-shadow: 0 0 6px var(--color-accent);
 }
 
 .version-normal {
@@ -1911,7 +1894,6 @@ a {
 .game-title-bar .config-button-wrapper:hover {
   background: var(--color-button-hover-rgba);
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
-  text-shadow: 0 0 4px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
 }
@@ -2131,7 +2113,7 @@ textarea {
 }
 
 .game-main-button:hover .server-infos {
-  text-shadow: 0 0 1px var(--color-text-primary);
+  text-shadow: none;
 }
 
 .game-main-button {
@@ -2148,7 +2130,6 @@ textarea {
   transform: scale(1.03);
   background: var(--color-button-hover-rgba);
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
-  text-shadow: 0 0 3px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
 }
@@ -2302,7 +2283,6 @@ textarea {
 }
 
 .toggle-password:hover {
-  text-shadow: 0 0 4px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
   transform: scale(1.15);
@@ -2324,13 +2304,11 @@ textarea {
 
 .config-button-wrapper:hover .configure-game i,
 .config-button-wrapper:hover .reorder-game i {
-  text-shadow: 0 0 4px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
 }
 
 .config-button-wrapper:hover .refresh-game i {
-  text-shadow: 0 0 4px var(--color-text-primary);
   text-decoration: none;
   cursor: pointer;
 }
@@ -2703,7 +2681,6 @@ input:checked + .slider:before {
   font-family: var(--font-secondary);
   font-size: 0.9rem;
   font-weight: 700;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 .server-column-options,

@@ -94,6 +94,8 @@ export const AppConfigSchema = z.object({
   serverInfoPingRate: z.number().optional().prefault(30),
   fullScreenEnabled: z.boolean().optional().prefault(false),
   shareSessionWindows: z.boolean().optional().prefault(false),
+  chromiumDiagnosticsEnabled: z.boolean().optional().prefault(false),
+  disableHardwareAcceleration: z.boolean().optional().prefault(false),
   windowBounds: WindowBoundsSchema.optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;
@@ -130,6 +132,7 @@ export const ThemeConfigSchema = z.object({
   buttonColorHoverAlpha: z.number().prefault(0.95),
   buttonColorHover: z.string().prefault("#28283c"),
   particlesEnabled: z.boolean().prefault(true),
+  serverTileBackgroundImagesEnabled: z.boolean().prefault(true),
   particleOptions: ParticleOptionsSchema,
   baseTheme: z.string().prefault("codex"),
   fontPrimary: z.string().prefault(""),

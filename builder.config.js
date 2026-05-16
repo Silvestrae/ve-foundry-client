@@ -61,7 +61,7 @@ module.exports = {
   linux: {
     target: ["AppImage", "deb", "rpm", "zip", "tar.gz"],
     icon: "src/icons/png",
-    maintainer: "JeidoUran <jeido.uran@hotmail.fr>",
+    maintainer: "Silvestrae",
     artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
 

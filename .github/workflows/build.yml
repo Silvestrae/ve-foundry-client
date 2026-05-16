@@ -3,6 +3,8 @@ name: 📦 Build & Publish
 
 # fire on every published release, or manual dispatch
 on:
+  release:
+    types: [published]
   workflow_dispatch:
 permissions:
   contents: write # needed to upload release assets
@@ -35,9 +37,8 @@ jobs:
       - name: Package for Windows x64
         run: npx electron-builder --win --x64 --publish always
 
-  # Primary support is for windows only, linux is comunity supported
-  # Separate step makes it easier to add linux support without breaking the windows build
-  build-linux :
+  # Build supported Linux packages separately so a Linux packaging failure does not block Windows output.
+  build-linux:
     runs-on: ubuntu-latest
     # allow electron-builder to upload to GitHub Releases
     env:
@@ -45,7 +46,7 @@ jobs:
     strategy:
       matrix:
         # for multi-arch on Linux:
-        arch: [ x64, arm64 ]
+        arch: [x64, arm64]
       fail-fast: false
     steps:
       - uses: actions/checkout@v5
@@ -73,7 +74,7 @@ jobs:
             "x64")    ARCH_FLAG="--x64" ;;
             "arm64")  ARCH_FLAG="--arm64" ;;
           esac
-          
+
           # run electron-builder with publish
           npx electron-builder --linux "$ARCH_FLAG" --publish always
 

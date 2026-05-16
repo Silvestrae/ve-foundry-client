@@ -72,6 +72,8 @@ const appConfig = ref<AppConfigurationForm>({
   serverInfosPingRate: 30,
   forceFullScreen: false,
   shareSessionBetweenWindows: false,
+  enableChromiumDiagnostics: false,
+  disableHardwareAcceleration: false,
   enableDiscordRp: true,
 });
 
@@ -97,6 +99,8 @@ async function loadAppConfigIntoForm() {
     serverInfosPingRate: cfg.serverInfoPingRate ?? 30,
     forceFullScreen: cfg.fullScreenEnabled ?? false,
     shareSessionBetweenWindows: cfg.shareSessionWindows ?? false,
+    enableChromiumDiagnostics: cfg.chromiumDiagnosticsEnabled ?? false,
+    disableHardwareAcceleration: cfg.disableHardwareAcceleration ?? false,
     enableDiscordRp: cfg.discordRP ?? true,
   };
 }
@@ -168,6 +172,8 @@ async function handleReset() {
     serverInfosPingRate: 30,
     forceFullScreen: false,
     shareSessionBetweenWindows: false,
+    enableChromiumDiagnostics: false,
+    disableHardwareAcceleration: false,
     enableDiscordRp: true,
   };
 
@@ -182,6 +188,8 @@ async function handleReset() {
   current.discordRP = undefined;
   current.fullScreenEnabled = undefined;
   current.shareSessionWindows = undefined;
+  current.chromiumDiagnosticsEnabled = undefined;
+  current.disableHardwareAcceleration = undefined;
 
   window.api.setFullScreen(false);
   const closeButton = document.querySelector(

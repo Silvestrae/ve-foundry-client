@@ -66,6 +66,7 @@ export type ContextBridgeApi = {
     name: string;
   } | null>;
   localFileIcon(path: string): Promise<string | null>;
+  remoteImageExists(url: string): Promise<boolean>;
   localPathExists(path: string): Promise<boolean>;
   readFontFile(path: string): Promise<string | null>;
   openUserDataFolder: () => Promise<string>;
@@ -203,6 +204,8 @@ const exposedApi: ContextBridgeApi = {
     } | null>,
   localFileIcon: (path: string) =>
     ipcRenderer.invoke("local-file-icon", path) as Promise<string | null>,
+  remoteImageExists: (url: string) =>
+    ipcRenderer.invoke("remote-image-exists", url) as Promise<boolean>,
   localPathExists: (path: string) =>
     ipcRenderer.invoke("local-path-exists", path) as Promise<boolean>,
   readFontFile: (path: string) =>

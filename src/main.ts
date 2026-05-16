@@ -37,6 +37,7 @@ import {
 } from "./richPresence/richPresenceSocket";
 import path from "path";
 import fs from "fs-extra";
+import os from "os";
 import { fileURLToPath, pathToFileURL } from "url";
 import { execFile } from "child_process";
 import crypto from "crypto";
@@ -82,8 +83,19 @@ if (require("electron-squirrel-startup")) app.quit();
 // workaround for gtk version preventing app launch on certain Linux distros while using Electron 36
 app.commandLine.appendSwitch("gtk-version", "3");
 
-app.commandLine.appendSwitch("force_high_performance_gpu");
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
+
+try {
+  if (getAppConfig().disableHardwareAcceleration ?? false) {
+    app.disableHardwareAcceleration();
+    log.info("[diagnostics] Hardware acceleration disabled by client setting");
+  } else {
+    app.commandLine.appendSwitch("force_high_performance_gpu");
+  }
+} catch (err) {
+  log.warn("[diagnostics] Could not read hardware acceleration setting", err);
+  app.commandLine.appendSwitch("force_high_performance_gpu");
+}
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -1362,6 +1374,7 @@ function createWindow(): BrowserWindow {
   hookWindowBoundsPersistence(win);
   hookExternalLinkHandling(win);
   hookFavoritePopupShortcut(win);
+  attachWindowDiagnostics(win, "main-foundry-window");
 
   // ── Applies fullscreen according to user config ──
   try {
@@ -1843,6 +1856,393 @@ autoUpdater.on("error", (err) => {
   );
 });
 
+function isChromiumDiagnosticsEnabled() {
+  try {
+    return getAppConfig().chromiumDiagnosticsEnabled ?? false;
+  } catch {
+    return false;
+  }
+}
+
+function getWindowDiagnosticDetails(win?: BrowserWindow | null) {
+  if (!win || win.isDestroyed()) return {};
+  return {
+    windowId: win.id,
+    webContentsId: win.webContents.id,
+    title: win.getTitle(),
+    url: win.webContents.getURL(),
+  };
+}
+
+const CHROMIUM_DIAGNOSTICS_LOG_FILE = "chromium-diagnostics.log";
+const CHROMIUM_DIAGNOSTICS_MAX_BYTES = 5 * 1024 * 1024;
+const CHROMIUM_DIAGNOSTICS_FLUSH_MS = 2000;
+const CHROMIUM_DIAGNOSTICS_MAX_QUEUE = 1000;
+const CHROMIUM_DIAGNOSTICS_MAX_FIELD_LENGTH = 4000;
+
+let chromiumDiagnosticsQueue: string[] = [];
+let chromiumDiagnosticsFlushTimer: NodeJS.Timeout | null = null;
+let chromiumDiagnosticsFlushInProgress = false;
+let chromiumDiagnosticsDropped = 0;
+
+function getChromiumDiagnosticsLogPath() {
+  return path.join(app.getPath("userData"), CHROMIUM_DIAGNOSTICS_LOG_FILE);
+}
+
+function truncateDiagnosticValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.length > CHROMIUM_DIAGNOSTICS_MAX_FIELD_LENGTH
+      ? `${value.slice(0, CHROMIUM_DIAGNOSTICS_MAX_FIELD_LENGTH)}... [truncated]`
+      : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(truncateDiagnosticValue);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entryValue]) => [
+        key,
+        truncateDiagnosticValue(entryValue),
+      ]),
+    );
+  }
+
+  return value;
+}
+
+async function rotateChromiumDiagnosticsLogIfNeeded(logPath: string) {
+  try {
+    const stat = await fs.stat(logPath);
+    if (stat.size < CHROMIUM_DIAGNOSTICS_MAX_BYTES) return;
+
+    const rotatedPath = `${logPath}.1`;
+    await fs.remove(rotatedPath);
+    await fs.rename(logPath, rotatedPath);
+  } catch (err: any) {
+    if (err?.code !== "ENOENT") {
+      console.warn("[chromium-diagnostics] Could not rotate log file", err);
+    }
+  }
+}
+
+function rotateChromiumDiagnosticsLogIfNeededSync(logPath: string) {
+  try {
+    const stat = fs.statSync(logPath);
+    if (stat.size < CHROMIUM_DIAGNOSTICS_MAX_BYTES) return;
+
+    const rotatedPath = `${logPath}.1`;
+    fs.removeSync(rotatedPath);
+    fs.renameSync(logPath, rotatedPath);
+  } catch (err: any) {
+    if (err?.code !== "ENOENT") {
+      console.warn("[chromium-diagnostics] Could not rotate log file", err);
+    }
+  }
+}
+
+function takeChromiumDiagnosticsQueue() {
+  const lines = chromiumDiagnosticsQueue.splice(0);
+  if (chromiumDiagnosticsDropped > 0) {
+    lines.unshift(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: "diagnostics.queue-dropped",
+        dropped: chromiumDiagnosticsDropped,
+      }),
+    );
+    chromiumDiagnosticsDropped = 0;
+  }
+  return lines;
+}
+
+async function flushChromiumDiagnostics() {
+  if (
+    chromiumDiagnosticsFlushInProgress ||
+    chromiumDiagnosticsQueue.length === 0
+  ) {
+    return;
+  }
+
+  chromiumDiagnosticsFlushInProgress = true;
+  const lines = takeChromiumDiagnosticsQueue();
+
+  try {
+    const logPath = getChromiumDiagnosticsLogPath();
+    await fs.ensureDir(path.dirname(logPath));
+    await rotateChromiumDiagnosticsLogIfNeeded(logPath);
+    const payload = `${lines.join("\n")}\n`;
+    await fs.appendFile(logPath, payload, "utf-8");
+    console.warn(
+      `[chromium-diagnostics] flushed ${lines.length} event(s) to ${logPath}`,
+    );
+  } catch (err) {
+    console.warn("[chromium-diagnostics] Could not write diagnostics log", err);
+  } finally {
+    chromiumDiagnosticsFlushInProgress = false;
+    if (chromiumDiagnosticsQueue.length > 0) {
+      scheduleChromiumDiagnosticsFlush();
+    }
+  }
+}
+
+function flushChromiumDiagnosticsSync() {
+  if (
+    chromiumDiagnosticsQueue.length === 0 &&
+    chromiumDiagnosticsDropped === 0
+  ) {
+    return;
+  }
+
+  const lines = takeChromiumDiagnosticsQueue();
+
+  try {
+    const logPath = getChromiumDiagnosticsLogPath();
+    fs.ensureDirSync(path.dirname(logPath));
+    rotateChromiumDiagnosticsLogIfNeededSync(logPath);
+    fs.appendFileSync(logPath, `${lines.join("\n")}\n`, "utf-8");
+    console.warn(
+      `[chromium-diagnostics] flushed ${lines.length} event(s) to ${logPath}`,
+    );
+  } catch (err) {
+    console.warn("[chromium-diagnostics] Could not write diagnostics log", err);
+  }
+}
+
+function scheduleChromiumDiagnosticsFlush() {
+  if (chromiumDiagnosticsFlushTimer) return;
+
+  chromiumDiagnosticsFlushTimer = setTimeout(() => {
+    chromiumDiagnosticsFlushTimer = null;
+    void flushChromiumDiagnostics();
+  }, CHROMIUM_DIAGNOSTICS_FLUSH_MS);
+  chromiumDiagnosticsFlushTimer.unref?.();
+}
+
+function logChromiumDiagnostic(
+  eventName: string,
+  details: Record<string, unknown> = {},
+) {
+  if (!isChromiumDiagnosticsEnabled()) return;
+
+  const entry = {
+    timestamp: new Date().toISOString(),
+    event: eventName,
+    ...details,
+  };
+  const line = JSON.stringify(truncateDiagnosticValue(entry));
+  if (chromiumDiagnosticsQueue.length >= CHROMIUM_DIAGNOSTICS_MAX_QUEUE) {
+    chromiumDiagnosticsQueue.shift();
+    chromiumDiagnosticsDropped += 1;
+  }
+  chromiumDiagnosticsQueue.push(line);
+  scheduleChromiumDiagnosticsFlush();
+}
+
+function queueChromiumDiagnosticLine(line: string) {
+  if (!isChromiumDiagnosticsEnabled()) return;
+
+  if (chromiumDiagnosticsQueue.length >= CHROMIUM_DIAGNOSTICS_MAX_QUEUE) {
+    chromiumDiagnosticsQueue.shift();
+    chromiumDiagnosticsDropped += 1;
+  }
+  chromiumDiagnosticsQueue.push(line);
+  scheduleChromiumDiagnosticsFlush();
+}
+
+function getHardwareAccelerationDisabledSetting() {
+  try {
+    return getAppConfig().disableHardwareAcceleration ?? false;
+  } catch {
+    return false;
+  }
+}
+
+function logChromiumDiagnosticsSessionStart(win?: BrowserWindow | null) {
+  if (!isChromiumDiagnosticsEnabled()) return;
+
+  const initialUrl =
+    getWindowDiagnosticDetails(win).url ||
+    MAIN_WINDOW_VITE_DEV_SERVER_URL ||
+    "pending";
+  const sessionLines = [
+    "",
+    "=== VE Foundry Client diagnostic session started ===",
+    `Timestamp: ${new Date().toISOString()}`,
+    `App version: ${app.getVersion()}`,
+    `Electron version: ${process.versions.electron ?? "unknown"}`,
+    `Chrome version: ${process.versions.chrome ?? "unknown"}`,
+    `Node version: ${process.versions.node}`,
+    `OS: ${process.platform} ${os.release()} ${os.arch()}`,
+    `Hardware acceleration disabled: ${getHardwareAccelerationDisabledSetting()}`,
+    `Chromium diagnostics enabled: ${isChromiumDiagnosticsEnabled()}`,
+    `Initial URL: ${initialUrl}`,
+    "",
+  ];
+
+  for (const line of sessionLines) {
+    queueChromiumDiagnosticLine(line);
+  }
+  flushChromiumDiagnosticsSync();
+}
+
+function installAppProcessDiagnostics() {
+  const flushOnShutdown = () => {
+    if (chromiumDiagnosticsFlushTimer) {
+      clearTimeout(chromiumDiagnosticsFlushTimer);
+      chromiumDiagnosticsFlushTimer = null;
+    }
+    flushChromiumDiagnosticsSync();
+  };
+
+  app.on("before-quit", flushOnShutdown);
+  app.on("will-quit", flushOnShutdown);
+
+  app.on("render-process-gone", (_event, webContents, details) => {
+    const win = BrowserWindow.fromWebContents(webContents);
+    logChromiumDiagnostic("app.render-process-gone", {
+      ...getWindowDiagnosticDetails(win),
+      processType: "renderer",
+      reason: details.reason,
+      exitCode: details.exitCode,
+    });
+  });
+
+  app.on("child-process-gone", (_event, details) => {
+    logChromiumDiagnostic("app.child-process-gone", {
+      processType: details.type,
+      reason: details.reason,
+      exitCode: details.exitCode,
+      serviceName: details.serviceName,
+      name: details.name,
+    });
+  });
+}
+
+function normalizeConsoleMessage(args: any[]) {
+  const details = args[0];
+  if (details && typeof details === "object" && "message" in details) {
+    return {
+      level: details.level,
+      message: details.message,
+      sourceId: details.sourceId,
+      line: details.lineNumber,
+    };
+  }
+
+  return {
+    level: args[0],
+    message: args[1],
+    line: args[2],
+    sourceId: args[3],
+  };
+}
+
+function attachWindowDiagnostics(win: BrowserWindow, identifier: string) {
+  const withWindow = () => ({
+    identifier,
+    ...getWindowDiagnosticDetails(win),
+  });
+
+  win.on("unresponsive", () => {
+    logChromiumDiagnostic("window.unresponsive", withWindow());
+  });
+
+  win.on("responsive", () => {
+    logChromiumDiagnostic("window.responsive", withWindow());
+  });
+
+  win.webContents.on("console-message", (_event, ...args: any[]) => {
+    logChromiumDiagnostic("webContents.console-message", {
+      ...withWindow(),
+      ...normalizeConsoleMessage(args),
+    });
+  });
+
+  win.webContents.on("did-navigate", (_event, url, httpResponseCode) => {
+    logChromiumDiagnostic("webContents.did-navigate", {
+      ...withWindow(),
+      url,
+      httpResponseCode,
+    });
+  });
+
+  win.webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
+    logChromiumDiagnostic("webContents.did-navigate-in-page", {
+      ...withWindow(),
+      url,
+      isMainFrame,
+    });
+  });
+
+  win.webContents.on(
+    "did-fail-load",
+    (
+      _event,
+      errorCode,
+      errorDescription,
+      validatedURL,
+      isMainFrame,
+      frameProcessId,
+      frameRoutingId,
+    ) => {
+      logChromiumDiagnostic("webContents.did-fail-load", {
+        ...withWindow(),
+        errorCode,
+        errorDescription,
+        url: validatedURL || win.webContents.getURL(),
+        isMainFrame,
+        frameProcessId,
+        frameRoutingId,
+      });
+    },
+  );
+
+  win.webContents.on(
+    "did-fail-provisional-load",
+    (
+      _event,
+      errorCode,
+      errorDescription,
+      validatedURL,
+      isMainFrame,
+      frameProcessId,
+      frameRoutingId,
+    ) => {
+      logChromiumDiagnostic("webContents.did-fail-provisional-load", {
+        ...withWindow(),
+        errorCode,
+        errorDescription,
+        url: validatedURL || win.webContents.getURL(),
+        isMainFrame,
+        frameProcessId,
+        frameRoutingId,
+      });
+    },
+  );
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    logChromiumDiagnostic("webContents.render-process-gone", {
+      ...withWindow(),
+      processType: "renderer",
+      reason: details.reason,
+      exitCode: details.exitCode,
+    });
+  });
+
+  win.webContents.on("preload-error", (_event, preloadPath, error) => {
+    logChromiumDiagnostic("webContents.preload-error", {
+      ...withWindow(),
+      preloadPath,
+      reason: error?.message,
+      stack: error?.stack,
+    });
+  });
+}
+
+installAppProcessDiagnostics();
+
 app.whenReady().then(async () => {
   if (require("electron-squirrel-startup")) return;
 
@@ -1954,6 +2354,7 @@ app.whenReady().then(async () => {
 
   mainWindow = createWindow();
   setUpdateWindow(mainWindow);
+  logChromiumDiagnosticsSessionStart(mainWindow);
 
   // Configure cache/session
   const userData = getUserData();
@@ -2144,6 +2545,27 @@ ipcMain.handle("local-file-icon", async (_event, filePath: string) => {
   } catch (err) {
     console.error("local-file-icon failed:", err);
     return null;
+  }
+});
+
+ipcMain.handle("remote-image-exists", async (_event, rawUrl: string) => {
+  try {
+    const url = new URL(rawUrl);
+    if (!["http:", "https:"].includes(url.protocol)) return false;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    try {
+      const response = await fetch(url, {
+        method: "HEAD",
+        signal: controller.signal,
+      });
+      return response.ok;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch {
+    return false;
   }
 });
 
