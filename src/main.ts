@@ -745,6 +745,15 @@ function returnToServerSelect(win: BrowserWindow) {
   }
 }
 
+function getDisplayUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.host || url;
+  } catch {
+    return url;
+  }
+}
+
 function notifyMainWindow(message: string, winOverride?: BrowserWindow) {
   const win = winOverride ?? mainWindow;
   if (win && !win.isDestroyed()) {
@@ -1241,7 +1250,11 @@ function hookExternalLinkHandling(win: BrowserWindow) {
  */
 function askPrompt(
   message: string,
-  options?: { mode: "confirm" | "alert" },
+  options?: {
+    mode: "confirm" | "alert";
+    title?: string;
+    details?: { label: string; value: string }[];
+  },
   winOverride?: BrowserWindow,
 ): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
@@ -1553,45 +1566,55 @@ function createWindow(): BrowserWindow {
     win.loadFile(indexHtml);
   }
 
-  // ── Fallback on HTTP error (502, 503…) when loading /join ──
+  // Show an in-app fallback when the selected Foundry server is unavailable.
   const { session } = win.webContents;
 
   // Catch network errors (ERR_CONNECTION_REFUSED, etc.)
-  session.webRequest.onErrorOccurred(
-    { urls: ["*://*/join", "*://*/setup", "*://*/auth", "*://*/game"] },
-    (details) => {
-      if (
-        details.resourceType === "mainFrame" &&
-        !details.error.includes("ERR_ABORTED")
-      ) {
-        // on passe maintenant la fenêtre concernée
-        handleServerError(win, details.url, details.error);
-      }
-    },
-  );
+  session.webRequest.onErrorOccurred({ urls: ["*://*/*"] }, (details) => {
+    if (
+      details.webContentsId === win.webContents.id &&
+      details.resourceType === "mainFrame" &&
+      !details.error.includes("ERR_ABORTED")
+    ) {
+      handleServerError(win, details.url, details.error);
+    }
+  });
 
   // Catch HTTP responses (502, 503, etc.)
   session.webRequest.onCompleted({ urls: ["*://*/*"] }, (details) => {
-    if (details.resourceType === "mainFrame" && details.statusCode >= 400) {
+    if (
+      details.webContentsId === win.webContents.id &&
+      details.resourceType === "mainFrame" &&
+      details.statusCode >= 400
+    ) {
       handleServerError(win, details.url, `HTTP ${details.statusCode}`);
     }
   });
 
-  // Fallback + prompt function
   function handleServerError(
     targetWin: BrowserWindow,
     failedUrl: string,
     reason: string,
   ) {
+    const windowData = windowsData[targetWin.webContents.id];
+    const serverName = windowData?.selectedServerName;
+    if (!serverName) return;
+
+    const displayUrl = getDisplayUrl(failedUrl);
     console.warn(`[App] Could not load ${failedUrl}: ${reason}`);
-    // Return to index **dans la fenêtre concernée**
     returnToServerSelect(targetWin);
-    // Affiche le prompt dans la bonne fenêtre
     targetWin.webContents.once("did-finish-load", () => {
       setTimeout(() => {
         askPrompt(
-          `The game you attempted to join could not be reached (${reason}).`,
-          { mode: "alert" },
+          `${serverName} could not be reached. You have been returned to the server select screen.`,
+          {
+            mode: "alert",
+            title: "Server Unavailable",
+            details: [
+              { label: "Server", value: displayUrl },
+              { label: "Reason", value: reason },
+            ],
+          },
           targetWin,
         ).catch(console.error);
       }, 250);
@@ -2501,6 +2524,7 @@ app.whenReady().then(async () => {
 ipcMain.handle("show-menu", () => {
   showApplicationMenu();
 });
+
 
 ipcMain.on("enable-discord-rpc", (event) => {
   startRichPresenceSocket();

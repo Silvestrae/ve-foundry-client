@@ -19,6 +19,7 @@ export type ServerBackgroundData = {
   cleared?: boolean;
 };
 
+
 // type SendChannels = "toMain" | "open-game" | "save-user-data" | "app-version" | "cache-path" | "clear-cache";
 // type ReceiveChannels = "fromMain" | "save-user-data" | "app-version" | "cache-path";
 // type RequestChannels = "app-version" | "cache-path" | "get-user-data" | "select-path";
@@ -54,7 +55,11 @@ export type ContextBridgeApi = {
     handler: (event: {
       id: number;
       message: string;
-      options?: { mode: "confirm" | "alert" };
+      options?: {
+        mode: "confirm" | "alert";
+        title?: string;
+        details?: { label: string; value: string }[];
+      };
     }) => void,
   ) => void;
   sendPromptResponse: (id: number, answer: boolean) => void;
@@ -178,7 +183,11 @@ const exposedApi: ContextBridgeApi = {
         event: {
           id: number;
           message: string;
-          options?: { mode: "confirm" | "alert" };
+          options?: {
+            mode: "confirm" | "alert";
+            title?: string;
+            details?: { label: string; value: string }[];
+          };
         },
       ) => {
         handler(event);

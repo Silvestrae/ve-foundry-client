@@ -2062,7 +2062,8 @@ textarea {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--color-background) 26%, transparent);
+  backdrop-filter: none;
   align-items: center;
   justify-content: center;
   z-index: 9999;
@@ -2079,26 +2080,135 @@ textarea {
 }
 
 .confirm-box {
-  background: var(--color-background);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background) 86%, white),
+      color-mix(in srgb, var(--color-background) 96%, black)
+    ),
+    var(--color-background);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 46%, transparent);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   font-family: var(--font-secondary);
-  font-size: 1.35rem;
-  padding: 2rem;
+  font-size: 1.08rem;
+  padding: 2rem 2.25rem 1.75rem;
   border-radius: 0.5rem;
   text-align: center;
-  max-width: 500px;
+  max-width: 480px;
   width: 90%;
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+.confirm-box::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent),
+    transparent
+  );
+  opacity: 0.75;
+}
+
+#confirm-text {
+  position: relative;
+  margin: 0;
+  line-height: 1.42;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.confirm-title {
+  margin: 0;
+  color: var(--color-accent);
+  font-family: var(--font-primary);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.confirm-message {
+  margin: 1rem auto 0;
+  max-width: 34ch;
+  color: color-mix(in srgb, var(--color-text-primary) 82%, white);
+  font-size: 1.04rem;
+  line-height: 1.45;
+}
+
+.confirm-details {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.5rem 0.95rem;
+  margin: 1.2rem auto 0;
+  padding: 0.85rem 1rem;
+  max-width: 360px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--color-button-rgba) 72%, transparent);
+  text-align: left;
+}
+
+.confirm-details dt,
+.confirm-details dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.confirm-details dt {
+  color: color-mix(in srgb, var(--color-accent) 82%, white);
+  font-family: var(--font-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.confirm-details dd {
+  color: color-mix(in srgb, var(--color-text-primary) 86%, white);
+  font-size: 0.98rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .confirm-buttons {
-  margin-top: 1rem;
+  position: relative;
+  margin-top: 1.35rem;
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 1rem;
 }
 
 .confirm-button {
-  padding: 0.75rem 2.25rem;
-  width: 7em;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.75rem;
+  width: 8em;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent);
+  border-radius: 0.4rem;
+  background: var(--color-button-rgba);
+  color: var(--color-text-primary);
+  font-family: var(--font-secondary);
+  font-size: 1.05rem;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.confirm-button:hover,
+.confirm-button:focus-visible {
+  background: var(--color-button-hover-rgba);
+  border-color: color-mix(in srgb, var(--color-accent) 72%, white);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  outline: none;
 }
 
 .server-infos {

@@ -1,6 +1,10 @@
 export function safePrompt(
   message: string,
-  options?: { mode?: "confirm" | "alert" },
+  options?: {
+    mode?: "confirm" | "alert";
+    title?: string;
+    details?: { label: string; value: string }[];
+  },
 ): Promise<boolean> {
   return new Promise((resolve) => {
     const confirmBox = document.getElementById(
@@ -12,7 +16,38 @@ export function safePrompt(
 
     const mode = options?.mode ?? "confirm";
 
-    confirmText.textContent = message;
+    confirmText.replaceChildren();
+    if (options?.title || options?.details?.length) {
+      if (options.title) {
+        const title = document.createElement("h2");
+        title.className = "confirm-title";
+        title.textContent = options.title;
+        confirmText.append(title);
+      }
+
+      if (message) {
+        const body = document.createElement("p");
+        body.className = "confirm-message";
+        body.textContent = message;
+        confirmText.append(body);
+      }
+
+      if (options.details?.length) {
+        const details = document.createElement("dl");
+        details.className = "confirm-details";
+        for (const item of options.details) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = item.label;
+          description.textContent = item.value;
+          details.append(term, description);
+        }
+        confirmText.append(details);
+      }
+    } else {
+      confirmText.textContent = message;
+    }
+
     confirmBox.classList.add("flex-display");
     void confirmBox.offsetWidth;
     confirmBox.classList.remove("hidden2");
