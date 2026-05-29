@@ -2,6 +2,12 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.23 - 2026-05-29
+
+### Fixed
+
+- Fixed duplicate server entries with the same Foundry URL sharing the first entry's automatic login and autorun settings.
+
 ## 1.0.22 - 2026-05-20
 
 ### Changed

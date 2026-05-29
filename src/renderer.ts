@@ -614,6 +614,30 @@ function findGameByKey(gameId: GameId | string | null) {
   return games.find((game) => getGameKey(game) === String(gameId));
 }
 
+function normalizeGameUrl(url?: string) {
+  return String(url ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function findSavedGameIndex(appConfig: AppConfig, game: GameConfig) {
+  const savedGames = appConfig.games ?? [];
+  const gameKey = getGameKey(game);
+  const matchingKeyIndex = savedGames.findIndex(
+    (storedGame) => getGameKey(storedGame) === gameKey,
+  );
+  if (matchingKeyIndex >= 0) return matchingKeyIndex;
+
+  const gameUrl = normalizeGameUrl(game.url);
+  if (!gameUrl) return -1;
+
+  const matchingUrlIndexes = savedGames
+    .map((storedGame, index) => ({ index, storedGame }))
+    .filter(({ storedGame }) => normalizeGameUrl(storedGame.url) === gameUrl);
+
+  return matchingUrlIndexes.length === 1 ? matchingUrlIndexes[0].index : -1;
+}
+
 function getFavoriteKey(favorite: FavoriteConfig): string {
   return String(favorite.id ?? favorite.name);
 }
@@ -3044,25 +3068,8 @@ async function refreshServerMetadataOnLaunch(
   game: GameConfig,
   appConfig: AppConfig,
 ) {
-  const gameId =
-    game.id === undefined || game.id === null ? null : String(game.id);
-  const gameUrl = String(game.url ?? "")
-    .trim()
-    .toLowerCase();
-  const savedGameIndex = appConfig.games?.findIndex((storedGame) => {
-    const storedId =
-      storedGame.id === undefined || storedGame.id === null
-        ? null
-        : String(storedGame.id);
-    const storedUrl = String(storedGame.url ?? "")
-      .trim()
-      .toLowerCase();
-    return (
-      (gameId !== null && storedId === gameId) ||
-      (!!gameUrl && storedUrl === gameUrl)
-    );
-  });
-  if (savedGameIndex === undefined || savedGameIndex < 0) return;
+  const savedGameIndex = findSavedGameIndex(appConfig, game);
+  if (savedGameIndex < 0) return;
 
   const savedGame = appConfig.games[savedGameIndex];
   if (!savedGame.serverInfoAutoRefreshDisabled) return;
@@ -3130,24 +3137,9 @@ async function createGameItem(game: GameConfig) {
       }
 
       const appConfig: AppConfig = await window.api.localAppConfig();
-      const gameId =
-        game.id === undefined || game.id === null ? null : String(game.id);
-      const gameUrl = String(game.url ?? "")
-        .trim()
-        .toLowerCase();
-      const savedGame = appConfig.games?.find((storedGame) => {
-        const storedId =
-          storedGame.id === undefined || storedGame.id === null
-            ? null
-            : String(storedGame.id);
-        const storedUrl = String(storedGame.url ?? "")
-          .trim()
-          .toLowerCase();
-        return (
-          (gameId !== null && storedId === gameId) ||
-          (!!gameUrl && storedUrl === gameUrl)
-        );
-      });
+      const savedGameIndex = findSavedGameIndex(appConfig, game);
+      const savedGame =
+        savedGameIndex >= 0 ? appConfig.games[savedGameIndex] : undefined;
       const shouldAutoLogin =
         savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
       window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
