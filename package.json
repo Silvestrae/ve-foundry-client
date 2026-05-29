@@ -75,6 +75,7 @@
     "publish:prod": "npx electron-builder --publish always"
   },
   "resolutions": {
+    "tmp": "^0.2.6",
     "ws": "^8.20.1"
   },
   "dependencies": {
