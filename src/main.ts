@@ -1448,7 +1448,7 @@ function createWindow(): BrowserWindow {
   const savedAppConfig = getAppConfig();
   const hasSavedWindowBounds = !!savedAppConfig.windowBounds;
   const savedBounds = getSavedWindowBounds();
-  let win = new BrowserWindow({
+  const win = new BrowserWindow({
     show: false,
     ...savedBounds,
     webPreferences: {
@@ -1459,6 +1459,7 @@ function createWindow(): BrowserWindow {
       session: localSession,
     },
   });
+  const webContentsId = win.webContents.id;
 
   hookFullScreenEvents(win);
   hookMenuShortcut(win);
@@ -1572,7 +1573,7 @@ function createWindow(): BrowserWindow {
   // Catch network errors (ERR_CONNECTION_REFUSED, etc.)
   session.webRequest.onErrorOccurred({ urls: ["*://*/*"] }, (details) => {
     if (
-      details.webContentsId === win.webContents.id &&
+      details.webContentsId === webContentsId &&
       details.resourceType === "mainFrame" &&
       !details.error.includes("ERR_ABORTED")
     ) {
@@ -1583,7 +1584,7 @@ function createWindow(): BrowserWindow {
   // Catch HTTP responses (502, 503, etc.)
   session.webRequest.onCompleted({ urls: ["*://*/*"] }, (details) => {
     if (
-      details.webContentsId === win.webContents.id &&
+      details.webContentsId === webContentsId &&
       details.resourceType === "mainFrame" &&
       details.statusCode >= 400
     ) {
@@ -1876,10 +1877,9 @@ function createWindow(): BrowserWindow {
   });
   win.on("closed", () => {
     windows.delete(win);
-    win = null;
   });
   windows.add(win);
-  windowsData[win.webContents.id] = { autoLogin: true } as WindowData;
+  windowsData[webContentsId] = { autoLogin: true } as WindowData;
   return win;
 }
 
