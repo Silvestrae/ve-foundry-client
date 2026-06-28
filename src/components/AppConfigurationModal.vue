@@ -185,6 +185,30 @@
                 </el-tooltip>
               </div>
 
+              <div class="xwayland-field field">
+                <label class="switch-label">Use XWayland Compatibility</label>
+                <el-tooltip placement="bottom">
+                  <template #content
+                    >Linux Wayland only. Requires an app restart. Use if
+                    grids or weather effects render incorrectly.</template
+                  >
+                  <el-switch
+                    v-model="form.forceXWayland"
+                    class="mt-2"
+                    size="large"
+                    style="
+                      margin-left: 24px;
+                      --el-switch-on-color: var(--color-accent);
+                      --el-switch-off-color: #000000;
+                    "
+                    inline-prompt
+                    :active-icon="Check"
+                    :inactive-icon="Close"
+                    id="force-xwayland-toggle"
+                  />
+                </el-tooltip>
+              </div>
+
               <!-- Discord Rich Presence -->
               <div class="discord-rp-field field">
                 <div class="discord-rp-copy">
@@ -443,6 +467,7 @@ const form = reactive<AppConfigurationForm>({
   shareSessionBetweenWindows: false,
   enableChromiumDiagnostics: false,
   disableHardwareAcceleration: false,
+  forceXWayland: false,
   enableDiscordRp: true,
 });
 

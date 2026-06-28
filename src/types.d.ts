@@ -52,6 +52,7 @@ type AppConfig = {
   shareSessionWindows?: boolean;
   chromiumDiagnosticsEnabled?: boolean;
   disableHardwareAcceleration?: boolean;
+  forceXWayland?: boolean;
   windowBounds?: WindowBounds;
 };
 

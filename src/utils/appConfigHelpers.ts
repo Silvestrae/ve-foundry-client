@@ -44,6 +44,7 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
     shareSessionWindows: form.shareSessionBetweenWindows,
     chromiumDiagnosticsEnabled: form.enableChromiumDiagnostics,
     disableHardwareAcceleration: form.disableHardwareAcceleration,
+    forceXWayland: form.forceXWayland,
   };
 
   const result = AppConfigSchema.safeParse(rawConfig);

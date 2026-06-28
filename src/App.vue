@@ -74,6 +74,7 @@ const appConfig = ref<AppConfigurationForm>({
   shareSessionBetweenWindows: false,
   enableChromiumDiagnostics: false,
   disableHardwareAcceleration: false,
+  forceXWayland: false,
   enableDiscordRp: true,
 });
 
@@ -101,6 +102,7 @@ async function loadAppConfigIntoForm() {
     shareSessionBetweenWindows: cfg.shareSessionWindows ?? false,
     enableChromiumDiagnostics: cfg.chromiumDiagnosticsEnabled ?? false,
     disableHardwareAcceleration: cfg.disableHardwareAcceleration ?? false,
+    forceXWayland: cfg.forceXWayland ?? false,
     enableDiscordRp: cfg.discordRP ?? true,
   };
 }

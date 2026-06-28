@@ -16,5 +16,6 @@ export interface AppConfigurationForm {
   shareSessionBetweenWindows: boolean;
   enableChromiumDiagnostics: boolean;
   disableHardwareAcceleration: boolean;
+  forceXWayland: boolean;
   enableDiscordRp: boolean;
 }
