@@ -1,7 +1,5 @@
 # <img src="VE.png" alt="VE Foundry Client logo" height="40"> VE Foundry Client
 
-![Foundry v11](https://img.shields.io/badge/Foundry-v11-lightgreen)
-![Foundry v12](https://img.shields.io/badge/Foundry-v12-lightgreen)
 ![Foundry v13](https://img.shields.io/badge/Foundry-v13-lightgreen)
 ![Foundry v14](https://img.shields.io/badge/Foundry-v14-lightgreen)
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
