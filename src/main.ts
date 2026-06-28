@@ -88,9 +88,23 @@ const isLinuxWaylandSession =
   ((process.env.XDG_SESSION_TYPE ?? "").toLowerCase() === "wayland" ||
     !!process.env.WAYLAND_DISPLAY);
 
-if (isLinuxWaylandSession && !app.commandLine.hasSwitch("ozone-platform")) {
-  app.commandLine.appendSwitch("ozone-platform", "x11");
-  log.info("[diagnostics] Linux Wayland session detected; forcing XWayland");
+try {
+  const forceXWayland =
+    process.env.VE_CLIENT_FORCE_XWAYLAND === "1" ||
+    (getAppConfig().forceXWayland ?? false);
+
+  if (
+    isLinuxWaylandSession &&
+    forceXWayland &&
+    !app.commandLine.hasSwitch("ozone-platform")
+  ) {
+    app.commandLine.appendSwitch("ozone-platform", "x11");
+    log.info(
+      "[diagnostics] Linux Wayland session detected; forcing XWayland",
+    );
+  }
+} catch (err) {
+  log.warn("[diagnostics] Could not read XWayland compatibility setting", err);
 }
 
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
