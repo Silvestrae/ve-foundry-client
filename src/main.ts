@@ -83,6 +83,16 @@ if (require("electron-squirrel-startup")) app.quit();
 // workaround for gtk version preventing app launch on certain Linux distros while using Electron 36
 app.commandLine.appendSwitch("gtk-version", "3");
 
+const isLinuxWaylandSession =
+  process.platform === "linux" &&
+  ((process.env.XDG_SESSION_TYPE ?? "").toLowerCase() === "wayland" ||
+    !!process.env.WAYLAND_DISPLAY);
+
+if (isLinuxWaylandSession && !app.commandLine.hasSwitch("ozone-platform")) {
+  app.commandLine.appendSwitch("ozone-platform", "x11");
+  log.info("[diagnostics] Linux Wayland session detected; forcing XWayland");
+}
+
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
 
 try {
