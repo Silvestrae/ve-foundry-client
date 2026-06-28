@@ -324,8 +324,12 @@
   order: 12;
 }
 
-.app-configuration .server-infos-configuration {
+.app-configuration .xwayland-field {
   order: 13;
+}
+
+.app-configuration .server-infos-configuration {
+  order: 14;
 }
 
 .app-configuration .button-group {
