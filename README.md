@@ -5,6 +5,7 @@
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
 ![Linux](https://img.shields.io/badge/Platform-Linux-blue)
 ![macOS](https://img.shields.io/badge/Platform-macOS-blue)
+![Downloads](https://img.shields.io/github/downloads/Silvestrae/ve-foundry-client/total?label=downloads)
 ![License MIT](https://img.shields.io/badge/License-MIT-yellow)
 
 VE Foundry Client is an independent, privately maintained fork of JeidoUran's [FVTT Player Client](https://github.com/JeidoUran/fvtt-player-client). It keeps the original goal of a lightweight Foundry VTT desktop launcher and adds practical tools for day-to-day play for my gaming group's needs.
