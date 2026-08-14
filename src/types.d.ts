@@ -156,4 +156,11 @@ interface ServerStatusData {
   systemVersion: string;
   users: number;
   uptime: number;
+  hostedService?: "forge" | "sqyre";
+  hostedStatus?: string;
+  gameType?: string;
+  createdBy?: string;
+  signedInUser?: string;
+  imageUrl?: string;
+  imageIsFallback?: boolean;
 }

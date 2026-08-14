@@ -205,5 +205,12 @@ export const ServerStatusDataSchema = z.object({
   systemVersion: z.string(),
   users: z.number(),
   uptime: z.number(),
+  hostedService: z.enum(["forge", "sqyre"]).optional(),
+  hostedStatus: z.string().optional(),
+  gameType: z.string().optional(),
+  createdBy: z.string().optional(),
+  signedInUser: z.string().optional(),
+  imageUrl: z.string().optional(),
+  imageIsFallback: z.boolean().optional(),
 });
 export type ServerStatusData = z.infer<typeof ServerStatusDataSchema>;

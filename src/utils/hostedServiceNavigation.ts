@@ -57,13 +57,35 @@ export function isHostedGameServerUrl(
   if (!url) return false;
 
   if (service === "sqyre") {
-    return hostnameMatchesDomain(url.hostname, "games.sqyre.app");
+    const hostname = url.hostname.toLowerCase();
+    return (
+      hostnameMatchesDomain(hostname, "games.sqyre.app") ||
+      (hostname !== "sqyre.app" &&
+        hostname !== "www.sqyre.app" &&
+        hostnameMatchesDomain(hostname, "sqyre.app") &&
+        /^\/game(?:\/|$)/i.test(url.pathname))
+    );
   }
 
   return (
     url.hostname.toLowerCase() !== "forge-vtt.com" &&
     hostnameMatchesDomain(url.hostname, "forge-vtt.com")
   );
+}
+
+export function getSqyreGameSlug(rawUrl: string): string | null {
+  const url = getHttpUrl(rawUrl);
+  if (!url || getHostedServiceFromUrl(rawUrl) !== "sqyre") return null;
+
+  const detailMatch = url.pathname.match(/^\/games\/([^/?#]+)/i);
+  if (detailMatch) return decodeURIComponent(detailMatch[1]);
+
+  if (isHostedGameServerUrl(rawUrl, "sqyre")) {
+    const [slug] = url.hostname.split(".");
+    return slug || null;
+  }
+
+  return null;
 }
 
 export function getHostedAuthenticationProviderFromUrl(
