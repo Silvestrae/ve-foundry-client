@@ -2,7 +2,7 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
-## Unreleased
+## 1.0.29 - 2026-08-14
 
 ### Added
 
