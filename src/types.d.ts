@@ -140,6 +140,7 @@ type WindowData = {
   gameId: GameId;
   autoLogin: boolean;
   selectedServerName?: string;
+  hostedService?: "forge" | "sqyre";
 };
 
 type WindowsData = {

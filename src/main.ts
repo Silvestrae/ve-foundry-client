@@ -47,6 +47,11 @@ import { installDebUpdate } from "./utils/installUpdate";
 import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
 import { extractImportedLoginRecords } from "./utils/importLoginRecords";
 import type { ImportedLoginRecord } from "./utils/importLoginRecords";
+import {
+  getHostedServiceFromUrl,
+  isHostedServiceNavigation,
+  type HostedService,
+} from "./utils/hostedServiceNavigation";
 
 const isPortableWindows =
   process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
@@ -751,6 +756,7 @@ function returnToServerSelect(win: BrowserWindow) {
   const id = win.webContents.id;
   windowsData[id].autoLogin = true;
   delete windowsData[id].selectedServerName;
+  delete windowsData[id].hostedService;
   disableRichPresence();
   closeRichPresenceSocket();
 
@@ -796,6 +802,7 @@ function isAppRendererUrl(url: string): boolean {
 function shouldOpenInExternalBrowser(
   currentUrl: string,
   targetUrl: string,
+  activeHostedService?: HostedService | null,
 ): boolean {
   let target: URL;
   try {
@@ -813,6 +820,12 @@ function shouldOpenInExternalBrowser(
   }
 
   if (isAppRendererUrl(currentUrl)) {
+    return false;
+  }
+
+  if (
+    isHostedServiceNavigation(currentUrl, targetUrl, activeHostedService)
+  ) {
     return false;
   }
 
@@ -839,6 +852,7 @@ function openUrlInAppWindow(url: string, parent?: BrowserWindow | null) {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
+      session: parent?.webContents.session,
     },
   });
   hookMenuShortcut(child);
@@ -1227,13 +1241,25 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
   popup.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 }
 
-function hookExternalLinkHandling(win: BrowserWindow) {
+function hookExternalLinkHandling(
+  win: BrowserWindow,
+  inheritedHostedService?: HostedService | null,
+) {
+  const getActiveHostedService = () =>
+    inheritedHostedService ??
+    windowsData[win.webContents.id]?.hostedService ??
+    getHostedServiceFromUrl(win.webContents.getURL());
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     const openExternalLinksInBrowser =
       getAppConfig().externalLinksInDefaultBrowser ?? true;
     if (
       openExternalLinksInBrowser &&
-      shouldOpenInExternalBrowser(win.webContents.getURL(), url)
+      shouldOpenInExternalBrowser(
+        win.webContents.getURL(),
+        url,
+        getActiveHostedService(),
+      )
     ) {
       openUrlInDefaultBrowser(url);
       return { action: "deny" };
@@ -1244,6 +1270,12 @@ function hookExternalLinkHandling(win: BrowserWindow) {
       overrideBrowserWindowOptions: {
         parent: win,
         autoHideMenuBar: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: true,
+          session: win.webContents.session,
+        },
       },
     };
   });
@@ -1253,7 +1285,11 @@ function hookExternalLinkHandling(win: BrowserWindow) {
       getAppConfig().externalLinksInDefaultBrowser ?? true;
     if (
       !openExternalLinksInBrowser ||
-      !shouldOpenInExternalBrowser(win.webContents.getURL(), url)
+      !shouldOpenInExternalBrowser(
+        win.webContents.getURL(),
+        url,
+        getActiveHostedService(),
+      )
     ) {
       return;
     }
@@ -1264,7 +1300,7 @@ function hookExternalLinkHandling(win: BrowserWindow) {
 
   win.webContents.on("did-create-window", (childWindow) => {
     hookMenuShortcut(childWindow);
-    hookExternalLinkHandling(childWindow);
+    hookExternalLinkHandling(childWindow, getActiveHostedService());
     hookFavoritePopupShortcut(childWindow);
   });
 }
@@ -1610,7 +1646,7 @@ function createWindow(): BrowserWindow {
     if (
       details.webContentsId === webContentsId &&
       details.resourceType === "mainFrame" &&
-      details.statusCode >= 400
+      details.statusCode >= 500
     ) {
       handleServerError(win, details.url, `HTTP ${details.statusCode}`);
     }
@@ -1650,6 +1686,11 @@ function createWindow(): BrowserWindow {
   win.webContents.on("did-start-navigation", (e) => {
     if (e.isSameDocument) return;
     if (e.url.startsWith("about")) return;
+
+    const hostedService = getHostedServiceFromUrl(e.url);
+    if (hostedService) {
+      windowsData[webContentsId].hostedService = hostedService;
+    }
 
     if (e.url.endsWith("/game")) {
       console.log("[FVTT Client] Navigation detected: /game");
@@ -2559,6 +2600,7 @@ ipcMain.on("open-game", (e, gId, gameName: string, autoLogin = true) => {
   windowsData[e.sender.id].gameId = gId;
   windowsData[e.sender.id].autoLogin = autoLogin;
   windowsData[e.sender.id].selectedServerName = gameName;
+  delete windowsData[e.sender.id].hostedService;
 });
 ipcMain.on("clear-cache", async (event) => event.sender.session.clearCache());
 

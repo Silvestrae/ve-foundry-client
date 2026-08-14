@@ -187,6 +187,7 @@ export const WindowDataSchema = z.object({
   gameId: GameIdSchema,
   autoLogin: z.boolean(),
   selectedServerName: z.string().optional(),
+  hostedService: z.enum(["forge", "sqyre"]).optional(),
 });
 export type WindowData = z.infer<typeof WindowDataSchema>;
 
