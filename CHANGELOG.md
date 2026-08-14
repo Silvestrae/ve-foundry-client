@@ -2,6 +2,57 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.28 - 2026-08-14
+
+### Added
+
+- Added authenticated launch support for games hosted by Sqyre and The Forge.
+- Added hosted-service lifecycle states, account badges, metadata, and fallback artwork to server tiles.
+- Added a themed launch-progress banner while Sqyre hands a resolved Foundry game back to the original client window.
+
+### Changed
+
+- Keep trusted host authentication and launch navigation inside VE Foundry Client's persistent Electron session.
+- Distinguish hosted games that are unavailable from those that require the user to sign in.
+- Keep hosted tile metadata on one line and truncate long system or hosting-account labels.
+- Document supported hosted-game addresses, authentication behavior, launch flow, and status messages in the README.
+
+### Notes
+
+- Google can reject OAuth authorization from embedded desktop browsers. Use the hosting service's email and password option when that occurs.
+
+## 1.0.27 - 2026-08-13
+
+### Changed
+
+- Updated Electron, the built-in updater, packaging tools, and vulnerable transitive dependencies.
+- Applied security and maintenance updates without intentional feature or settings changes.
+
+## 1.0.26 - 2026-06-28
+
+### Added
+
+- Added an opt-in Linux XWayland compatibility setting for Wayland sessions where native rendering causes problems.
+
+### Changed
+
+- Updated the advertised Foundry compatibility badges for Foundry VTT v13 and v14.
+- Kept native Wayland as the default and applied XWayland only when explicitly enabled.
+
+## 1.0.25 - 2026-06-28
+
+### Changed
+
+- Added automatic XWayland compatibility for Linux Wayland sessions; this behavior became opt-in in 1.0.26.
+- Updated vulnerable runtime dependencies.
+
+## 1.0.24 - 2026-06-18
+
+### Fixed
+
+- Prevented shutdown-time errors caused by accessing destroyed Electron web contents.
+- Updated vulnerable dependencies used by supported builds.
+
 ## 1.0.23 - 2026-05-29
 
 ### Fixed
