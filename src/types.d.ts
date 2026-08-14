@@ -140,6 +140,8 @@ type WindowData = {
   gameId: GameId;
   autoLogin: boolean;
   selectedServerName?: string;
+  hostedService?: "forge" | "sqyre";
+  hostedServiceUrl?: string;
 };
 
 type WindowsData = {
@@ -154,4 +156,11 @@ interface ServerStatusData {
   systemVersion: string;
   users: number;
   uptime: number;
+  hostedService?: "forge" | "sqyre";
+  hostedStatus?: string;
+  gameType?: string;
+  createdBy?: string;
+  signedInUser?: string;
+  imageUrl?: string;
+  imageIsFallback?: boolean;
 }

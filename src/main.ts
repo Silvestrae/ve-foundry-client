@@ -47,6 +47,19 @@ import { installDebUpdate } from "./utils/installUpdate";
 import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
 import { extractImportedLoginRecords } from "./utils/importLoginRecords";
 import type { ImportedLoginRecord } from "./utils/importLoginRecords";
+import {
+  getHostedAuthenticationProviderFromUrl,
+  getHostedServiceFromUrl,
+  getSqyreGameSlug,
+  isHostedGameServerUrl,
+  isHostedServiceNavigation,
+  type HostedService,
+} from "./utils/hostedServiceNavigation";
+import { parseForgeSignedInUserHtml } from "./utils/forgeStatus";
+import {
+  parseSqyreGameDetailHtml,
+  parseSqyreGameListingHtml,
+} from "./utils/sqyreStatus";
 
 const isPortableWindows =
   process.platform === "win32" && !!process.env.PORTABLE_EXECUTABLE_DIR;
@@ -751,6 +764,8 @@ function returnToServerSelect(win: BrowserWindow) {
   const id = win.webContents.id;
   windowsData[id].autoLogin = true;
   delete windowsData[id].selectedServerName;
+  delete windowsData[id].hostedService;
+  delete windowsData[id].hostedServiceUrl;
   disableRichPresence();
   closeRichPresenceSocket();
 
@@ -796,6 +811,7 @@ function isAppRendererUrl(url: string): boolean {
 function shouldOpenInExternalBrowser(
   currentUrl: string,
   targetUrl: string,
+  activeHostedService?: HostedService | null,
 ): boolean {
   let target: URL;
   try {
@@ -813,6 +829,12 @@ function shouldOpenInExternalBrowser(
   }
 
   if (isAppRendererUrl(currentUrl)) {
+    return false;
+  }
+
+  if (
+    isHostedServiceNavigation(currentUrl, targetUrl, activeHostedService)
+  ) {
     return false;
   }
 
@@ -839,6 +861,7 @@ function openUrlInAppWindow(url: string, parent?: BrowserWindow | null) {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
+      session: parent?.webContents.session,
     },
   });
   hookMenuShortcut(child);
@@ -1227,33 +1250,138 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
   popup.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 }
 
-function hookExternalLinkHandling(win: BrowserWindow) {
+function hookExternalLinkHandling(
+  win: BrowserWindow,
+  inheritedHostedService?: HostedService | null,
+) {
+  let googleSignInNoticeOpen = false;
+  const getActiveHostedService = () =>
+    inheritedHostedService ??
+    windowsData[win.webContents.id]?.hostedService ??
+    getHostedServiceFromUrl(win.webContents.getURL());
+
+  const continueHostedGameInCurrentWindow = (targetUrl: string) => {
+    const activeHostedService = getActiveHostedService();
+    if (
+      !activeHostedService ||
+      !isHostedGameServerUrl(targetUrl, activeHostedService)
+    ) {
+      return false;
+    }
+
+    setTimeout(() => {
+      if (!win.isDestroyed()) {
+        win.loadURL(targetUrl).catch((err) => {
+          console.error("Could not continue hosted game launch", err);
+        });
+      }
+    }, 0);
+    return true;
+  };
+
+  const blockUnsupportedGoogleSignIn = (targetUrl: string) => {
+    const activeHostedService = getActiveHostedService();
+    if (
+      !activeHostedService ||
+      getHostedAuthenticationProviderFromUrl(targetUrl) !== "google"
+    ) {
+      return false;
+    }
+
+    if (!googleSignInNoticeOpen) {
+      googleSignInNoticeOpen = true;
+      const serviceName =
+        activeHostedService === "sqyre" ? "Sqyre" : "The Forge";
+      const returnUrl = windowsData[win.webContents.id]?.hostedServiceUrl;
+
+      setTimeout(async () => {
+        try {
+          if (returnUrl && !win.isDestroyed()) {
+            await win.loadURL(returnUrl);
+          }
+          if (!win.isDestroyed()) {
+            await dialog.showMessageBox(win, {
+              type: "info",
+              title: "Google Sign-In Is Not Available In-App",
+              message: `Google sign-in cannot run inside VE Client for ${serviceName}.`,
+              detail:
+                "Google blocks account authorization in embedded app windows. Use the host's email and password sign-in instead. If your account only uses Google, use the host's password reset option in your normal browser to add a password, then return here.",
+              buttons: ["OK"],
+              defaultId: 0,
+              noLink: true,
+            });
+          }
+        } catch (err) {
+          console.error("Could not restore the hosted service sign-in page", err);
+        } finally {
+          googleSignInNoticeOpen = false;
+        }
+      }, 0);
+    }
+
+    return true;
+  };
+
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (blockUnsupportedGoogleSignIn(url)) {
+      return { action: "deny" };
+    }
+
+    if (continueHostedGameInCurrentWindow(url)) {
+      return { action: "deny" };
+    }
+
     const openExternalLinksInBrowser =
       getAppConfig().externalLinksInDefaultBrowser ?? true;
     if (
       openExternalLinksInBrowser &&
-      shouldOpenInExternalBrowser(win.webContents.getURL(), url)
+      shouldOpenInExternalBrowser(
+        win.webContents.getURL(),
+        url,
+        getActiveHostedService(),
+      )
     ) {
       openUrlInDefaultBrowser(url);
       return { action: "deny" };
     }
 
+    const activeHostedService = getActiveHostedService();
+    const isHostedLaunchPopup =
+      activeHostedService !== null &&
+      getHostedServiceFromUrl(url) === activeHostedService;
+
     return {
       action: "allow",
       overrideBrowserWindowOptions: {
         parent: win,
+        show: !isHostedLaunchPopup,
+        backgroundColor: "#12141b",
         autoHideMenuBar: true,
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          sandbox: true,
+          session: win.webContents.session,
+        },
       },
     };
   });
 
   win.webContents.on("will-navigate", (event, url) => {
+    if (blockUnsupportedGoogleSignIn(url)) {
+      event.preventDefault();
+      return;
+    }
+
     const openExternalLinksInBrowser =
       getAppConfig().externalLinksInDefaultBrowser ?? true;
     if (
       !openExternalLinksInBrowser ||
-      !shouldOpenInExternalBrowser(win.webContents.getURL(), url)
+      !shouldOpenInExternalBrowser(
+        win.webContents.getURL(),
+        url,
+        getActiveHostedService(),
+      )
     ) {
       return;
     }
@@ -1262,10 +1390,201 @@ function hookExternalLinkHandling(win: BrowserWindow) {
     openUrlInDefaultBrowser(url);
   });
 
-  win.webContents.on("did-create-window", (childWindow) => {
+  win.webContents.on("did-create-window", (childWindow, details) => {
+    const activeHostedService = getActiveHostedService();
     hookMenuShortcut(childWindow);
-    hookExternalLinkHandling(childWindow);
+    hookExternalLinkHandling(childWindow, activeHostedService);
     hookFavoritePopupShortcut(childWindow);
+
+    if (
+      !activeHostedService ||
+      getHostedServiceFromUrl(details.url) !== activeHostedService
+    ) {
+      return;
+    }
+
+    let transferredHostedGame = false;
+    const showHostedLaunchBanner = async () => {
+      const serviceName =
+        activeHostedService === "sqyre" ? "Sqyre" : "The Forge";
+      const themeConfig = getThemeConfig();
+      const getThemeColor = (value: string | undefined, fallback: string) =>
+        value && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value)
+          ? value
+          : fallback;
+      const backgroundColor = getThemeColor(
+        themeConfig.backgroundColor,
+        "#0e1a23",
+      );
+      const accentColor = getThemeColor(themeConfig.accentColor, "#98e4f7");
+      const textColor = getThemeColor(themeConfig.textColor, "#88c0a9");
+      const bannerHtml = `
+        <style>
+          @keyframes ve-hosted-launch-spin {
+            to { transform: rotate(360deg); }
+          }
+          #ve-hosted-launch-banner {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+            z-index: 2147483647;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            height: clamp(96px, 15vh, 168px);
+            padding: 14px 28px;
+            box-sizing: border-box;
+            overflow: hidden;
+            --ve-host-background: ${backgroundColor};
+            --ve-host-accent: ${accentColor};
+            --ve-host-text: ${textColor};
+            background:
+              linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--ve-host-background) 72%, transparent),
+                color-mix(in srgb, var(--ve-host-background) 88%, transparent) 35%,
+                color-mix(in srgb, var(--ve-host-background) 88%, transparent) 65%,
+                color-mix(in srgb, var(--ve-host-background) 72%, transparent)
+              );
+            border-top: 1px solid color-mix(in srgb, var(--ve-host-accent) 42%, transparent);
+            border-bottom: 1px solid color-mix(in srgb, var(--ve-host-accent) 42%, transparent);
+            box-shadow:
+              0 0 28px rgba(0, 0, 0, 0.5),
+              inset 0 0 32px color-mix(in srgb, var(--ve-host-accent) 6%, transparent);
+            backdrop-filter: blur(12px) saturate(130%);
+            color: var(--ve-host-text);
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+            text-align: center;
+          }
+          #ve-hosted-launch-banner::before,
+          #ve-hosted-launch-banner::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 28%;
+            pointer-events: none;
+          }
+          #ve-hosted-launch-banner::before {
+            left: 0;
+            background: linear-gradient(
+              90deg,
+              color-mix(in srgb, var(--ve-host-accent) 9%, transparent),
+              transparent
+            );
+          }
+          #ve-hosted-launch-banner::after {
+            right: 0;
+            background: linear-gradient(
+              270deg,
+              color-mix(in srgb, var(--ve-host-accent) 9%, transparent),
+              transparent
+            );
+          }
+          #ve-hosted-launch-banner .ve-launch-spinner {
+            flex: 0 0 auto;
+            width: 28px;
+            height: 28px;
+            border: 3px solid color-mix(in srgb, var(--ve-host-accent) 18%, transparent);
+            border-top-color: var(--ve-host-accent);
+            border-radius: 50%;
+            filter: drop-shadow(
+              0 0 5px color-mix(in srgb, var(--ve-host-accent) 45%, transparent)
+            );
+            animation: ve-hosted-launch-spin 0.9s linear infinite;
+          }
+          #ve-hosted-launch-banner .ve-launch-message {
+            position: relative;
+            z-index: 1;
+            color: color-mix(in srgb, var(--ve-host-text) 78%, transparent);
+            font-size: clamp(13px, 1.4vh, 15px);
+            line-height: 1.4;
+            letter-spacing: 0.01em;
+          }
+          #ve-hosted-launch-banner strong {
+            display: block;
+            margin-bottom: 3px;
+            color: var(--ve-host-accent);
+            font-family: Cinzel, Georgia, serif;
+            font-size: clamp(16px, 2vh, 21px);
+            font-weight: 700;
+            letter-spacing: 0.035em;
+            text-shadow:
+              0 0 12px color-mix(in srgb, var(--ve-host-accent) 28%, transparent);
+          }
+        </style>
+        <div class="ve-launch-spinner" aria-hidden="true"></div>
+        <div class="ve-launch-message">
+          <strong>Starting Foundry through ${serviceName}...</strong>
+          The game will open here when it is ready.
+        </div>
+      `;
+
+      await win.webContents.executeJavaScript(`
+        (() => {
+          if (document.getElementById("ve-hosted-launch-banner")) return;
+
+          const banner = document.createElement("div");
+          banner.id = "ve-hosted-launch-banner";
+          banner.setAttribute("role", "status");
+          banner.setAttribute("aria-live", "polite");
+          banner.innerHTML = ${JSON.stringify(bannerHtml)};
+          document.documentElement.append(banner);
+        })()
+      `);
+    };
+    showHostedLaunchBanner().catch((err) => {
+      console.error("Could not show hosted Foundry launch banner", err);
+    });
+    const transferHostedGame = (targetUrl: string) => {
+      if (transferredHostedGame || !activeHostedService || !targetUrl) {
+        return;
+      }
+
+      transferredHostedGame = true;
+      if (!childWindow.isDestroyed()) childWindow.close();
+      setTimeout(() => {
+        if (!win.isDestroyed()) {
+          win.loadURL(targetUrl).catch((err) => {
+            console.error("Could not transfer hosted game launch", err);
+          });
+        }
+      }, 0);
+    };
+
+    childWindow.webContents.on("did-start-navigation", (event) => {
+      if (
+        activeHostedService &&
+        isHostedGameServerUrl(event.url, activeHostedService)
+      ) {
+        transferHostedGame(event.url);
+      } else if (!childWindow.isDestroyed()) {
+        childWindow.hide();
+      }
+    });
+    const prepareHostedLaunchPage = async () => {
+      if (transferredHostedGame || !activeHostedService) return;
+
+      try {
+        const isFoundryPage = await childWindow.webContents.executeJavaScript(`
+          Boolean(
+            globalThis.game ||
+            document.body?.classList.contains("vtt") ||
+            document.querySelector("#join-game, #setup, #ui-top")
+          )
+        `);
+        if (isFoundryPage) {
+          transferHostedGame(childWindow.webContents.getURL());
+        }
+      } catch (err) {
+        console.error("Could not identify hosted Foundry launch page", err);
+      }
+    };
+    childWindow.webContents.on("dom-ready", prepareHostedLaunchPage);
+    childWindow.webContents.on("did-finish-load", prepareHostedLaunchPage);
   });
 }
 
@@ -1610,7 +1929,7 @@ function createWindow(): BrowserWindow {
     if (
       details.webContentsId === webContentsId &&
       details.resourceType === "mainFrame" &&
-      details.statusCode >= 400
+      details.statusCode >= 500
     ) {
       handleServerError(win, details.url, `HTTP ${details.statusCode}`);
     }
@@ -1650,6 +1969,12 @@ function createWindow(): BrowserWindow {
   win.webContents.on("did-start-navigation", (e) => {
     if (e.isSameDocument) return;
     if (e.url.startsWith("about")) return;
+
+    const hostedService = getHostedServiceFromUrl(e.url);
+    if (hostedService) {
+      windowsData[webContentsId].hostedService = hostedService;
+      windowsData[webContentsId].hostedServiceUrl = e.url;
+    }
 
     if (e.url.endsWith("/game")) {
       console.log("[FVTT Client] Navigation detected: /game");
@@ -2559,6 +2884,8 @@ ipcMain.on("open-game", (e, gId, gameName: string, autoLogin = true) => {
   windowsData[e.sender.id].gameId = gId;
   windowsData[e.sender.id].autoLogin = autoLogin;
   windowsData[e.sender.id].selectedServerName = gameName;
+  delete windowsData[e.sender.id].hostedService;
+  delete windowsData[e.sender.id].hostedServiceUrl;
 });
 ipcMain.on("clear-cache", async (event) => event.sender.session.clearCache());
 
@@ -3157,12 +3484,136 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle("ping-server", (_e, rawUrl: string) => {
+ipcMain.handle("ping-server", async (e, rawUrl: string) => {
+  if (getHostedServiceFromUrl(rawUrl) === "forge") {
+    const getForgeRequestOptions = () => ({
+      cache: "no-store" as const,
+      credentials: "include" as const,
+      signal: AbortSignal.timeout(5000),
+    });
+    const statusUrl = new URL("api/status", rawUrl).toString();
+    const forgeStatusUrl = new URL("api/forgevtt", rawUrl).toString();
+    const [statusResponse, forgeStatusResponse, accountResponse] =
+      await Promise.all([
+        e.sender.session.fetch(statusUrl, getForgeRequestOptions()),
+        e.sender.session.fetch(forgeStatusUrl, getForgeRequestOptions()),
+        e.sender.session.fetch(
+          "https://forge-vtt.com/setup",
+          getForgeRequestOptions(),
+        ),
+      ]);
+    const redirectedToLogin = [statusResponse, forgeStatusResponse].some(
+      (response) =>
+        getHostedAuthenticationProviderFromUrl(response.url) !== null ||
+        /^https:\/\/forge-vtt\.com\/login(?:[/?#]|$)/i.test(response.url),
+    );
+    if (redirectedToLogin) {
+      throw new Error("Forge authentication required");
+    }
+    if (!statusResponse.ok) {
+      throw new Error(`Forge status HTTP ${statusResponse.status}`);
+    }
+
+    const contentType = statusResponse.headers.get("content-type") ?? "";
+    if (!/application\/json/i.test(contentType)) {
+      throw new Error("Forge authentication required");
+    }
+    const status = (await statusResponse.json()) as ServerStatusData;
+    const forgeStatus = forgeStatusResponse.ok
+      ? ((await forgeStatusResponse.json()) as { status?: string })
+      : null;
+    const signedInUser = accountResponse.ok
+      ? parseForgeSignedInUserHtml(await accountResponse.text())
+      : undefined;
+
+    return {
+      ...status,
+      hostedService: "forge",
+      hostedStatus: forgeStatus?.status?.toLowerCase(),
+      signedInUser,
+      imageUrl: "https://forge-vtt.com/images/the-forge-logo-200x200.png",
+      imageIsFallback: true,
+    } satisfies ServerStatusData;
+  }
+
+  if (getHostedServiceFromUrl(rawUrl) === "sqyre") {
+    const slug = getSqyreGameSlug(rawUrl);
+    if (!slug) return null;
+
+    const getSqyreRequestOptions = () => ({
+      cache: "no-store" as const,
+      credentials: "include" as const,
+      signal: AbortSignal.timeout(5000),
+    });
+    const detailUrl = `https://www.sqyre.app/games/${encodeURIComponent(slug)}`;
+    const listingUrl = "https://www.sqyre.app/games/my-games";
+    const directResponsePromise = isHostedGameServerUrl(rawUrl, "sqyre")
+      ? e.sender.session.fetch(rawUrl, getSqyreRequestOptions())
+      : Promise.resolve(null);
+    const [directResponse, detailResponse, listingResponse] = await Promise.all([
+      directResponsePromise,
+      e.sender.session.fetch(detailUrl, getSqyreRequestOptions()),
+      e.sender.session.fetch(listingUrl, getSqyreRequestOptions()),
+    ]);
+    if (directResponse?.status === 404) {
+      throw new Error("Sqyre direct host HTTP 404");
+    }
+
+    const listingDetails = listingResponse.ok
+      ? parseSqyreGameListingHtml(await listingResponse.text(), slug)
+      : null;
+    const details =
+      listingDetails ??
+      (detailResponse.ok
+        ? parseSqyreGameDetailHtml(await detailResponse.text())
+        : null);
+    if (!details) {
+      throw new Error("Sqyre authentication required");
+    }
+
+    const statusSlug = listingDetails?.slug ?? slug;
+    const statusUrl = `https://www.sqyre.app/api/games?slug=${encodeURIComponent(statusSlug)}`;
+    const statusResponse = await e.sender.session.fetch(
+      statusUrl,
+      getSqyreRequestOptions(),
+    );
+    if (!statusResponse.ok) {
+      throw new Error(`Sqyre status HTTP ${statusResponse.status}`);
+    }
+
+    const liveStatus = (await statusResponse.json()) as {
+      status?: string;
+    };
+    const hostedStatus = liveStatus.status?.toLowerCase() ?? "unknown";
+
+    return {
+      active: hostedStatus === "running",
+      version: details.version,
+      world: "",
+      system: details.system,
+      systemVersion: "",
+      users: 0,
+      uptime: 0,
+      hostedService: "sqyre",
+      hostedStatus,
+      gameType: details.gameType,
+      createdBy: details.createdBy,
+      signedInUser: details.signedInUser,
+      imageUrl:
+        details.imageUrl ??
+        "https://www.sqyre.app/images/logo/sqyre-trefoil.svg",
+      imageIsFallback: !details.imageUrl,
+    } satisfies ServerStatusData;
+  }
+
   return new Promise<ServerStatusData | null>((resolve, reject) => {
     const pingUrl = new URL("api/status", rawUrl).toString();
 
     // fire the request
-    const req = net.request(pingUrl);
+    const req = net.request({
+      url: pingUrl,
+      session: e.sender.session,
+    });
 
     // enforce a 5s timeout
     const timer = setTimeout(() => {

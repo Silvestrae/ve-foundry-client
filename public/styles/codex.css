@@ -322,6 +322,17 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   background-size: cover;
 }
 
+.game-item.has-server-background.server-background-placeholder {
+  background-color: color-mix(
+    in srgb,
+    var(--color-background) 88%,
+    var(--color-button) 12%
+  );
+  background-position: center, center;
+  background-repeat: no-repeat;
+  background-size: cover, auto 72%;
+}
+
 .game-item.has-server-background::before {
   content: "";
   position: absolute;
@@ -2220,6 +2231,48 @@ textarea {
   opacity: 0.9;
   align-self: center;
   padding: 0 1rem;
+}
+
+.game-item.server-hosted .server-infos {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.game-item.server-hosted
+  .server-infos
+  > .tooltip-wrapper:not(.hosted-service-wrapper) {
+  flex: 0 0 auto;
+}
+
+.game-item.server-hosted .server-infos .tooltip-wrapper:has(.system) {
+  min-width: 0;
+  max-width: min(22ch, 32vw);
+}
+
+.game-item.server-hosted .system {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hosted-service-wrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: min(26ch, 32vw);
+  overflow: hidden;
+}
+
+.hosted-service {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .game-main-button:hover .server-infos {
