@@ -48,6 +48,7 @@ import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
 import { extractImportedLoginRecords } from "./utils/importLoginRecords";
 import type { ImportedLoginRecord } from "./utils/importLoginRecords";
 import {
+  getHostedAuthenticationProviderFromUrl,
   getHostedServiceFromUrl,
   isHostedServiceNavigation,
   type HostedService,
@@ -757,6 +758,7 @@ function returnToServerSelect(win: BrowserWindow) {
   windowsData[id].autoLogin = true;
   delete windowsData[id].selectedServerName;
   delete windowsData[id].hostedService;
+  delete windowsData[id].hostedServiceUrl;
   disableRichPresence();
   closeRichPresenceSocket();
 
@@ -1245,12 +1247,60 @@ function hookExternalLinkHandling(
   win: BrowserWindow,
   inheritedHostedService?: HostedService | null,
 ) {
+  let googleSignInNoticeOpen = false;
   const getActiveHostedService = () =>
     inheritedHostedService ??
     windowsData[win.webContents.id]?.hostedService ??
     getHostedServiceFromUrl(win.webContents.getURL());
 
+  const blockUnsupportedGoogleSignIn = (targetUrl: string) => {
+    const activeHostedService = getActiveHostedService();
+    if (
+      !activeHostedService ||
+      getHostedAuthenticationProviderFromUrl(targetUrl) !== "google"
+    ) {
+      return false;
+    }
+
+    if (!googleSignInNoticeOpen) {
+      googleSignInNoticeOpen = true;
+      const serviceName =
+        activeHostedService === "sqyre" ? "Sqyre" : "The Forge";
+      const returnUrl = windowsData[win.webContents.id]?.hostedServiceUrl;
+
+      setTimeout(async () => {
+        try {
+          if (returnUrl && !win.isDestroyed()) {
+            await win.loadURL(returnUrl);
+          }
+          if (!win.isDestroyed()) {
+            await dialog.showMessageBox(win, {
+              type: "info",
+              title: "Google Sign-In Is Not Available In-App",
+              message: `Google sign-in cannot run inside VE Client for ${serviceName}.`,
+              detail:
+                "Google blocks account authorization in embedded app windows. Use the host's email and password sign-in instead. If your account only uses Google, use the host's password reset option in your normal browser to add a password, then return here.",
+              buttons: ["OK"],
+              defaultId: 0,
+              noLink: true,
+            });
+          }
+        } catch (err) {
+          console.error("Could not restore the hosted service sign-in page", err);
+        } finally {
+          googleSignInNoticeOpen = false;
+        }
+      }, 0);
+    }
+
+    return true;
+  };
+
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (blockUnsupportedGoogleSignIn(url)) {
+      return { action: "deny" };
+    }
+
     const openExternalLinksInBrowser =
       getAppConfig().externalLinksInDefaultBrowser ?? true;
     if (
@@ -1281,6 +1331,11 @@ function hookExternalLinkHandling(
   });
 
   win.webContents.on("will-navigate", (event, url) => {
+    if (blockUnsupportedGoogleSignIn(url)) {
+      event.preventDefault();
+      return;
+    }
+
     const openExternalLinksInBrowser =
       getAppConfig().externalLinksInDefaultBrowser ?? true;
     if (
@@ -1690,6 +1745,7 @@ function createWindow(): BrowserWindow {
     const hostedService = getHostedServiceFromUrl(e.url);
     if (hostedService) {
       windowsData[webContentsId].hostedService = hostedService;
+      windowsData[webContentsId].hostedServiceUrl = e.url;
     }
 
     if (e.url.endsWith("/game")) {
@@ -2601,6 +2657,7 @@ ipcMain.on("open-game", (e, gId, gameName: string, autoLogin = true) => {
   windowsData[e.sender.id].autoLogin = autoLogin;
   windowsData[e.sender.id].selectedServerName = gameName;
   delete windowsData[e.sender.id].hostedService;
+  delete windowsData[e.sender.id].hostedServiceUrl;
 });
 ipcMain.on("clear-cache", async (event) => event.sender.session.clearCache());
 

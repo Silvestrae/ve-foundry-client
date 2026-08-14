@@ -141,6 +141,7 @@ type WindowData = {
   autoLogin: boolean;
   selectedServerName?: string;
   hostedService?: "forge" | "sqyre";
+  hostedServiceUrl?: string;
 };
 
 type WindowsData = {

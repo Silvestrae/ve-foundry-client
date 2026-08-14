@@ -1,15 +1,19 @@
 export type HostedService = "forge" | "sqyre";
+export type HostedAuthenticationProvider = "google" | "discord" | "patreon";
 
 const HOSTED_SERVICE_DOMAINS: Record<HostedService, readonly string[]> = {
   forge: ["forge-vtt.com"],
   sqyre: ["sqyre.app"],
 };
 
-const HOST_AUTHENTICATION_DOMAINS = [
-  "accounts.google.com",
-  "discord.com",
-  "patreon.com",
-] as const;
+const HOST_AUTHENTICATION_DOMAINS: Record<
+  HostedAuthenticationProvider,
+  readonly string[]
+> = {
+  google: ["accounts.google.com"],
+  discord: ["discord.com"],
+  patreon: ["patreon.com"],
+};
 
 function getHttpUrl(rawUrl: string): URL | null {
   try {
@@ -45,14 +49,21 @@ export function getHostedServiceFromUrl(rawUrl: string): HostedService | null {
   return null;
 }
 
-function isHostAuthenticationUrl(rawUrl: string): boolean {
+export function getHostedAuthenticationProviderFromUrl(
+  rawUrl: string,
+): HostedAuthenticationProvider | null {
   const url = getHttpUrl(rawUrl);
-  return (
-    !!url &&
-    HOST_AUTHENTICATION_DOMAINS.some((domain) =>
-      hostnameMatchesDomain(url.hostname, domain),
-    )
-  );
+  if (!url) return null;
+
+  for (const [provider, domains] of Object.entries(
+    HOST_AUTHENTICATION_DOMAINS,
+  ) as [HostedAuthenticationProvider, readonly string[]][]) {
+    if (domains.some((domain) => hostnameMatchesDomain(url.hostname, domain))) {
+      return provider;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -71,8 +82,10 @@ export function isHostedServiceNavigation(
 
   if (currentService === service && targetService === service) return true;
 
-  const currentIsAuthentication = isHostAuthenticationUrl(currentUrl);
-  const targetIsAuthentication = isHostAuthenticationUrl(targetUrl);
+  const currentIsAuthentication =
+    getHostedAuthenticationProviderFromUrl(currentUrl) !== null;
+  const targetIsAuthentication =
+    getHostedAuthenticationProviderFromUrl(targetUrl) !== null;
 
   if (currentService === service && targetIsAuthentication) return true;
   if (

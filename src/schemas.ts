@@ -188,6 +188,7 @@ export const WindowDataSchema = z.object({
   autoLogin: z.boolean(),
   selectedServerName: z.string().optional(),
   hostedService: z.enum(["forge", "sqyre"]).optional(),
+  hostedServiceUrl: z.string().optional(),
 });
 export type WindowData = z.infer<typeof WindowDataSchema>;
 
