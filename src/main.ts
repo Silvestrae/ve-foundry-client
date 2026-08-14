@@ -50,6 +50,7 @@ import type { ImportedLoginRecord } from "./utils/importLoginRecords";
 import {
   getHostedAuthenticationProviderFromUrl,
   getHostedServiceFromUrl,
+  isHostedGameServerUrl,
   isHostedServiceNavigation,
   type HostedService,
 } from "./utils/hostedServiceNavigation";
@@ -1253,11 +1254,11 @@ function hookExternalLinkHandling(
     windowsData[win.webContents.id]?.hostedService ??
     getHostedServiceFromUrl(win.webContents.getURL());
 
-  const continueHostedLaunchInCurrentWindow = (targetUrl: string) => {
+  const continueHostedGameInCurrentWindow = (targetUrl: string) => {
     const activeHostedService = getActiveHostedService();
     if (
       !activeHostedService ||
-      getHostedServiceFromUrl(targetUrl) !== activeHostedService
+      !isHostedGameServerUrl(targetUrl, activeHostedService)
     ) {
       return false;
     }
@@ -1320,7 +1321,7 @@ function hookExternalLinkHandling(
       return { action: "deny" };
     }
 
-    if (continueHostedLaunchInCurrentWindow(url)) {
+    if (continueHostedGameInCurrentWindow(url)) {
       return { action: "deny" };
     }
 
@@ -1378,19 +1379,21 @@ function hookExternalLinkHandling(
 
   win.webContents.on("did-create-window", (childWindow) => {
     const activeHostedService = getActiveHostedService();
-    childWindow.webContents.on("will-navigate", (event, url) => {
+    let transferredHostedGame = false;
+    childWindow.webContents.on("did-start-navigation", (event) => {
       if (
+        transferredHostedGame ||
         !activeHostedService ||
-        getHostedServiceFromUrl(url) !== activeHostedService
+        !isHostedGameServerUrl(event.url, activeHostedService)
       ) {
         return;
       }
 
-      event.preventDefault();
+      transferredHostedGame = true;
       if (!childWindow.isDestroyed()) childWindow.close();
       setTimeout(() => {
         if (!win.isDestroyed()) {
-          win.loadURL(url).catch((err) => {
+          win.loadURL(event.url).catch((err) => {
             console.error("Could not transfer hosted game launch", err);
           });
         }

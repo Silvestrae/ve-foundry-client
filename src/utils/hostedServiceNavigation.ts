@@ -49,6 +49,23 @@ export function getHostedServiceFromUrl(rawUrl: string): HostedService | null {
   return null;
 }
 
+export function isHostedGameServerUrl(
+  rawUrl: string,
+  service: HostedService,
+): boolean {
+  const url = getHttpUrl(rawUrl);
+  if (!url) return false;
+
+  if (service === "sqyre") {
+    return hostnameMatchesDomain(url.hostname, "games.sqyre.app");
+  }
+
+  return (
+    url.hostname.toLowerCase() !== "forge-vtt.com" &&
+    hostnameMatchesDomain(url.hostname, "forge-vtt.com")
+  );
+}
+
 export function getHostedAuthenticationProviderFromUrl(
   rawUrl: string,
 ): HostedAuthenticationProvider | null {
