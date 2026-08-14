@@ -1253,6 +1253,25 @@ function hookExternalLinkHandling(
     windowsData[win.webContents.id]?.hostedService ??
     getHostedServiceFromUrl(win.webContents.getURL());
 
+  const continueHostedLaunchInCurrentWindow = (targetUrl: string) => {
+    const activeHostedService = getActiveHostedService();
+    if (
+      !activeHostedService ||
+      getHostedServiceFromUrl(targetUrl) !== activeHostedService
+    ) {
+      return false;
+    }
+
+    setTimeout(() => {
+      if (!win.isDestroyed()) {
+        win.loadURL(targetUrl).catch((err) => {
+          console.error("Could not continue hosted game launch", err);
+        });
+      }
+    }, 0);
+    return true;
+  };
+
   const blockUnsupportedGoogleSignIn = (targetUrl: string) => {
     const activeHostedService = getActiveHostedService();
     if (
@@ -1298,6 +1317,10 @@ function hookExternalLinkHandling(
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (blockUnsupportedGoogleSignIn(url)) {
+      return { action: "deny" };
+    }
+
+    if (continueHostedLaunchInCurrentWindow(url)) {
       return { action: "deny" };
     }
 
@@ -1354,6 +1377,25 @@ function hookExternalLinkHandling(
   });
 
   win.webContents.on("did-create-window", (childWindow) => {
+    const activeHostedService = getActiveHostedService();
+    childWindow.webContents.on("will-navigate", (event, url) => {
+      if (
+        !activeHostedService ||
+        getHostedServiceFromUrl(url) !== activeHostedService
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (!childWindow.isDestroyed()) childWindow.close();
+      setTimeout(() => {
+        if (!win.isDestroyed()) {
+          win.loadURL(url).catch((err) => {
+            console.error("Could not transfer hosted game launch", err);
+          });
+        }
+      }, 0);
+    });
     hookMenuShortcut(childWindow);
     hookExternalLinkHandling(childWindow, getActiveHostedService());
     hookFavoritePopupShortcut(childWindow);
