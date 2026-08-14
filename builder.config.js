@@ -66,6 +66,14 @@ module.exports = {
     maintainer: "Silvestrae",
     artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
+  deb: {
+    afterInstall: "build/linux-after-install.sh",
+    afterRemove: "build/linux-after-remove.sh",
+  },
+  rpm: {
+    afterInstall: "build/linux-after-install.sh",
+    afterRemove: "build/linux-after-remove.sh",
+  },
 
   publish: [
     {

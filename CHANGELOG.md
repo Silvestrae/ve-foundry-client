@@ -2,6 +2,12 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.31 - 2026-08-15
+
+### Fixed
+
+- Add `/usr/bin/ve-foundry-client` command links for DEB and RPM installations and clean up owned links on uninstall.
+
 ## 1.0.30 - 2026-08-15
 
 ### Fixed
