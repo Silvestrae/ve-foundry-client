@@ -8,7 +8,7 @@ async function getServerInfo(
   game: GameConfig,
 ): Promise<ServerStatusData | null> {
   // plus de CORS, on passe par main.ts
-  return window.api.pingServer(game.url);
+  return window.api.pingServer(game.url, game.id ?? game.name);
 }
 
 function setWrapperDisplay(

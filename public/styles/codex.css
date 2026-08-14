@@ -1460,6 +1460,44 @@ body:not(.main-edit-mode) .favorite-open-button {
   width: 100%;
 }
 
+.hosted-service-credentials {
+  background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+  border-radius: 8px;
+  margin: 0.15rem 0 0.35rem;
+  padding: 0.7rem;
+}
+
+.hosted-service-credentials-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  justify-content: space-between;
+}
+
+.hosted-service-credentials h3 {
+  font-family: var(--font-secondary);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.hosted-service-credentials-heading i {
+  color: var(--color-accent);
+}
+
+.hosted-service-credentials p {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin: 0.35rem 0 0.45rem;
+  opacity: 0.82;
+}
+
+.hosted-service-credentials > button {
+  font-size: 0.82rem;
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.55rem;
+}
+
 .server-settings-modal input:not([type="checkbox"]) {
   box-sizing: border-box;
   font-size: 1rem;

@@ -41,12 +41,22 @@ export type ContextBridgeApi = {
   setCachePath: (cachePath: string) => void;
   returnToServerSelect: () => void;
   saveUserData: (data: SaveUserData) => void;
+  hostedCredentials: (
+    service: HostedService,
+    gameId: GameId,
+  ) => Promise<HostedCredentials>;
+  saveHostedCredentials: (data: HostedCredentials) => Promise<void>;
+  clearHostedProfile: (
+    service: HostedService,
+    gameId: GameId,
+  ) => Promise<void>;
   saveLoginRecords: (records: Record<string, ImportedLoginRecord>) => void;
   openGame: (
     id: number | string,
     serverName: string,
     autoLogin?: boolean,
   ) => void;
+  openHostedGame: (data: HostedGameLaunchData) => Promise<void>;
   clearCache: () => void;
   saveAppConfig: (data: AppConfig) => Promise<void>;
   saveThemeConfig: (data: ThemeConfig) => void;
@@ -75,13 +85,17 @@ export type ContextBridgeApi = {
   readFontFile(path: string): Promise<string | null>;
   openUserDataFolder: () => Promise<string>;
   showMenu: () => Promise<string>;
-  pingServer: (url: string) => Promise<ServerStatusData | null>;
+  pingServer: (
+    url: string,
+    gameId?: GameId,
+  ) => Promise<ServerStatusData | null>;
   serverBackground: (
     url: string,
     options?: ServerBackgroundOptions,
   ) => Promise<ServerBackgroundData | null>;
   serverBackgroundLocalUrl: (fileName: string) => Promise<string | null>;
   onRefreshServerBackgrounds: (callback: () => void) => void;
+  onRefreshServerInfos: (callback: () => void) => void;
   setFullScreen: (fullscreen: boolean) => void;
   /** ask main “are we full-screen right now?” */
   isFullScreen: () => Promise<boolean>;
@@ -149,11 +163,27 @@ const exposedApi: ContextBridgeApi = {
   saveUserData(data: SaveUserData) {
     ipcRenderer.send("save-user-data", data);
   },
+  hostedCredentials(service: HostedService, gameId: GameId) {
+    return ipcRenderer.invoke(
+      "get-hosted-credentials",
+      service,
+      gameId,
+    ) as Promise<HostedCredentials>;
+  },
+  saveHostedCredentials(data: HostedCredentials) {
+    return ipcRenderer.invoke("save-hosted-credentials", data) as Promise<void>;
+  },
+  clearHostedProfile(service: HostedService, gameId: GameId) {
+    return ipcRenderer.invoke("clear-hosted-profile", service, gameId) as Promise<void>;
+  },
   saveLoginRecords(records: Record<string, ImportedLoginRecord>) {
     ipcRenderer.send("save-login-records", records);
   },
   openGame(id: number | string, serverName: string, autoLogin = true) {
     ipcRenderer.send("open-game", id, serverName, autoLogin);
+  },
+  openHostedGame(data: HostedGameLaunchData) {
+    return ipcRenderer.invoke("open-hosted-game", data) as Promise<void>;
   },
   clearCache() {
     ipcRenderer.send("clear-cache");
@@ -219,8 +249,8 @@ const exposedApi: ContextBridgeApi = {
   openUserDataFolder: () =>
     ipcRenderer.invoke("open-user-data-folder") as Promise<string>,
   showMenu: () => ipcRenderer.invoke("show-menu") as Promise<string>,
-  pingServer: (url: string) =>
-    ipcRenderer.invoke("ping-server", url) as Promise<ServerStatusData | null>,
+  pingServer: (url: string, gameId?: GameId) =>
+    ipcRenderer.invoke("ping-server", url, gameId) as Promise<ServerStatusData | null>,
   serverBackground: (url: string, options?: ServerBackgroundOptions) =>
     ipcRenderer.invoke(
       "server-background",
@@ -233,6 +263,11 @@ const exposedApi: ContextBridgeApi = {
     >,
   onRefreshServerBackgrounds(callback: () => void): void {
     ipcRenderer.on("refresh-server-backgrounds", () => {
+      callback();
+    });
+  },
+  onRefreshServerInfos(callback: () => void): void {
+    ipcRenderer.on("refresh-server-infos", () => {
       callback();
     });
   },

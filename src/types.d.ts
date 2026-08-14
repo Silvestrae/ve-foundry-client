@@ -136,11 +136,27 @@ type SaveUserData = {
   adminPassword: string;
 };
 
+type HostedService = "forge" | "sqyre";
+
+type HostedCredentials = {
+  service: HostedService;
+  gameId: GameId;
+  username: string;
+  password: string;
+};
+
+type HostedGameLaunchData = {
+  gameId: GameId;
+  serverName: string;
+  url: string;
+  autoLogin: boolean;
+};
+
 type WindowData = {
   gameId: GameId;
   autoLogin: boolean;
   selectedServerName?: string;
-  hostedService?: "forge" | "sqyre";
+  hostedService?: HostedService;
   hostedServiceUrl?: string;
 };
 

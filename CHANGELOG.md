@@ -2,6 +2,18 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.29 - 2026-08-14
+
+### Added
+
+- Added encrypted Forge and Sqyre credential autofill in hosted server settings.
+- Added persistent per-tile hosted sessions so different hosted tiles can use different provider accounts without sharing cookies or status authentication.
+
+### Changed
+
+- Keep hosted credentials separate from normal settings exports and fill them without automatically submitting the provider login form.
+- Clear a tile's isolated host session when its saved host login is cleared or the server tile is deleted.
+
 ## 1.0.28 - 2026-08-14
 
 ### Added
