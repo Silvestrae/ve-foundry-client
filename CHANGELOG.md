@@ -2,6 +2,12 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.30 - 2026-08-15
+
+### Fixed
+
+- Keep server refresh and configuration controls visible when hosted-service metadata is too long for the tile.
+
 ## 1.0.29 - 2026-08-14
 
 ### Added
