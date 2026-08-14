@@ -20,6 +20,10 @@ import {
 import { getContrastColor } from "./utils/getContrastColor";
 import { safePrompt } from "./utils/safePrompt";
 import { hexToRgba } from "./utils/hexToRgba";
+import {
+  getHostedServiceFromUrl,
+  type HostedService,
+} from "./utils/hostedServiceNavigation";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import ElementPlus from "element-plus";
@@ -61,6 +65,8 @@ let draggedFavoriteStartY = 0;
 let mainEditModeEnabled = false;
 let editingServerId: GameId | null = null;
 let editingServerAutorunItems: FavoriteConfig[] = [];
+let editingHostedService: HostedService | null = null;
+let hostedCredentialsLoadToken = 0;
 
 const MIN_LAUNCHER_SCALE = 0.72;
 const launcherContent = document.querySelector<HTMLElement>(".content");
@@ -401,6 +407,10 @@ window.api.onRefreshServerBackgrounds(async () => {
   showNotification("Server backgrounds refreshed");
 });
 
+window.api.onRefreshServerInfos(() => {
+  void refreshAllServerInfos();
+});
+
 window.api.onFullScreenChange((isFs) => {
   const closeButton = document.querySelector(
     ".tooltip-wrapper.close-app",
@@ -492,6 +502,21 @@ const serverSettingsNameField = document.querySelector(
 const serverSettingsUrlField = document.querySelector(
   "#server-settings-url",
 ) as HTMLInputElement;
+const hostedCredentialsSection = document.querySelector(
+  "#hosted-service-credentials",
+) as HTMLElement;
+const hostedCredentialsTitle = document.querySelector(
+  "#hosted-service-credentials-title",
+) as HTMLElement;
+const hostedCredentialsUsernameField = document.querySelector(
+  "#hosted-service-username",
+) as HTMLInputElement;
+const hostedCredentialsPasswordField = document.querySelector(
+  "#hosted-service-password",
+) as HTMLInputElement;
+const clearHostedCredentialsButton = document.querySelector(
+  "#clear-hosted-service-credentials",
+) as HTMLButtonElement;
 const serverSettingsUserField = document.querySelector(
   "#server-settings-user",
 ) as HTMLInputElement;
@@ -529,7 +554,51 @@ const addServerAutorunButton = document.querySelector(
 function closeServerSettings() {
   editingServerId = null;
   editingServerAutorunItems = [];
+  editingHostedService = null;
+  hostedCredentialsLoadToken += 1;
+  hostedCredentialsUsernameField.value = "";
+  hostedCredentialsPasswordField.value = "";
+  hostedCredentialsSection.classList.add("hidden-display");
   serverSettingsModal.classList.add("hidden-display");
+}
+
+async function syncHostedCredentialsSection(
+  rawUrl: string,
+  force = false,
+) {
+  const service = getHostedServiceFromUrl(rawUrl);
+  if (!force && service === editingHostedService) return;
+
+  editingHostedService = service;
+  const loadToken = ++hostedCredentialsLoadToken;
+  hostedCredentialsUsernameField.value = "";
+  hostedCredentialsPasswordField.value = "";
+  hostedCredentialsPasswordField.type = "password";
+
+  if (!service) {
+    hostedCredentialsSection.classList.add("hidden-display");
+    return;
+  }
+
+  hostedCredentialsTitle.textContent =
+    service === "forge" ? "The Forge account" : "Sqyre account";
+  hostedCredentialsSection.classList.remove("hidden-display");
+
+  try {
+    if (editingServerId === null) return;
+    const credentials = await window.api.hostedCredentials(
+      service,
+      editingServerId,
+    );
+    if (loadToken !== hostedCredentialsLoadToken) return;
+    hostedCredentialsUsernameField.value = credentials.username;
+    hostedCredentialsPasswordField.value = credentials.password;
+  } catch (err) {
+    console.error(`Could not load ${service} credentials`, err);
+    if (loadToken === hostedCredentialsLoadToken) {
+      showNotification("Could not load saved host login");
+    }
+  }
 }
 
 function renderServerAutorunList() {
@@ -2135,6 +2204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     serverSettingsNameField.value = game.name;
     serverSettingsUrlField.value = game.url;
+    await syncHostedCredentialsSection(game.url, true);
     serverSettingsUserField.value = loginData.user;
     serverSettingsPasswordField.value = loginData.password;
     serverSettingsAdminPasswordField.value = loginData.adminPassword;
@@ -2168,6 +2238,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   closeServerSettingsButton.addEventListener("click", closeServerSettings);
+
+  serverSettingsUrlField.addEventListener("input", () => {
+    void syncHostedCredentialsSection(serverSettingsUrlField.value);
+  });
+
+  clearHostedCredentialsButton.addEventListener("click", async () => {
+    if (!editingHostedService || editingServerId === null) return;
+
+    const serviceName =
+      editingHostedService === "forge" ? "The Forge" : "Sqyre";
+    const confirmed = await safePrompt(
+      `Clear the saved ${serviceName} login from VE Client?`,
+    );
+    if (
+      !confirmed ||
+      !editingHostedService ||
+      editingServerId === null
+    ) {
+      return;
+    }
+
+    await window.api.clearHostedProfile(
+      editingHostedService,
+      editingServerId,
+    );
+    hostedCredentialsUsernameField.value = "";
+    hostedCredentialsPasswordField.value = "";
+    showNotification(`${serviceName} login cleared`);
+  });
 
   serverSettingsModal.addEventListener("click", (event) => {
     if (event.target === serverSettingsModal) {
@@ -2203,6 +2302,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         mode: "alert",
       });
       return;
+    }
+
+    const hostedService = getHostedServiceFromUrl(newGameUrl);
+    if (hostedService) {
+      try {
+        await window.api.saveHostedCredentials({
+          service: hostedService,
+          gameId,
+          username: hostedCredentialsUsernameField.value.trim(),
+          password: hostedCredentialsPasswordField.value,
+        });
+      } catch (err) {
+        console.error(`Could not save ${hostedService} credentials`, err);
+        await safePrompt(
+          "VE Client could not encrypt and save the hosted-service login.",
+          { mode: "alert" },
+        );
+        return;
+      }
     }
 
     await updateGameList((appConfig) => {
@@ -2250,6 +2368,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       "Are you sure you want to delete this game?",
     );
     if (!confirmed) return;
+
+    const hostedService = getHostedServiceFromUrl(game.url);
+    if (hostedService) {
+      await window.api.clearHostedProfile(
+        hostedService,
+        game.id ?? game.name,
+      );
+    }
 
     await updateGameList((appConfig) => {
       appConfig.games = appConfig.games.filter(
@@ -3077,7 +3203,10 @@ async function refreshServerMetadataOnLaunch(
   if (!pingUrl) return;
 
   try {
-    const info = await window.api.pingServer(pingUrl);
+    const info = await window.api.pingServer(
+      pingUrl,
+      savedGame.id ?? savedGame.name,
+    );
     if (!info) return;
 
     const updatedGame: GameConfig = {
@@ -3142,7 +3271,8 @@ async function createGameItem(game: GameConfig) {
         savedGameIndex >= 0 ? appConfig.games[savedGameIndex] : undefined;
       const shouldAutoLogin =
         savedGame?.autoLoginEnabled ?? game.autoLoginEnabled ?? true;
-      window.api.openGame(game.id ?? game.name, game.name, shouldAutoLogin);
+      const gameId = game.id ?? game.name;
+      const hostedService = getHostedServiceFromUrl(game.url);
       openAutorunItems(savedGame?.autorunFavorites ?? game.autorunFavorites);
       await refreshServerButtonBackground(li, game);
       await refreshServerMetadataOnLaunch(li, savedGame ?? game, appConfig);
@@ -3151,6 +3281,16 @@ async function createGameItem(game: GameConfig) {
           window.richPresence.enable();
         }
       }
+      if (hostedService) {
+        await window.api.openHostedGame({
+          gameId,
+          serverName: game.name,
+          url: game.url,
+          autoLogin: shouldAutoLogin,
+        });
+        return;
+      }
+      window.api.openGame(gameId, game.name, shouldAutoLogin);
       window.location.href = game.url;
     },
   );

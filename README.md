@@ -70,7 +70,7 @@ Discord Rich Presence, server status, the theme editor, and basic settings/theme
 | Cached server artwork         | Save Foundry login artwork for server tiles so the launcher stays more visual.        |
 | Active server effect          | Highlight the server you launched so it is easy to see which world is currently open. |
 | Window position restore       | Reopen the launcher at the size and position you used last time.                      |
-| Sqyre and Forge support       | Sign in to supported hosted games and launch them without leaving the desktop client. |
+| Sqyre and Forge support       | Keep separate host accounts and sessions for each hosted server tile.                 |
 
 ![Main launcher in play mode, showing server tiles and favourites](docs/screenshots/launcher.png)
 
@@ -137,13 +137,15 @@ VE Foundry Client supports games hosted by [Sqyre](https://www.sqyre.app/) and [
 - Sqyre accepts either its game dashboard address or the game's direct `*.sqyre.app/game` address.
 - The Forge accepts the game's `*.forge-vtt.com` address.
 
-When a private game requires host authentication, sign in on the host page shown inside VE Foundry Client. This uses the host's normal website and keeps its session cookies in the client; VE Foundry Client does not separately capture or save the hosting-service password. The username and password fields in server settings remain for Foundry's own login screen.
+When a private game requires host authentication, sign in on the host page shown inside VE Foundry Client. A hosted server tile can optionally save its host username or email and password in Server Settings. These credentials are encrypted using the operating system's credential protection, stored separately from normal settings exports, and filled into the host's login form without submitting it automatically. The regular username and password fields remain for Foundry's own login screen.
+
+Each hosted tile uses its own persistent browser session. Cookies, host credentials, status requests, and signed-in account details are isolated by tile, so different Sqyre or Forge tiles can use different accounts without overwriting one another. Clearing the saved host login, or deleting the tile, clears that tile's hosted profile.
 
 Google may reject sign-in from an embedded desktop browser. If that happens, use the host's email and password option. VE Foundry Client displays an explanation instead of leaving the client on Google's error page.
 
 Hosted tiles use a cloud badge to identify the provider and, while authenticated, show the signed-in account name. They also display the metadata each provider makes available, such as lifecycle status, Foundry version, game system, world or game details, and player information. A Sqyre or Forge logo is used when the game has no image and the tile has no custom background.
 
-Sqyre may briefly use a separate launch page before Foundry is ready. VE Foundry Client handles that page in the background and shows a themed progress banner before returning the resolved game to the original client window. The Forge normally completes its authentication and launch flow in the same window.
+Sqyre may briefly use a separate launch page before Foundry is ready. VE Foundry Client handles it in the tile's isolated game window and shows a themed progress banner. The original launcher is restored when you return to Server Select. The Forge follows the same isolated-window model while retaining its normal authentication and launch flow.
 
 Hosted status messages include:
 
@@ -277,7 +279,7 @@ Export options include:
 
 Imports can be pasted as JSON text or loaded from a JSON file.
 
-Credentials are only included if you explicitly choose to export them. Local-file favourites are checked during import and skipped if the target file does not exist on the current computer.
+Foundry server credentials are only included if you explicitly choose to export them. Hosted-service credentials are deliberately excluded from exports. Local-file favourites are checked during import and skipped if the target file does not exist on the current computer.
 
 ![Share menu showing export checkboxes and import controls.](docs/screenshots/exportimport.png)
 

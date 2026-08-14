@@ -152,6 +152,8 @@ protocol.registerSchemesAsPrivileged([
 let mainWindow: BrowserWindow;
 let lastUpdateRequestingWindow: BrowserWindow | null = null;
 let favoritesPopupWindow: BrowserWindow | null = null;
+const hostedLauncherWindows = new WeakMap<BrowserWindow, BrowserWindow>();
+const returningHostedWindows = new WeakSet<BrowserWindow>();
 
 const DEFAULT_WINDOW_BOUNDS: WindowBounds = {
   width: 800,
@@ -203,6 +205,146 @@ type MigrationStatus = "skipped" | "success" | "failure";
 
 function getUserDataPath() {
   return path.join(app.getPath("userData"), "userData.json");
+}
+
+type HostedCredentialRecord = {
+  encrypted: number[];
+};
+
+type HostedCredentialStore = Record<string, HostedCredentialRecord>;
+
+function getHostedCredentialsPath() {
+  return path.join(app.getPath("userData"), "hostedCredentials.json");
+}
+
+function isHostedService(value: unknown): value is HostedService {
+  return value === "forge" || value === "sqyre";
+}
+
+function isGameId(value: unknown): value is GameId {
+  return typeof value === "string" || typeof value === "number";
+}
+
+function getHostedProfileKey(service: HostedService, gameId: GameId) {
+  const digest = crypto
+    .createHash("sha256")
+    .update(`${typeof gameId}:${String(gameId)}`)
+    .digest("hex")
+    .slice(0, 24);
+  return `${service}:${digest}`;
+}
+
+function readHostedCredentialStore(): HostedCredentialStore {
+  try {
+    const parsed = JSON.parse(
+      fs.readFileSync(getHostedCredentialsPath(), "utf-8"),
+    ) as Record<string, unknown>;
+    const store: HostedCredentialStore = {};
+
+    for (const [key, value] of Object.entries(parsed)) {
+      const record = value as { encrypted?: unknown } | undefined;
+      if (
+        record &&
+        Array.isArray(record.encrypted) &&
+        record.encrypted.every(
+          (value) => Number.isInteger(value) && value >= 0 && value <= 255,
+        )
+      ) {
+        store[key] = {
+          encrypted: record.encrypted as number[],
+        };
+      }
+    }
+
+    return store;
+  } catch {
+    return {};
+  }
+}
+
+function getHostedCredentials(
+  service: HostedService,
+  gameId: GameId,
+): HostedCredentials {
+  const empty = { service, gameId, username: "", password: "" };
+  const store = readHostedCredentialStore();
+  const record = store[getHostedProfileKey(service, gameId)] ?? store[service];
+  if (
+    !record?.encrypted.length ||
+    !safeStorage.isEncryptionAvailable()
+  ) {
+    return empty;
+  }
+
+  try {
+    const decrypted = JSON.parse(
+      safeStorage.decryptString(Buffer.from(record.encrypted)),
+    ) as { username?: unknown; password?: unknown };
+    return {
+      service,
+      gameId,
+      username:
+        typeof decrypted.username === "string" ? decrypted.username : "",
+      password:
+        typeof decrypted.password === "string" ? decrypted.password : "",
+    };
+  } catch (err) {
+    log.warn(`[hostedCredentials] Could not decrypt ${service} login`, err);
+    return empty;
+  }
+}
+
+function saveHostedCredentials(data: HostedCredentials) {
+  const username = data.username.trim().slice(0, 320);
+  const password = data.password.slice(0, 4096);
+  const store = readHostedCredentialStore();
+  const profileKey = getHostedProfileKey(data.service, data.gameId);
+
+  if (!username && !password) {
+    delete store[profileKey];
+  } else {
+    if (!safeStorage.isEncryptionAvailable()) {
+      throw new Error("Operating-system credential encryption is unavailable");
+    }
+    store[profileKey] = {
+      encrypted: Array.from(
+        safeStorage.encryptString(JSON.stringify({ username, password })),
+      ),
+    };
+  }
+  delete store[data.service];
+
+  fs.writeFileSync(
+    getHostedCredentialsPath(),
+    JSON.stringify(store, null, 2),
+    "utf-8",
+  );
+}
+
+function assertTrustedClientRenderer(senderUrl: string) {
+  if (
+    !app.isPackaged &&
+    MAIN_WINDOW_VITE_DEV_SERVER_URL &&
+    senderUrl.startsWith(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+  ) {
+    return;
+  }
+
+  if (app.isPackaged && senderUrl.startsWith("file:")) {
+    try {
+      const expectedPath = path.resolve(
+        __dirname,
+        "../../renderer",
+        MAIN_WINDOW_VITE_NAME,
+        "index.html",
+      );
+      if (path.resolve(fileURLToPath(senderUrl)) === expectedPath) return;
+    } catch {
+      // Reject malformed or unexpected file URLs below.
+    }
+  }
+
+  throw new Error("Hosted credentials are only available to the VE Client UI");
 }
 
 function migrateUserDataObject(rawData: unknown) {
@@ -761,6 +903,19 @@ async function promptImportOriginalUserData(win: BrowserWindow) {
 }
 
 function returnToServerSelect(win: BrowserWindow) {
+  const launcherWindow = hostedLauncherWindows.get(win);
+  if (launcherWindow && !launcherWindow.isDestroyed()) {
+    returningHostedWindows.add(win);
+    disableRichPresence();
+    closeRichPresenceSocket();
+    win.hide();
+    launcherWindow.show();
+    launcherWindow.focus();
+    launcherWindow.webContents.send("refresh-server-infos");
+    win.close();
+    return;
+  }
+
   const id = win.webContents.id;
   windowsData[id].autoLogin = true;
   delete windowsData[id].selectedServerName;
@@ -1250,6 +1405,103 @@ function showFavoritesPopup(parent?: BrowserWindow | null) {
   popup.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 }
 
+function getHostedLoginService(rawUrl: string): HostedService | null {
+  try {
+    const url = new URL(rawUrl);
+    const hostname = url.hostname.toLowerCase();
+    const pathname = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (
+      (hostname === "forge-vtt.com" || hostname === "www.forge-vtt.com") &&
+      (pathname === "/account/login" || pathname === "/login")
+    ) {
+      return "forge";
+    }
+
+    if (
+      (hostname === "sqyre.app" || hostname === "www.sqyre.app") &&
+      pathname === "/sign-in"
+    ) {
+      return "sqyre";
+    }
+  } catch {
+    // Ignore non-URL and transient navigation values.
+  }
+
+  return null;
+}
+
+async function autofillHostedCredentials(win: BrowserWindow) {
+  if (win.isDestroyed()) return;
+
+  const service = getHostedLoginService(win.webContents.getURL());
+  if (!service) return;
+
+  const gameId = windowsData[win.webContents.id]?.gameId;
+  if (!isGameId(gameId)) return;
+  const credentials = getHostedCredentials(service, gameId);
+  if (!credentials.username && !credentials.password) return;
+
+  const selectors =
+    service === "forge"
+      ? {
+          username:
+            'input[placeholder="Username or email address"], input[name="username"], input[type="email"]',
+          password:
+            'input[placeholder="Enter your password"], input[name="password"], input[type="password"]',
+        }
+      : {
+          username: 'input#email, input[name="email"], input[type="email"]',
+          password:
+            'input#password, input[name="password"], input[type="password"]',
+        };
+
+  const payload = JSON.stringify({ ...credentials, selectors });
+  try {
+    await win.webContents.executeJavaScript(`
+      (() => {
+        const saved = ${payload};
+        let attempts = 0;
+        const fill = () => {
+          attempts += 1;
+          const username = document.querySelector(saved.selectors.username);
+          const password = document.querySelector(saved.selectors.password);
+          if (!(username instanceof HTMLInputElement) ||
+              !(password instanceof HTMLInputElement)) {
+            return attempts >= 40;
+          }
+          if (document.documentElement.dataset.veHostedCredentialsFilled === saved.service) {
+            return true;
+          }
+
+          const setValue = (input, value) => {
+            if (!value || input.value) return;
+            const setter = Object.getOwnPropertyDescriptor(
+              HTMLInputElement.prototype,
+              "value",
+            )?.set;
+            setter?.call(input, value);
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          };
+
+          setValue(username, saved.username);
+          setValue(password, saved.password);
+          document.documentElement.dataset.veHostedCredentialsFilled = saved.service;
+          return true;
+        };
+
+        if (fill()) return;
+        const timer = setInterval(() => {
+          if (fill()) clearInterval(timer);
+        }, 250);
+      })()
+    `);
+  } catch {
+    log.warn(`[hostedCredentials] Could not autofill ${service} login`);
+  }
+}
+
 function hookExternalLinkHandling(
   win: BrowserWindow,
   inheritedHostedService?: HostedService | null,
@@ -1259,6 +1511,14 @@ function hookExternalLinkHandling(
     inheritedHostedService ??
     windowsData[win.webContents.id]?.hostedService ??
     getHostedServiceFromUrl(win.webContents.getURL());
+
+  const fillHostedLogin = () => {
+    autofillHostedCredentials(win).catch(() => {
+      log.warn("[hostedCredentials] Autofill failed");
+    });
+  };
+  win.webContents.on("dom-ready", fillHostedLogin);
+  win.webContents.on("did-finish-load", fillHostedLogin);
 
   const continueHostedGameInCurrentWindow = (targetUrl: string) => {
     const activeHostedService = getActiveHostedService();
@@ -1392,6 +1652,14 @@ function hookExternalLinkHandling(
 
   win.webContents.on("did-create-window", (childWindow, details) => {
     const activeHostedService = getActiveHostedService();
+    const parentWindowData = windowsData[win.webContents.id];
+    if (parentWindowData) {
+      const childWebContentsId = childWindow.webContents.id;
+      windowsData[childWebContentsId] = { ...parentWindowData };
+      childWindow.on("closed", () => {
+        delete windowsData[childWebContentsId];
+      });
+    }
     hookMenuShortcut(childWindow);
     hookExternalLinkHandling(childWindow, activeHostedService);
     hookFavoritePopupShortcut(childWindow);
@@ -1710,6 +1978,13 @@ function getSession(): Electron.Session {
   return session.fromPartition(`persist:${partitionIdTemp}`, { cache: true });
 }
 
+function getHostedSession(service: HostedService, gameId: GameId) {
+  const profileKey = getHostedProfileKey(service, gameId).replace(":", "-");
+  return session.fromPartition(`persist:ve-hosted-${profileKey}`, {
+    cache: true,
+  });
+}
+
 function getSavedWindowBounds(): WindowBounds {
   const bounds = getAppConfig().windowBounds;
   if (!bounds) return DEFAULT_WINDOW_BOUNDS;
@@ -1784,13 +2059,20 @@ function hookWindowBoundsPersistence(win: BrowserWindow) {
   });
 }
 
-// let win: BrowserWindow;
+type CreateWindowOptions = {
+  localSession?: Electron.Session;
+  initialUrl?: string;
+  windowData?: WindowData;
+  launcherWindow?: BrowserWindow;
+};
 
-function createWindow(): BrowserWindow {
-  const localSession = getSession();
+function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
+  const localSession = options.localSession ?? getSession();
   const savedAppConfig = getAppConfig();
   const hasSavedWindowBounds = !!savedAppConfig.windowBounds;
-  const savedBounds = getSavedWindowBounds();
+  const savedBounds = options.launcherWindow?.isDestroyed()
+    ? getSavedWindowBounds()
+    : (options.launcherWindow?.getBounds() ?? getSavedWindowBounds());
   const win = new BrowserWindow({
     show: false,
     ...savedBounds,
@@ -1803,6 +2085,11 @@ function createWindow(): BrowserWindow {
     },
   });
   const webContentsId = win.webContents.id;
+  windowsData[webContentsId] =
+    options.windowData ?? ({ autoLogin: true } as WindowData);
+  if (options.launcherWindow) {
+    hostedLauncherWindows.set(win, options.launcherWindow);
+  }
 
   hookFullScreenEvents(win);
   hookMenuShortcut(win);
@@ -1896,7 +2183,9 @@ function createWindow(): BrowserWindow {
     win.setProgressBar(-1);
   });
   win.menuBarVisible = false;
-  if (!app.isPackaged && MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  if (options.initialUrl) {
+    win.loadURL(options.initialUrl);
+  } else if (!app.isPackaged && MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     win.webContents.openDevTools({ mode: "detach" });
   } else {
@@ -2204,9 +2493,15 @@ function createWindow(): BrowserWindow {
 
   win.once("ready-to-show", () => {
     if (!win.isFullScreen()) {
-      if (savedAppConfig.windowBounds?.isMaximized ?? !hasSavedWindowBounds) {
+      if (
+        options.launcherWindow?.isMaximized() ||
+        (savedAppConfig.windowBounds?.isMaximized ?? !hasSavedWindowBounds)
+      ) {
         win.maximize();
       }
+    }
+    if (options.launcherWindow && !options.launcherWindow.isDestroyed()) {
+      options.launcherWindow.hide();
     }
     win.show();
   });
@@ -2226,9 +2521,17 @@ function createWindow(): BrowserWindow {
   });
   win.on("closed", () => {
     windows.delete(win);
+    delete windowsData[webContentsId];
+    const launcherWindow = hostedLauncherWindows.get(win);
+    if (
+      launcherWindow &&
+      !returningHostedWindows.has(win) &&
+      !launcherWindow.isDestroyed()
+    ) {
+      launcherWindow.close();
+    }
   });
   windows.add(win);
-  windowsData[webContentsId] = { autoLogin: true } as WindowData;
   return win;
 }
 
@@ -2887,6 +3190,40 @@ ipcMain.on("open-game", (e, gId, gameName: string, autoLogin = true) => {
   delete windowsData[e.sender.id].hostedService;
   delete windowsData[e.sender.id].hostedServiceUrl;
 });
+ipcMain.handle(
+  "open-hosted-game",
+  (event, data: HostedGameLaunchData) => {
+    assertTrustedClientRenderer(event.sender.getURL());
+    if (
+      !data ||
+      !isGameId(data.gameId) ||
+      typeof data.serverName !== "string" ||
+      typeof data.url !== "string" ||
+      typeof data.autoLogin !== "boolean"
+    ) {
+      throw new Error("Invalid hosted game launch request");
+    }
+
+    const service = getHostedServiceFromUrl(data.url);
+    const launcherWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!service || !launcherWindow || launcherWindow.isDestroyed()) {
+      throw new Error("Hosted game launch is unavailable");
+    }
+
+    createWindow({
+      localSession: getHostedSession(service, data.gameId),
+      initialUrl: data.url,
+      launcherWindow,
+      windowData: {
+        gameId: data.gameId,
+        autoLogin: data.autoLogin,
+        selectedServerName: data.serverName.slice(0, 200),
+        hostedService: service,
+        hostedServiceUrl: data.url,
+      },
+    });
+  },
+);
 ipcMain.on("clear-cache", async (event) => event.sender.session.clearCache());
 
 ipcMain.on("save-user-data", (_e, data: SaveUserData) => {
@@ -2903,6 +3240,49 @@ ipcMain.on("save-user-data", (_e, data: SaveUserData) => {
         : [],
   });
 });
+ipcMain.handle("get-hosted-credentials", (event, service: unknown, gameId: unknown) => {
+  assertTrustedClientRenderer(event.sender.getURL());
+  if (!isHostedService(service) || !isGameId(gameId)) {
+    throw new Error("Unknown hosted service");
+  }
+  return getHostedCredentials(service, gameId);
+});
+ipcMain.handle(
+  "save-hosted-credentials",
+  (event, data: HostedCredentials) => {
+    assertTrustedClientRenderer(event.sender.getURL());
+    if (
+      !data ||
+      !isHostedService(data.service) ||
+      !isGameId(data.gameId) ||
+      typeof data.username !== "string" ||
+      typeof data.password !== "string"
+    ) {
+      throw new Error("Invalid hosted credentials");
+    }
+    saveHostedCredentials(data);
+  },
+);
+ipcMain.handle(
+  "clear-hosted-profile",
+  async (event, service: unknown, gameId: unknown) => {
+    assertTrustedClientRenderer(event.sender.getURL());
+    if (!isHostedService(service) || !isGameId(gameId)) {
+      throw new Error("Unknown hosted profile");
+    }
+    saveHostedCredentials({
+      service,
+      gameId,
+      username: "",
+      password: "",
+    });
+    const hostedSession = getHostedSession(service, gameId);
+    await Promise.all([
+      hostedSession.clearCache(),
+      hostedSession.clearStorageData(),
+    ]);
+  },
+);
 ipcMain.on(
   "save-login-records",
   (_e, records: Record<string, ImportedLoginRecord>) => {
@@ -3484,8 +3864,14 @@ ipcMain.handle(
   },
 );
 
-ipcMain.handle("ping-server", async (e, rawUrl: string) => {
-  if (getHostedServiceFromUrl(rawUrl) === "forge") {
+ipcMain.handle("ping-server", async (e, rawUrl: string, gameId?: GameId) => {
+  const hostedService = getHostedServiceFromUrl(rawUrl);
+  const requestSession =
+    hostedService && isGameId(gameId)
+      ? getHostedSession(hostedService, gameId)
+      : e.sender.session;
+
+  if (hostedService === "forge") {
     const getForgeRequestOptions = () => ({
       cache: "no-store" as const,
       credentials: "include" as const,
@@ -3495,9 +3881,9 @@ ipcMain.handle("ping-server", async (e, rawUrl: string) => {
     const forgeStatusUrl = new URL("api/forgevtt", rawUrl).toString();
     const [statusResponse, forgeStatusResponse, accountResponse] =
       await Promise.all([
-        e.sender.session.fetch(statusUrl, getForgeRequestOptions()),
-        e.sender.session.fetch(forgeStatusUrl, getForgeRequestOptions()),
-        e.sender.session.fetch(
+        requestSession.fetch(statusUrl, getForgeRequestOptions()),
+        requestSession.fetch(forgeStatusUrl, getForgeRequestOptions()),
+        requestSession.fetch(
           "https://forge-vtt.com/setup",
           getForgeRequestOptions(),
         ),
@@ -3536,7 +3922,7 @@ ipcMain.handle("ping-server", async (e, rawUrl: string) => {
     } satisfies ServerStatusData;
   }
 
-  if (getHostedServiceFromUrl(rawUrl) === "sqyre") {
+  if (hostedService === "sqyre") {
     const slug = getSqyreGameSlug(rawUrl);
     if (!slug) return null;
 
@@ -3548,12 +3934,12 @@ ipcMain.handle("ping-server", async (e, rawUrl: string) => {
     const detailUrl = `https://www.sqyre.app/games/${encodeURIComponent(slug)}`;
     const listingUrl = "https://www.sqyre.app/games/my-games";
     const directResponsePromise = isHostedGameServerUrl(rawUrl, "sqyre")
-      ? e.sender.session.fetch(rawUrl, getSqyreRequestOptions())
+      ? requestSession.fetch(rawUrl, getSqyreRequestOptions())
       : Promise.resolve(null);
     const [directResponse, detailResponse, listingResponse] = await Promise.all([
       directResponsePromise,
-      e.sender.session.fetch(detailUrl, getSqyreRequestOptions()),
-      e.sender.session.fetch(listingUrl, getSqyreRequestOptions()),
+      requestSession.fetch(detailUrl, getSqyreRequestOptions()),
+      requestSession.fetch(listingUrl, getSqyreRequestOptions()),
     ]);
     if (directResponse?.status === 404) {
       throw new Error("Sqyre direct host HTTP 404");
@@ -3573,7 +3959,7 @@ ipcMain.handle("ping-server", async (e, rawUrl: string) => {
 
     const statusSlug = listingDetails?.slug ?? slug;
     const statusUrl = `https://www.sqyre.app/api/games?slug=${encodeURIComponent(statusSlug)}`;
-    const statusResponse = await e.sender.session.fetch(
+    const statusResponse = await requestSession.fetch(
       statusUrl,
       getSqyreRequestOptions(),
     );

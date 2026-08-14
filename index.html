@@ -804,6 +804,47 @@
                 placeholder="Server URL"
                 type="text"
               />
+              <section
+                id="hosted-service-credentials"
+                class="hosted-service-credentials hidden-display"
+              >
+                <div class="hosted-service-credentials-heading">
+                  <h3 id="hosted-service-credentials-title">
+                    Hosted service account
+                  </h3>
+                  <i class="fa-solid fa-cloud" aria-hidden="true"></i>
+                </div>
+                <p>
+                  Saved for this server tile and autofilled when its login page
+                  appears. VE Client will not submit the form for you.
+                </p>
+                <input
+                  id="hosted-service-username"
+                  class="input-large"
+                  autocomplete="off"
+                  placeholder="Account email or username"
+                  type="text"
+                />
+                <div class="password-field field-large">
+                  <input
+                    id="hosted-service-password"
+                    class="input-large"
+                    autocomplete="new-password"
+                    placeholder="Account password"
+                    type="password"
+                  />
+                  <div class="password-main-button">
+                    <div class="password-button-wrapper">
+                      <button type="button" class="toggle-password">
+                        <i class="fa-solid fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <button id="clear-hosted-service-credentials" type="button">
+                  Clear this tile's saved login
+                </button>
+              </section>
               <input
                 id="server-settings-user"
                 class="input-large"
