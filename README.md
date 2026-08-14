@@ -23,10 +23,12 @@ This app is currently unsigned. Windows Defender, SmartScreen, macOS Gatekeeper,
 - [Download And Install](#download-and-install)
 - [What VE Foundry Client Adds](#what-ve-foundry-client-adds)
 - [Server Launcher](#server-launcher)
+- [Hosted Services: Sqyre And The Forge](#hosted-services-sqyre-and-the-forge)
 - [Favourites](#favourites)
 - [Server Autorun Favourites](#server-autorun-favourites)
 - [In-Game Favourites Popup](#in-game-favourites-popup)
 - [Play Mode And Edit Mode](#play-mode-and-edit-mode)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Client Settings](#client-settings)
 - [Theme Editor](#theme-editor)
 - [Import, Export, And Sharing](#import-export-and-sharing)
@@ -68,6 +70,7 @@ Discord Rich Presence, server status, the theme editor, and basic settings/theme
 | Cached server artwork         | Save Foundry login artwork for server tiles so the launcher stays more visual.        |
 | Active server effect          | Highlight the server you launched so it is easy to see which world is currently open. |
 | Window position restore       | Reopen the launcher at the size and position you used last time.                      |
+| Sqyre and Forge support       | Sign in to supported hosted games and launch them without leaving the desktop client. |
 
 ![Main launcher in play mode, showing server tiles and favourites](docs/screenshots/launcher.png)
 
@@ -126,6 +129,29 @@ You can turn status details on or off in client settings. You can also disable a
 ![Server tile with automatic status refresh disabled.](docs/screenshots/norefresh.png)
 
 ![Server settings modal with credentials, auto-login, and status refresh options.](docs/screenshots/serversettings.png)
+
+## Hosted Services: Sqyre And The Forge
+
+VE Foundry Client supports games hosted by [Sqyre](https://www.sqyre.app/) and [The Forge](https://forge-vtt.com/). Add the player-facing address you normally use to open the game:
+
+- Sqyre accepts either its game dashboard address or the game's direct `*.sqyre.app/game` address.
+- The Forge accepts the game's `*.forge-vtt.com` address.
+
+When a private game requires host authentication, sign in on the host page shown inside VE Foundry Client. This uses the host's normal website and keeps its session cookies in the client; VE Foundry Client does not separately capture or save the hosting-service password. The username and password fields in server settings remain for Foundry's own login screen.
+
+Google may reject sign-in from an embedded desktop browser. If that happens, use the host's email and password option. VE Foundry Client displays an explanation instead of leaving the client on Google's error page.
+
+Hosted tiles use a cloud badge to identify the provider and, while authenticated, show the signed-in account name. They also display the metadata each provider makes available, such as lifecycle status, Foundry version, game system, world or game details, and player information. A Sqyre or Forge logo is used when the game has no image and the tile has no custom background.
+
+Sqyre may briefly use a separate launch page before Foundry is ready. VE Foundry Client handles that page in the background and shows a themed progress banner before returning the resolved game to the original client window. The Forge normally completes its authentication and launch flow in the same window.
+
+Hosted status messages include:
+
+- `Online`, `Starting`, `Stopping`, `Sleeping`, or another provider lifecycle state when available
+- `Sign In Required` when the host session is not authenticated
+- `Unavailable` when the saved game address no longer exists
+
+If you delete and recreate a hosted game, the provider may assign it a new address. Edit the server tile to use that new address; VE Foundry Client will not silently associate an old tile with a different game.
 
 ## Favourites
 
@@ -207,6 +233,7 @@ Client settings include:
 - Notification duration
 - Fullscreen behavior
 - Session sharing between windows
+- Linux XWayland compatibility mode (requires an app restart)
 - Server status display
 - Server status refresh rate
 - Discord Rich Presence
