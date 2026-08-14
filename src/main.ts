@@ -1380,12 +1380,8 @@ function hookExternalLinkHandling(
   win.webContents.on("did-create-window", (childWindow) => {
     const activeHostedService = getActiveHostedService();
     let transferredHostedGame = false;
-    childWindow.webContents.on("did-start-navigation", (event) => {
-      if (
-        transferredHostedGame ||
-        !activeHostedService ||
-        !isHostedGameServerUrl(event.url, activeHostedService)
-      ) {
+    const transferHostedGame = (targetUrl: string) => {
+      if (transferredHostedGame || !activeHostedService || !targetUrl) {
         return;
       }
 
@@ -1393,11 +1389,38 @@ function hookExternalLinkHandling(
       if (!childWindow.isDestroyed()) childWindow.close();
       setTimeout(() => {
         if (!win.isDestroyed()) {
-          win.loadURL(event.url).catch((err) => {
+          win.loadURL(targetUrl).catch((err) => {
             console.error("Could not transfer hosted game launch", err);
           });
         }
       }, 0);
+    };
+
+    childWindow.webContents.on("did-start-navigation", (event) => {
+      if (
+        activeHostedService &&
+        isHostedGameServerUrl(event.url, activeHostedService)
+      ) {
+        transferHostedGame(event.url);
+      }
+    });
+    childWindow.webContents.on("did-finish-load", async () => {
+      if (transferredHostedGame || !activeHostedService) return;
+
+      try {
+        const isFoundryPage = await childWindow.webContents.executeJavaScript(`
+          Boolean(
+            globalThis.game ||
+            document.body?.classList.contains("vtt") ||
+            document.querySelector("#join-game, #setup, #ui-top")
+          )
+        `);
+        if (isFoundryPage) {
+          transferHostedGame(childWindow.webContents.getURL());
+        }
+      } catch (err) {
+        console.error("Could not identify hosted Foundry page", err);
+      }
     });
     hookMenuShortcut(childWindow);
     hookExternalLinkHandling(childWindow, getActiveHostedService());
