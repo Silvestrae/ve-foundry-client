@@ -2444,6 +2444,8 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
                 [
                   'select[name="userid"]',
                   'select[name="user"]',
+                  '#join-username',
+                  'input[name="username"]',
                   'input[name="userid"]',
                   'input[name="user"]',
                   'input[name="password"]',
@@ -2471,7 +2473,9 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
             credentials.user,
           );
           setFieldValue(
-            document.querySelector('input[name="userid"], input[name="user"]'),
+            document.querySelector(
+              '#join-username, input[name="username"], input[name="userid"], input[name="user"]',
+            ),
             credentials.user,
           );
           setFieldValue(
