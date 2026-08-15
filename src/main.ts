@@ -948,6 +948,426 @@ function getDisplayUrl(url: string) {
   }
 }
 
+function isFoundryGameUrl(url: string) {
+  try {
+    return new URL(url).pathname.replace(/\/$/, "").endsWith("/game");
+  } catch {
+    return false;
+  }
+}
+
+function getWorldLoadingItemLabel(url: string, resourceType: string) {
+  const typeLabels: Record<string, string> = {
+    stylesheet: "Stylesheet",
+    script: "Script",
+    image: "Image",
+    font: "Font",
+    xhr: "World data",
+    media: "Media",
+    object: "Asset",
+    other: "Asset",
+  };
+  const typeLabel = typeLabels[resourceType];
+  if (!typeLabel) return null;
+
+  try {
+    const parsed = new URL(url);
+    const encodedName = parsed.pathname.split("/").filter(Boolean).at(-1);
+    const itemName = encodedName
+      ? decodeURIComponent(encodedName)
+      : parsed.hostname;
+    const shortenedName =
+      itemName.length > 84 ? `${itemName.slice(0, 81)}...` : itemName;
+    return `${typeLabel}: ${shortenedName}`;
+  } catch {
+    return null;
+  }
+}
+
+const worldLoadingOverlays = new Map<number, BrowserWindow>();
+
+function closeWorldLoadingOverlay(webContentsId: number) {
+  const overlay = worldLoadingOverlays.get(webContentsId);
+  worldLoadingOverlays.delete(webContentsId);
+  if (overlay && !overlay.isDestroyed()) overlay.destroy();
+}
+
+function showWorldLoadingOverlay(win: BrowserWindow) {
+  if (win.isDestroyed() || !isFoundryGameUrl(win.webContents.getURL())) return;
+
+  const webContentsId = win.webContents.id;
+  if (
+    windowsData[webContentsId]?.hostedService ||
+    getHostedServiceFromUrl(win.webContents.getURL())
+  ) {
+    closeWorldLoadingOverlay(webContentsId);
+    return;
+  }
+  if (worldLoadingOverlays.has(webContentsId)) return;
+
+  const worldName =
+    windowsData[win.webContents.id]?.selectedServerName?.trim() ||
+    "Foundry world";
+  const themeConfig = getThemeConfig();
+  const getThemeColor = (value: string | undefined, fallback: string) =>
+    value && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value) ? value : fallback;
+  const backgroundColor = getThemeColor(
+    themeConfig.backgroundColor,
+    "#0e1a23",
+  );
+  const accentColor = getThemeColor(themeConfig.accentColor, "#98e4f7");
+  const textColor = getThemeColor(themeConfig.textColor, "#88c0a9");
+  const serializedWorldName = JSON.stringify(worldName).replace(
+    /</g,
+    "\\u003c",
+  );
+
+  const overlay = new BrowserWindow({
+    parent: win,
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
+    focusable: false,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    hasShadow: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      backgroundThrottling: false,
+    },
+  });
+  worldLoadingOverlays.set(webContentsId, overlay);
+  overlay.setIgnoreMouseEvents(true);
+
+  const overlayScript = `
+      (() => {
+        const bannerId = "ve-world-loading-banner";
+        const styleId = "ve-world-loading-banner-style";
+        const worldName = ${serializedWorldName};
+
+        if (!document.getElementById(styleId)) {
+          const style = document.createElement("style");
+          style.id = styleId;
+          style.textContent = \`
+            #\${bannerId} {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              z-index: 2147483647;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 18px;
+              height: 100vh;
+              padding: 14px 28px;
+              box-sizing: border-box;
+              overflow: hidden;
+              --ve-world-background: ${backgroundColor};
+              --ve-world-accent: ${accentColor};
+              --ve-world-text: ${textColor};
+              background:
+                linear-gradient(
+                  90deg,
+                  color-mix(in srgb, var(--ve-world-background) 72%, transparent),
+                  color-mix(in srgb, var(--ve-world-background) 88%, transparent) 35%,
+                  color-mix(in srgb, var(--ve-world-background) 88%, transparent) 65%,
+                  color-mix(in srgb, var(--ve-world-background) 72%, transparent)
+                );
+              border-top: 1px solid color-mix(in srgb, var(--ve-world-accent) 42%, transparent);
+              border-bottom: 1px solid color-mix(in srgb, var(--ve-world-accent) 42%, transparent);
+              box-shadow:
+                0 0 28px rgba(0, 0, 0, 0.5),
+                inset 0 0 32px color-mix(in srgb, var(--ve-world-accent) 6%, transparent);
+              backdrop-filter: blur(12px) saturate(130%);
+              color: var(--ve-world-text);
+              font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+              text-align: center;
+              pointer-events: none;
+              transform: none;
+              transition: opacity 180ms ease, transform 180ms ease;
+            }
+            #\${bannerId}.ve-world-loading-banner-hidden {
+              opacity: 0;
+              transform: scale(0.98);
+            }
+            #\${bannerId}::before,
+            #\${bannerId}::after {
+              content: "";
+              position: absolute;
+              top: 0;
+              bottom: 0;
+              width: 28%;
+              pointer-events: none;
+            }
+            #\${bannerId}::before {
+              left: 0;
+              background: linear-gradient(
+                90deg,
+                color-mix(in srgb, var(--ve-world-accent) 9%, transparent),
+                transparent
+              );
+            }
+            #\${bannerId}::after {
+              right: 0;
+              background: linear-gradient(
+                270deg,
+                color-mix(in srgb, var(--ve-world-accent) 9%, transparent),
+                transparent
+              );
+            }
+            #\${bannerId} .ve-world-loading-spinner {
+              flex: 0 0 auto;
+              width: 28px;
+              height: 28px;
+              border: 3px solid color-mix(in srgb, var(--ve-world-accent) 18%, transparent);
+              border-top-color: var(--ve-world-accent);
+              border-radius: 50%;
+              filter: drop-shadow(
+                0 0 5px color-mix(in srgb, var(--ve-world-accent) 45%, transparent)
+              );
+              animation: ve-world-loading-spin 0.9s linear infinite;
+            }
+            #\${bannerId} .ve-world-loading-message {
+              position: relative;
+              z-index: 1;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              color: color-mix(in srgb, var(--ve-world-text) 78%, transparent);
+              font-size: clamp(14px, 1.1vw, 17px);
+              line-height: 1.4;
+              letter-spacing: 0.01em;
+            }
+            #\${bannerId} .ve-world-loading-elapsed {
+              display: block;
+              margin-top: 6px;
+              color: var(--ve-world-accent);
+              font-size: clamp(14px, 1vw, 16px);
+              font-variant-numeric: tabular-nums;
+              font-weight: 600;
+            }
+            #\${bannerId} .ve-world-loading-status {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-wrap: wrap;
+              gap: 10px;
+              margin-top: 9px;
+              color: color-mix(in srgb, var(--ve-world-text) 70%, transparent);
+              font-size: clamp(14px, 1vw, 16px);
+            }
+            #\${bannerId} .ve-world-loading-item {
+              overflow: hidden;
+              max-width: min(68vw, 760px);
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            #\${bannerId} strong {
+              display: block;
+              margin-bottom: 3px;
+              color: var(--ve-world-accent);
+              font-family: Cinzel, Georgia, serif;
+              font-size: clamp(22px, 1.8vw, 30px);
+              font-weight: 700;
+              letter-spacing: 0.035em;
+              text-shadow:
+                0 0 12px color-mix(in srgb, var(--ve-world-accent) 28%, transparent);
+            }
+            @keyframes ve-world-loading-spin {
+              to { transform: rotate(360deg); }
+            }
+          \`;
+          document.head.appendChild(style);
+        }
+
+        let banner = document.getElementById(bannerId);
+        if (!banner) {
+          banner = document.createElement("div");
+          banner.id = bannerId;
+          banner.setAttribute("role", "status");
+          banner.setAttribute("aria-live", "polite");
+          banner.innerHTML = \`
+            <div class="ve-world-loading-message">
+              <strong data-loading-heading></strong>
+              <span data-loading-message>Foundry is downloading and preparing world data, modules, and scene assets. The window may remain dark while this finishes.</span>
+              <span class="ve-world-loading-status">
+                <span class="ve-world-loading-spinner" aria-hidden="true"></span>
+                <span class="ve-world-loading-item" data-loading-item>Initialising Foundry...</span>
+              </span>
+              <span class="ve-world-loading-elapsed" data-loading-elapsed>Elapsed: 0:00</span>
+            </div>
+          \`;
+          document.documentElement.appendChild(banner);
+        }
+
+        const heading = banner.querySelector("[data-loading-heading]");
+        if (heading) heading.textContent = \`Loading \${worldName}...\`;
+        globalThis.__veSetWorldLoadingItem = (item) => {
+          const loadingItem = banner?.querySelector("[data-loading-item]");
+          if (loadingItem && typeof item === "string" && item) {
+            loadingItem.textContent = item;
+          }
+        };
+
+        const startedAt = Date.now();
+        const updateElapsed = () => {
+          const elapsed = banner?.querySelector("[data-loading-elapsed]");
+          if (!elapsed) return;
+
+          const totalSeconds = Math.floor((Date.now() - startedAt) / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          const formatted = hours > 0
+            ? \`\${hours}:\${String(minutes).padStart(2, "0")}:\${String(seconds).padStart(2, "0")}\`
+            : \`\${minutes}:\${String(seconds).padStart(2, "0")}\`;
+          elapsed.textContent = \`Elapsed: \${formatted}\`;
+        };
+
+        updateElapsed();
+        const elapsedInterval = setInterval(updateElapsed, 1000);
+        const messageTimers = [
+          setTimeout(() => {
+            const message = banner?.querySelector("[data-loading-message]");
+            if (message) {
+              message.textContent = "Still working — large worlds, modules, or scene assets can extend loading time.";
+            }
+          }, 30000),
+          setTimeout(() => {
+            const message = banner?.querySelector("[data-loading-message]");
+            if (message) {
+              message.textContent = "Foundry is still preparing the world. You can continue waiting; this banner will close automatically when it is ready.";
+            }
+          }, 90000),
+        ];
+
+      })();
+  `;
+  const overlayHtml = `<!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }</style>
+      </head>
+      <body><script>${overlayScript}</script></body>
+    </html>`;
+
+  let readyPollTimer: ReturnType<typeof setTimeout> | null = null;
+  let finishing = false;
+
+  const hideOverlay = () => {
+    if (!overlay.isDestroyed()) overlay.hide();
+  };
+  const syncOverlay = () => {
+    if (win.isDestroyed() || overlay.isDestroyed()) return;
+    const bounds = win.getContentBounds();
+    const height = Math.max(160, Math.min(210, Math.round(bounds.height * 0.18)));
+    overlay.setBounds({
+      x: bounds.x,
+      y: bounds.y + Math.round((bounds.height - height) / 2),
+      width: bounds.width,
+      height,
+    });
+    if (win.isVisible() && !win.isMinimized()) {
+      overlay.showInactive();
+    } else {
+      overlay.hide();
+    }
+  };
+  const syncOverlayAfterWindowChange = () => {
+    syncOverlay();
+    setTimeout(syncOverlay, 50);
+  };
+  const finishOverlay = () => {
+    if (finishing || overlay.isDestroyed()) return;
+    finishing = true;
+    void overlay.webContents
+      .executeJavaScript(
+        'document.getElementById("ve-world-loading-banner")?.classList.add("ve-world-loading-banner-hidden");',
+      )
+      .finally(() => {
+        setTimeout(() => closeWorldLoadingOverlay(webContentsId), 200);
+      });
+  };
+  const pollForWorldReady = async () => {
+    if (
+      finishing ||
+      win.isDestroyed() ||
+      overlay.isDestroyed() ||
+      !isFoundryGameUrl(win.webContents.getURL())
+    ) {
+      closeWorldLoadingOverlay(webContentsId);
+      return;
+    }
+
+    try {
+      const isReady = await win.webContents.executeJavaScript(
+        "Boolean(globalThis.game?.ready)",
+      );
+      if (isReady) {
+        finishOverlay();
+        return;
+      }
+    } catch {
+      // Navigation can briefly replace the document while Foundry starts.
+    }
+
+    if (!finishing && !overlay.isDestroyed()) {
+      readyPollTimer = setTimeout(() => void pollForWorldReady(), 250);
+    }
+  };
+
+  win.on("move", syncOverlay);
+  win.on("resize", syncOverlay);
+  win.on("maximize", syncOverlayAfterWindowChange);
+  win.on("unmaximize", syncOverlayAfterWindowChange);
+  win.on("restore", syncOverlayAfterWindowChange);
+  win.on("enter-full-screen", syncOverlayAfterWindowChange);
+  win.on("leave-full-screen", syncOverlayAfterWindowChange);
+  win.on("focus", syncOverlay);
+  win.on("show", syncOverlay);
+  win.on("hide", hideOverlay);
+  win.on("minimize", hideOverlay);
+
+  overlay.once("closed", () => {
+    if (readyPollTimer) clearTimeout(readyPollTimer);
+    if (worldLoadingOverlays.get(webContentsId) === overlay) {
+      worldLoadingOverlays.delete(webContentsId);
+    }
+    if (win.isDestroyed()) return;
+    win.removeListener("move", syncOverlay);
+    win.removeListener("resize", syncOverlay);
+    win.removeListener("maximize", syncOverlayAfterWindowChange);
+    win.removeListener("unmaximize", syncOverlayAfterWindowChange);
+    win.removeListener("restore", syncOverlayAfterWindowChange);
+    win.removeListener("enter-full-screen", syncOverlayAfterWindowChange);
+    win.removeListener("leave-full-screen", syncOverlayAfterWindowChange);
+    win.removeListener("focus", syncOverlay);
+    win.removeListener("show", syncOverlay);
+    win.removeListener("hide", hideOverlay);
+    win.removeListener("minimize", hideOverlay);
+  });
+
+  void overlay
+    .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(overlayHtml)}`)
+    .then(() => {
+      syncOverlay();
+      void pollForWorldReady();
+    })
+    .catch((error) => {
+      console.warn("[world-loading-banner] Could not create overlay:", error);
+      closeWorldLoadingOverlay(webContentsId);
+    });
+}
+
 function notifyMainWindow(message: string, winOverride?: BrowserWindow) {
   const win = winOverride ?? mainWindow;
   if (win && !win.isDestroyed()) {
@@ -2148,6 +2568,9 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
   win.webContents.setUserAgent(
     win.webContents.getUserAgent().replace("Electron", ""),
   );
+  win.webContents.on("dom-ready", () => {
+    showWorldLoadingOverlay(win);
+  });
   win.webContents.on("did-start-loading", () => {
     const wd = windowsData[win.webContents.id];
     if (wd?.selectedServerName) {
@@ -2201,9 +2624,57 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 
   // Show an in-app fallback when the selected Foundry server is unavailable.
   const { session } = win.webContents;
+  const activeWorldLoadingRequests = new Map<number, string>();
+  let worldLoadingItemUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const scheduleWorldLoadingItemUpdate = () => {
+    if (worldLoadingItemUpdateTimer) return;
+    worldLoadingItemUpdateTimer = setTimeout(() => {
+      worldLoadingItemUpdateTimer = null;
+      if (win.isDestroyed() || !isFoundryGameUrl(win.webContents.getURL())) {
+        return;
+      }
+
+      const activeItems = [...activeWorldLoadingRequests.values()];
+      const item =
+        activeItems[activeItems.length - 1] ??
+        "Processing downloaded world data...";
+      const overlay = worldLoadingOverlays.get(webContentsId);
+      if (!overlay || overlay.isDestroyed()) return;
+      void overlay.webContents
+        .executeJavaScript(
+          `globalThis.__veSetWorldLoadingItem?.(${JSON.stringify(item)});`,
+        )
+        .catch((): void => undefined);
+    }, 120);
+  };
+
+  session.webRequest.onBeforeRequest(
+    { urls: ["*://*/*"] },
+    (details, callback) => {
+      if (
+        details.webContentsId === webContentsId &&
+        isFoundryGameUrl(win.webContents.getURL())
+      ) {
+        const item = getWorldLoadingItemLabel(
+          details.url,
+          details.resourceType,
+        );
+        if (item) {
+          activeWorldLoadingRequests.set(details.id, item);
+          scheduleWorldLoadingItemUpdate();
+        }
+      }
+      callback({});
+    },
+  );
 
   // Catch network errors (ERR_CONNECTION_REFUSED, etc.)
   session.webRequest.onErrorOccurred({ urls: ["*://*/*"] }, (details) => {
+    if (details.webContentsId === webContentsId) {
+      activeWorldLoadingRequests.delete(details.id);
+      scheduleWorldLoadingItemUpdate();
+    }
     if (
       details.webContentsId === webContentsId &&
       details.resourceType === "mainFrame" &&
@@ -2215,6 +2686,10 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 
   // Catch HTTP responses (502, 503, etc.)
   session.webRequest.onCompleted({ urls: ["*://*/*"] }, (details) => {
+    if (details.webContentsId === webContentsId) {
+      activeWorldLoadingRequests.delete(details.id);
+      scheduleWorldLoadingItemUpdate();
+    }
     if (
       details.webContentsId === webContentsId &&
       details.resourceType === "mainFrame" &&
@@ -2259,10 +2734,18 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
     if (e.isSameDocument) return;
     if (e.url.startsWith("about")) return;
 
+    const isGameNavigation = isFoundryGameUrl(e.url);
+    if (isGameNavigation) {
+      activeWorldLoadingRequests.clear();
+    } else {
+      closeWorldLoadingOverlay(webContentsId);
+    }
+
     const hostedService = getHostedServiceFromUrl(e.url);
     if (hostedService) {
       windowsData[webContentsId].hostedService = hostedService;
       windowsData[webContentsId].hostedServiceUrl = e.url;
+      closeWorldLoadingOverlay(webContentsId);
     }
 
     if (e.url.endsWith("/game")) {
@@ -2524,6 +3007,12 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
       });
   });
   win.on("closed", () => {
+    closeWorldLoadingOverlay(webContentsId);
+    if (worldLoadingItemUpdateTimer) {
+      clearTimeout(worldLoadingItemUpdateTimer);
+      worldLoadingItemUpdateTimer = null;
+    }
+    activeWorldLoadingRequests.clear();
     windows.delete(win);
     delete windowsData[webContentsId];
     const launcherWindow = hostedLauncherWindows.get(win);
