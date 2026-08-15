@@ -2,6 +2,23 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.33 - 2026-08-15
+
+### Added
+
+- Added a themed world-loading overlay for direct Foundry servers that shows the saved game name, current loading activity, and elapsed time.
+
+### Changed
+
+- Kept the loading overlay responsive in its own Electron renderer while large worlds block Foundry's renderer.
+- Excluded Sqyre and The Forge games so they retain their existing hosted-service launch flow.
+
+## 1.0.32 - 2026-08-15
+
+### Fixed
+
+- Updated credential autofill for Foundry VTT 14's username field.
+
 ## 1.0.31 - 2026-08-15
 
 ### Fixed
