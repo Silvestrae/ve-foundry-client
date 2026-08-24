@@ -2,16 +2,18 @@
 <template>
   <!-- header or toolbox here -->
 
-  <div class="update-widget">
-    <div class="app-version-label">Version {{ appVersion }}</div>
-    <button
-      class="update-available"
-      :class="{ 'update-available-glow': isUpdateAvailable }"
-      @click="checkUpdates"
-    >
-      {{ isUpdateAvailable ? "Update Available" : "Check for updates" }}
-    </button>
-  </div>
+  <Teleport to="#update-widget-slot">
+    <div class="update-widget">
+      <div class="app-version-label">Version {{ appVersion }}</div>
+      <button
+        class="update-available"
+        :class="{ 'update-available-glow': isUpdateAvailable }"
+        @click="checkUpdates"
+      >
+        {{ isUpdateAvailable ? "Update Available" : "Check for updates" }}
+      </button>
+    </div>
+  </Teleport>
 
   <AppConfiguration
     v-model="appConfig"

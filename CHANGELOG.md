@@ -2,6 +2,12 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## Unreleased
+
+### Fixed
+
+- Kept the update widget anchored to the bottom of the launcher without allowing it to overlap favourites on shorter aspect ratios.
+
 ## 1.0.33 - 2026-08-15
 
 ### Added

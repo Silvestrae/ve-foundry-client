@@ -1832,16 +1832,21 @@ code.share-output {
   word-break: break-word;
 }
 
+#update-widget-slot {
+  align-self: stretch;
+  flex: 0 0 auto;
+  min-height: 5rem;
+  pointer-events: none;
+}
+
 .update-widget {
   align-items: center;
   display: inline-flex;
   flex-direction: column;
   pointer-events: auto;
   position: fixed;
-  bottom: calc(2rem * var(--launcher-scale));
-  left: calc(2rem * var(--launcher-scale));
-  transform: scale(var(--launcher-scale));
-  transform-origin: bottom left;
+  bottom: 2rem;
+  left: 2rem;
   z-index: 90;
 }
 
