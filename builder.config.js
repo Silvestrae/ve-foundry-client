@@ -64,7 +64,11 @@ module.exports = {
     target: ["AppImage", "deb", "rpm", "zip", "tar.gz"],
     icon: "src/icons/png",
     maintainer: "Silvestrae",
+    description: "Desktop launcher for Foundry Virtual Tabletop",
     artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
+  },
+  appImage: {
+    artifactName: `${artifactProductName}_\${version}_\${arch}.\${ext}`,
   },
   deb: {
     afterInstall: "build/linux-after-install.sh",

@@ -4,6 +4,11 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ## Unreleased
 
+### Changed
+
+- Removed the redundant `linux` label from AppImage filenames while keeping the version and architecture.
+- Added a descriptive Linux launcher comment instead of repeating the application name.
+
 ### Fixed
 
 - Kept the update widget anchored to the bottom of the launcher without allowing it to overlap favourites on shorter aspect ratios.

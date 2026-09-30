@@ -295,6 +295,8 @@ Before importing, the app backs up the current VE Foundry Client data file.
 
 The app can check GitHub releases for updates.
 
+Linux AppImage builds use the built-in Electron updater. External AppImageUpdate tools are not currently supported; the release does not include `.zsync` files. Linux packaging follow-ups and release checks are tracked in [Linux Packaging](docs/linux-packaging.md).
+
 When an update is available:
 
 - The update button changes state.
