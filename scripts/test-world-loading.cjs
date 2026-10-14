@@ -201,8 +201,18 @@ async function testOverlayLifecycle(parent) {
     },
   };
   const recordedTimes = [];
+  let releaseOverlayLoad;
+  const overlayLoadGate = new Promise((resolve) => {
+    releaseOverlayLoad = resolve;
+  });
   const context = vm.createContext({
-    BrowserWindow,
+    BrowserWindow: function (settings) {
+      const window = new BrowserWindow(settings);
+      const loadURL = window.loadURL.bind(window);
+      window.loadURL = (...args) =>
+        overlayLoadGate.then(() => loadURL(...args));
+      return window;
+    },
     windowsData,
     createWorldLoadingHtml,
     worldLoadingProgressScript,
@@ -262,6 +272,16 @@ async function testOverlayLifecycle(parent) {
     await parent.webContents.executeJavaScript(
       "callbacks.init(); callbacks.setup();",
     );
+    assert.equal(
+      overlay.webContents.getURL(),
+      "",
+      "Foundry checkpoints are captured before the overlay even loads",
+    );
+    const overlayLoaded = new Promise((resolve) =>
+      overlay.webContents.once("did-finish-load", resolve),
+    );
+    releaseOverlayLoad();
+    await overlayLoaded;
     await until(() =>
       overlay.webContents.executeJavaScript(
         'document.querySelectorAll("[data-state=complete]").length === 3',
@@ -285,6 +305,14 @@ async function testOverlayLifecycle(parent) {
       return Object.keys(expected).every(
         (key) => actual[key] === expected[key],
       );
+    }).catch((error) => {
+      console.error(
+        "Overlay bounds:",
+        overlay.getBounds(),
+        "Parent content:",
+        parent.getContentBounds(),
+      );
+      throw error;
     });
     assert.deepEqual(
       overlay.getBounds(),
@@ -325,6 +353,7 @@ async function testOverlayLifecycle(parent) {
       "PASS production overlay sizing, progress, completion, cleanup, and hosted exclusion",
     );
   } finally {
+    releaseOverlayLoad();
     if (!overlay.isDestroyed()) overlay.destroy();
     parent.hide();
   }

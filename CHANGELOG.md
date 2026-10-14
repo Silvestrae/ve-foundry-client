@@ -7,6 +7,7 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 ### Changed
 
 - Replaced the world-loading banner with a full-screen VE Mobile-style bootloader using the VE Desktop icon, eight live startup checkpoints in a faded vertically scrolling list, a smoother background, an independent elapsed clock, and a saved last successful load time for each server tile.
+- Start tracking world-loading checkpoints before the overlay renders, improve faded-step readability, and keep the desktop logo glow steady.
 - Removed the redundant `linux` label from AppImage filenames while keeping the version and architecture.
 - Added a descriptive Linux launcher comment instead of repeating the application name.
 

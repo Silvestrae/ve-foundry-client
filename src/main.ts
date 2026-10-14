@@ -1083,6 +1083,7 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
   let finishTimer: ReturnType<typeof setTimeout> | null = null;
   let lastProgress = "";
   let finishing = false;
+  let overlayLoaded = false;
 
   const hideOverlay = () => {
     if (!overlay.isDestroyed()) overlay.hide();
@@ -1140,14 +1141,18 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
         return;
       }
       const progressKey = `${progress.stage}:${Boolean(progress.skipScene)}`;
-      if (Number.isInteger(progress.stage) && progressKey !== lastProgress) {
+      if (
+        overlayLoaded &&
+        Number.isInteger(progress.stage) &&
+        progressKey !== lastProgress
+      ) {
         await overlay.webContents.executeJavaScript(
           `globalThis.__veSetWorldLoadingStage?.(${progress.stage}, ${Boolean(progress.skipScene)});`,
         );
         if (finishing || win.isDestroyed() || overlay.isDestroyed()) return;
         lastProgress = progressKey;
       }
-      if (progress.ready) {
+      if (overlayLoaded && progress.ready) {
         finishOverlay();
         return;
       }
@@ -1193,11 +1198,15 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     win.removeListener("minimize", hideOverlay);
   });
 
+  // Attach Foundry hooks immediately at dom-ready. Rendering the separate
+  // overlay must not delay checkpoint collection; its first update catches up.
+  void pollForWorldReady();
   void overlay
     .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(overlayHtml)}`)
     .then(() => {
+      if (overlay.isDestroyed()) return;
+      overlayLoaded = true;
       syncOverlay();
-      void pollForWorldReady();
     })
     .catch((error) => {
       console.warn("[world-loading-banner] Could not create overlay:", error);

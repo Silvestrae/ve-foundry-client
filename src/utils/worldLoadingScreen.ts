@@ -97,7 +97,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       height: min(156px, 20vh);
       margin-bottom: 18px;
       object-fit: contain;
-      animation: glow 2.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 27%, transparent));
     }
     h1 { margin: 0 0 7px; font-size: clamp(21px, 3vw, 26px); font-weight: 700; line-height: 1.2; text-align: center; }
     .ellipsis { display: inline-flex; width: .9em; margin-left: .08em; }
@@ -158,7 +158,6 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     .timing { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 14px; margin-top: 9px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
     .message { margin: 16px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 18%, transparent)); } 50% { filter: drop-shadow(0 0 20px color-mix(in srgb, var(--accent) 36%, transparent)); } }
     @keyframes dot { 0%, 19%, 100% { opacity: .2; } 20%, 99% { opacity: 1; } }
     @media (max-height: 540px) {
       #ve-world-loading-banner { padding: 16px; }
@@ -258,7 +257,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
           row.dataset.position = distance === 0 ? "current" : "nearby";
           row.dataset.offset = String(offset);
           row.style.transform = "translate(-50%, calc(-50% + " + y + "px))";
-          row.style.opacity = String(distance === 0 ? 1 : distance === 1 ? .7 : distance === 2 ? .42 : 0);
+          row.style.opacity = String(distance === 0 ? 1 : distance === 1 ? .85 : distance === 2 ? .65 : 0);
           row.setAttribute("aria-hidden", String(distance > 2));
         });
       };
