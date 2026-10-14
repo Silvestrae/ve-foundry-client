@@ -385,8 +385,15 @@ async function run() {
       const bounds = list.getBoundingClientRect();
       const current = list.querySelector('[data-position="current"]');
       const row = current.getBoundingClientRect();
+      const labelWidths = Array.from(list.children, element => {
+        const range = document.createRange();
+        range.selectNodeContents(element.querySelector(".step-label"));
+        return range.getBoundingClientRect().width;
+      });
       return {
         centerDifference: Math.abs(row.top + row.height / 2 - bounds.top - bounds.height / 2),
+        horizontalCenterDifference: Math.abs(row.left + row.width / 2 - bounds.left - bounds.width / 2),
+        extraGroupWidth: row.width - 28 - parseFloat(getComputedStyle(current).columnGap) - Math.max(...labelWidths),
         counter: current.querySelector(".step-number").textContent,
         loadingCircle: getComputedStyle(current.querySelector(".step-number"), "::after").animationName === "spin",
         offset: current.dataset.offset,
@@ -408,6 +415,14 @@ async function run() {
     assert.ok(
       listState.centerDifference < 1,
       `Step ${stage + 1} stays in the centre`,
+    );
+    assert.ok(
+      listState.horizontalCenterDifference < 1,
+      "The left-aligned group is horizontally centred in the box",
+    );
+    assert.ok(
+      listState.extraGroupWidth < 20,
+      "The group does not reserve excessive blank space to the right",
     );
     assert.equal(
       listState.counter,
@@ -591,6 +606,23 @@ async function run() {
     console.log(
       "PASS first-load timing, pre-render elapsed time, and skipped scene checkpoints",
     );
+
+    if (previewDir) {
+      win.setContentSize(627, 661);
+      await load({
+        ...options,
+        worldName: "Rise of Vecna",
+        backgroundColor: "#28231f",
+        accentColor: "#ff7800",
+        textColor: "#f6dc8c",
+        lastLoadMs: 33400,
+      });
+      await win.webContents.executeJavaScript(
+        '__veSetWorldLoadingStage(1); __veSetWorldLoadingItem("Processing downloaded world data...");',
+      );
+      await assertScrollingList(1);
+      await capture("world-loading-centered-warm.png");
+    }
 
     await load({
       ...options,

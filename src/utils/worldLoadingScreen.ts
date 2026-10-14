@@ -126,8 +126,8 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     .checkpoints li {
       position: absolute;
       top: 50%;
-      left: 10px;
-      right: 10px;
+      left: 50%;
+      width: min(var(--checkpoint-group-width, 100%), calc(100% - 20px));
       display: grid;
       grid-template-columns: 28px minmax(0, 1fr);
       align-items: center;
@@ -210,6 +210,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       const banner = document.getElementById("ve-world-loading-banner");
       const rows = Array.from(banner.querySelectorAll(".checkpoints li"));
       const labels = rows.map(row => row.querySelector(".step-label").textContent);
+      const measureContext = document.createElement("canvas").getContext("2d");
       banner.querySelector(".icon").src = settings.iconUrl;
       banner.querySelector("[data-loading-heading]").textContent = settings.worldName;
       let stage = 0;
@@ -239,14 +240,24 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
         removeEventListener("resize", positionRows);
       };
       const positionRows = () => {
-        const spacing = banner.querySelector(".checkpoints").clientHeight / 5;
+        const list = banner.querySelector(".checkpoints");
+        const spacing = list.clientHeight / 5;
+        const style = getComputedStyle(rows[0]);
+        const gap = parseFloat(style.columnGap) || 0;
+        // Size every row to the same longest bold label, so the whole block
+        // stays centred without shifting when the active step changes.
+        if (measureContext) measureContext.font = "750 " + style.fontSize + " " + style.fontFamily;
+        const labelWidth = measureContext
+          ? Math.max(...labels.map(label => measureContext.measureText(label).width))
+          : list.clientWidth - 28 - gap - 20;
+        list.style.setProperty("--checkpoint-group-width", Math.ceil(labelWidth + 28 + gap + 2) + "px");
         rows.forEach((row, index) => {
           const offset = index - stage;
           const distance = Math.abs(offset);
           const y = Math.max(-3, Math.min(3, offset)) * spacing;
           row.dataset.position = distance === 0 ? "current" : "nearby";
           row.dataset.offset = String(offset);
-          row.style.transform = "translateY(calc(-50% + " + y + "px))";
+          row.style.transform = "translate(-50%, calc(-50% + " + y + "px))";
           row.style.opacity = String(distance === 0 ? 1 : distance === 1 ? .7 : distance === 2 ? .42 : 0);
           row.setAttribute("aria-hidden", String(distance > 2));
         });
