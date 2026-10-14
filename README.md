@@ -135,6 +135,8 @@ You can turn status details on or off in client settings. You can also disable a
 
 Direct Foundry servers show a full-screen loading screen styled after VE Mobile, with the VE Desktop icon and your client theme colours. It displays the saved server name, elapsed time, the last successful load time for that server tile, current download activity, and eight startup checkpoints as Foundry initialises the world and scene. The current checkpoint stays centred in a vertically scrolling list with an animated loading circle; up to two earlier and two later steps retain their numbers and fade above and below it. Last load times survive app restarts and update only after successful loads. Scene checkpoints are skipped when no active scene is available or the canvas is disabled. The screen closes automatically when Foundry reports that the world is ready.
 
+Use the X in the top-right corner (or Escape while the loading screen has focus) to dismiss it early. Foundry keeps loading, and its last load time is still saved when startup finishes successfully.
+
 The loading screen runs in a separate renderer so its animation and clock stay responsive while Foundry is busy. Sqyre and The Forge retain their hosted-service launch flow.
 
 ## Hosted Services: Sqyre And The Forge
@@ -334,4 +336,4 @@ Client and Rich Presence icons were designed by [Freepik](http://www.freepik.com
 
 This fork is developed and maintained with AI assistance. While it plays an important role in the development process, the project is guided by deliberate design decisions and ongoing refinement.
 
-If you encounter a bug, notice a rough edge or see an opportunity for improvement, please open a "GitHub Issue" (https://github.com/Silvestrae/ve-foundry-client/issues) or submit a "Pull Request" (https://github.com/Silvestrae/ve-foundry-client/pulls). Contributions and feedback are always welcome. 
+If you encounter a bug, notice a rough edge or see an opportunity for improvement, please open a "GitHub Issue" (https://github.com/Silvestrae/ve-foundry-client/issues) or submit a "Pull Request" (https://github.com/Silvestrae/ve-foundry-client/pulls). Contributions and feedback are always welcome.

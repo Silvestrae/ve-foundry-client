@@ -91,6 +91,16 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     #ve-world-loading-banner.ve-world-loading-banner-hidden { opacity: 0; }
     #ve-world-loading-banner::before { content: ""; position: fixed; inset: 0; z-index: -1; background-image: url("${dither}"); background-size: 192px 192px; opacity: .018; pointer-events: none; }
     .content { display: grid; justify-items: center; width: min(100%, 420px); }
+    .close-loading {
+      position: fixed; top: 12px; right: 12px; z-index: 1;
+      display: grid; place-items: center; width: 36px; height: 36px;
+      padding: 0; border: 1px solid transparent; border-radius: 8px;
+      background: transparent; color: var(--muted); cursor: pointer;
+      transition: color 150ms ease, background 150ms ease;
+    }
+    .close-loading:hover { color: var(--text); background: var(--panel); }
+    .close-loading:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .close-loading svg { width: 16px; height: 16px; }
     .icon {
       display: block;
       width: min(156px, 20vh);
@@ -185,6 +195,9 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
   </style>
 </head>
 <body>
+  <button class="close-loading" type="button" aria-label="Close loading screen" title="Close loading screen — Foundry will keep loading">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+  </button>
   <section id="ve-world-loading-banner" role="status" aria-live="polite" aria-label="Loading your Foundry world">
     <div class="content">
       <img class="icon" alt="VE Desktop" draggable="false">
@@ -207,6 +220,11 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     (() => {
       const settings = ${settings};
       const banner = document.getElementById("ve-world-loading-banner");
+      const dismiss = () => { location.href = "ve-client://dismiss-world-loading"; };
+      document.querySelector(".close-loading").addEventListener("click", dismiss);
+      addEventListener("keydown", (event) => {
+        if (event.key === "Escape") dismiss();
+      });
       const rows = Array.from(banner.querySelectorAll(".checkpoints li"));
       const labels = rows.map(row => row.querySelector(".step-label").textContent);
       const measureContext = document.createElement("canvas").getContext("2d");

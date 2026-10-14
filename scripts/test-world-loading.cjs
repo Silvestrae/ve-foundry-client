@@ -177,7 +177,7 @@ function testProgress() {
   console.log("PASS Foundry lifecycle progress and compatibility fallback");
 }
 
-async function testOverlayLifecycle(parent) {
+async function testOverlayLifecycle(parent, dismissal = null) {
   // Run the production Electron window controller, including its polling and
   // cleanup, against a local Foundry lifecycle fixture rather than a real game.
   const main = ts.createSourceFile(
@@ -326,6 +326,56 @@ async function testOverlayLifecycle(parent) {
       parent.getContentBounds(),
       "Overlay follows resizing",
     );
+    if (dismissal) {
+      overlay.focus();
+      if (dismissal === "button") {
+        const point = await overlay.webContents.executeJavaScript(`(() => {
+          const bounds = document.querySelector(".close-loading").getBoundingClientRect();
+          return { x: Math.round(bounds.x + bounds.width / 2), y: Math.round(bounds.y + bounds.height / 2) };
+        })()`);
+        overlay.webContents.sendInputEvent({
+          type: "mouseDown",
+          button: "left",
+          clickCount: 1,
+          ...point,
+        });
+        overlay.webContents.sendInputEvent({
+          type: "mouseUp",
+          button: "left",
+          clickCount: 1,
+          ...point,
+        });
+      } else {
+        overlay.webContents.sendInputEvent({
+          type: "keyDown",
+          keyCode: "Escape",
+        });
+        overlay.webContents.sendInputEvent({
+          type: "keyUp",
+          keyCode: "Escape",
+        });
+      }
+      await until(() => !overlay.isVisible());
+      assert.equal(parent.isDestroyed(), false, "Dismissal keeps Foundry open");
+      assert.equal(
+        await parent.webContents.executeJavaScript("game.ready"),
+        false,
+      );
+      assert.equal(
+        recordedTimes.length,
+        0,
+        "Dismissal does not claim a successful load",
+      );
+      parent.emit("focus");
+      parent.emit("resize");
+      context.showWorldLoadingOverlay(parent);
+      assert.equal(
+        overlay.isVisible(),
+        false,
+        "Dismissed overlay stays hidden after focus, resize and dom-ready",
+      );
+      assert.equal(context.overlays.get(parent.webContents.id), overlay);
+    }
     const closed = new Promise((resolve) => overlay.once("closed", resolve));
     await parent.webContents.executeJavaScript("game.ready = true;");
     await until(() => overlay.isDestroyed());
@@ -350,7 +400,9 @@ async function testOverlayLifecycle(parent) {
       "Hosted-service launch flow is preserved",
     );
     console.log(
-      "PASS production overlay sizing, progress, completion, cleanup, and hosted exclusion",
+      dismissal
+        ? `PASS ${dismissal} dismissal keeps Foundry loading and records its eventual successful timing`
+        : "PASS production overlay sizing, progress, completion, cleanup, and hosted exclusion",
     );
   } finally {
     releaseOverlayLoad();
@@ -504,6 +556,8 @@ async function run() {
   };
   try {
     await testOverlayLifecycle(blocked);
+    await testOverlayLifecycle(blocked, "button");
+    await testOverlayLifecycle(blocked, "escape");
     await load();
     assert.deepEqual(await states(), ["current", ...Array(7).fill("pending")]);
     await assertScrollingList(0);

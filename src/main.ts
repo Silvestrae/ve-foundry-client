@@ -1044,7 +1044,7 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     frame: false,
     backgroundColor,
     thickFrame: false,
-    focusable: false,
+    focusable: true,
     resizable: false,
     movable: false,
     minimizable: false,
@@ -1084,6 +1084,17 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
   let lastProgress = "";
   let finishing = false;
   let overlayLoaded = false;
+  let dismissed = false;
+
+  // Dismiss only the presentation. Keep observing readiness so a successful
+  // load still updates its timing, and normal navigation can clean up.
+  overlay.webContents.on("will-navigate", (event, url) => {
+    event.preventDefault();
+    if (url !== "ve-client://dismiss-world-loading") return;
+    dismissed = true;
+    overlay.hide();
+    if (!win.isDestroyed()) win.focus();
+  });
 
   const hideOverlay = () => {
     if (!overlay.isDestroyed()) overlay.hide();
@@ -1097,7 +1108,7 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
       width: bounds.width,
       height: bounds.height,
     });
-    if (win.isVisible() && !win.isMinimized()) {
+    if (!dismissed && win.isVisible() && !win.isMinimized()) {
       overlay.showInactive();
     } else {
       overlay.hide();
