@@ -46,6 +46,12 @@ import { autoUpdater } from "electron-updater";
 import { installDebUpdate } from "./utils/installUpdate";
 import { sendUpdateStatus, setUpdateWindow } from "./utils/updateStatus";
 import { extractImportedLoginRecords } from "./utils/importLoginRecords";
+import {
+  createWorldLoadingHtml,
+  worldLoadingProgressScript,
+} from "./utils/worldLoadingScreen";
+import worldLoadingIcon from "./icons/desktop.png?inline";
+import { createWorldLoadTimeStore } from "./utils/worldLoadTimes";
 import type { ImportedLoginRecord } from "./utils/importLoginRecords";
 import {
   getHostedAuthenticationProviderFromUrl,
@@ -985,6 +991,12 @@ function getWorldLoadingItemLabel(url: string, resourceType: string) {
 }
 
 const worldLoadingOverlays = new Map<number, BrowserWindow>();
+const worldLoadingStartedAt = new Map<number, number>();
+const worldLoadTimes = createWorldLoadTimeStore(
+  path.join(app.getPath("userData"), "worldLoadTimes.json"),
+  (error) =>
+    log.warn("[world-loading] Could not save or read load timing", error),
+);
 
 function closeWorldLoadingOverlay(webContentsId: number) {
   const overlay = worldLoadingOverlays.get(webContentsId);
@@ -1004,6 +1016,17 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     return;
   }
   if (worldLoadingOverlays.has(webContentsId)) return;
+  const startedAt =
+    worldLoadingStartedAt.get(webContentsId) ?? performance.now();
+  const loadTimeKey = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify([
+        windowsData[webContentsId]?.gameId ?? null,
+        win.webContents.getURL(),
+      ]),
+    )
+    .digest("hex");
 
   const worldName =
     windowsData[win.webContents.id]?.selectedServerName?.trim() ||
@@ -1011,16 +1034,9 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
   const themeConfig = getThemeConfig();
   const getThemeColor = (value: string | undefined, fallback: string) =>
     value && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value) ? value : fallback;
-  const backgroundColor = getThemeColor(
-    themeConfig.backgroundColor,
-    "#0e1a23",
-  );
+  const backgroundColor = getThemeColor(themeConfig.backgroundColor, "#0e1a23");
   const accentColor = getThemeColor(themeConfig.accentColor, "#98e4f7");
   const textColor = getThemeColor(themeConfig.textColor, "#88c0a9");
-  const serializedWorldName = JSON.stringify(worldName).replace(
-    /</g,
-    "\\u003c",
-  );
 
   const overlay = new BrowserWindow({
     parent: win,
@@ -1028,7 +1044,8 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     frame: false,
     transparent: true,
     backgroundColor: "#00000000",
-    focusable: false,
+    thickFrame: false,
+    focusable: true,
     resizable: false,
     movable: false,
     minimizable: false,
@@ -1044,224 +1061,41 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     },
   });
   worldLoadingOverlays.set(webContentsId, overlay);
-  overlay.setIgnoreMouseEvents(true);
-
-  const overlayScript = `
-      (() => {
-        const bannerId = "ve-world-loading-banner";
-        const styleId = "ve-world-loading-banner-style";
-        const worldName = ${serializedWorldName};
-
-        if (!document.getElementById(styleId)) {
-          const style = document.createElement("style");
-          style.id = styleId;
-          style.textContent = \`
-            #\${bannerId} {
-              position: fixed;
-              top: 0;
-              left: 0;
-              right: 0;
-              z-index: 2147483647;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 18px;
-              height: 100vh;
-              padding: 14px 28px;
-              box-sizing: border-box;
-              overflow: hidden;
-              --ve-world-background: ${backgroundColor};
-              --ve-world-accent: ${accentColor};
-              --ve-world-text: ${textColor};
-              background:
-                linear-gradient(
-                  90deg,
-                  color-mix(in srgb, var(--ve-world-background) 72%, transparent),
-                  color-mix(in srgb, var(--ve-world-background) 88%, transparent) 35%,
-                  color-mix(in srgb, var(--ve-world-background) 88%, transparent) 65%,
-                  color-mix(in srgb, var(--ve-world-background) 72%, transparent)
-                );
-              border-top: 1px solid color-mix(in srgb, var(--ve-world-accent) 42%, transparent);
-              border-bottom: 1px solid color-mix(in srgb, var(--ve-world-accent) 42%, transparent);
-              box-shadow:
-                0 0 28px rgba(0, 0, 0, 0.5),
-                inset 0 0 32px color-mix(in srgb, var(--ve-world-accent) 6%, transparent);
-              backdrop-filter: blur(12px) saturate(130%);
-              color: var(--ve-world-text);
-              font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-              text-align: center;
-              pointer-events: none;
-              transform: none;
-              transition: opacity 180ms ease, transform 180ms ease;
-            }
-            #\${bannerId}.ve-world-loading-banner-hidden {
-              opacity: 0;
-              transform: scale(0.98);
-            }
-            #\${bannerId}::before,
-            #\${bannerId}::after {
-              content: "";
-              position: absolute;
-              top: 0;
-              bottom: 0;
-              width: 28%;
-              pointer-events: none;
-            }
-            #\${bannerId}::before {
-              left: 0;
-              background: linear-gradient(
-                90deg,
-                color-mix(in srgb, var(--ve-world-accent) 9%, transparent),
-                transparent
-              );
-            }
-            #\${bannerId}::after {
-              right: 0;
-              background: linear-gradient(
-                270deg,
-                color-mix(in srgb, var(--ve-world-accent) 9%, transparent),
-                transparent
-              );
-            }
-            #\${bannerId} .ve-world-loading-spinner {
-              flex: 0 0 auto;
-              width: 28px;
-              height: 28px;
-              border: 3px solid color-mix(in srgb, var(--ve-world-accent) 18%, transparent);
-              border-top-color: var(--ve-world-accent);
-              border-radius: 50%;
-              filter: drop-shadow(
-                0 0 5px color-mix(in srgb, var(--ve-world-accent) 45%, transparent)
-              );
-              animation: ve-world-loading-spin 0.9s linear infinite;
-            }
-            #\${bannerId} .ve-world-loading-message {
-              position: relative;
-              z-index: 1;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              color: color-mix(in srgb, var(--ve-world-text) 78%, transparent);
-              font-size: clamp(14px, 1.1vw, 17px);
-              line-height: 1.4;
-              letter-spacing: 0.01em;
-            }
-            #\${bannerId} .ve-world-loading-elapsed {
-              display: block;
-              margin-top: 6px;
-              color: var(--ve-world-accent);
-              font-size: clamp(14px, 1vw, 16px);
-              font-variant-numeric: tabular-nums;
-              font-weight: 600;
-            }
-            #\${bannerId} .ve-world-loading-status {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              flex-wrap: wrap;
-              gap: 10px;
-              margin-top: 9px;
-              color: color-mix(in srgb, var(--ve-world-text) 70%, transparent);
-              font-size: clamp(14px, 1vw, 16px);
-            }
-            #\${bannerId} .ve-world-loading-item {
-              overflow: hidden;
-              max-width: min(68vw, 760px);
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
-            #\${bannerId} strong {
-              display: block;
-              margin-bottom: 3px;
-              color: var(--ve-world-accent);
-              font-family: Cinzel, Georgia, serif;
-              font-size: clamp(22px, 1.8vw, 30px);
-              font-weight: 700;
-              letter-spacing: 0.035em;
-              text-shadow:
-                0 0 12px color-mix(in srgb, var(--ve-world-accent) 28%, transparent);
-            }
-            @keyframes ve-world-loading-spin {
-              to { transform: rotate(360deg); }
-            }
-          \`;
-          document.head.appendChild(style);
-        }
-
-        let banner = document.getElementById(bannerId);
-        if (!banner) {
-          banner = document.createElement("div");
-          banner.id = bannerId;
-          banner.setAttribute("role", "status");
-          banner.setAttribute("aria-live", "polite");
-          banner.innerHTML = \`
-            <div class="ve-world-loading-message">
-              <strong data-loading-heading></strong>
-              <span data-loading-message>Foundry is downloading and preparing world data, modules, and scene assets. The window may remain dark while this finishes.</span>
-              <span class="ve-world-loading-status">
-                <span class="ve-world-loading-spinner" aria-hidden="true"></span>
-                <span class="ve-world-loading-item" data-loading-item>Initialising Foundry...</span>
-              </span>
-              <span class="ve-world-loading-elapsed" data-loading-elapsed>Elapsed: 0:00</span>
-            </div>
-          \`;
-          document.documentElement.appendChild(banner);
-        }
-
-        const heading = banner.querySelector("[data-loading-heading]");
-        if (heading) heading.textContent = \`Loading \${worldName}...\`;
-        globalThis.__veSetWorldLoadingItem = (item) => {
-          const loadingItem = banner?.querySelector("[data-loading-item]");
-          if (loadingItem && typeof item === "string" && item) {
-            loadingItem.textContent = item;
-          }
-        };
-
-        const startedAt = Date.now();
-        const updateElapsed = () => {
-          const elapsed = banner?.querySelector("[data-loading-elapsed]");
-          if (!elapsed) return;
-
-          const totalSeconds = Math.floor((Date.now() - startedAt) / 1000);
-          const hours = Math.floor(totalSeconds / 3600);
-          const minutes = Math.floor((totalSeconds % 3600) / 60);
-          const seconds = totalSeconds % 60;
-          const formatted = hours > 0
-            ? \`\${hours}:\${String(minutes).padStart(2, "0")}:\${String(seconds).padStart(2, "0")}\`
-            : \`\${minutes}:\${String(seconds).padStart(2, "0")}\`;
-          elapsed.textContent = \`Elapsed: \${formatted}\`;
-        };
-
-        updateElapsed();
-        const elapsedInterval = setInterval(updateElapsed, 1000);
-        const messageTimers = [
-          setTimeout(() => {
-            const message = banner?.querySelector("[data-loading-message]");
-            if (message) {
-              message.textContent = "Still working — large worlds, modules, or scene assets can extend loading time.";
-            }
-          }, 30000),
-          setTimeout(() => {
-            const message = banner?.querySelector("[data-loading-message]");
-            if (message) {
-              message.textContent = "Foundry is still preparing the world. You can continue waiting; this banner will close automatically when it is ready.";
-            }
-          }, 90000),
-        ];
-
-      })();
-  `;
-  const overlayHtml = `<!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <style>html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }</style>
-      </head>
-      <body><script>${overlayScript}</script></body>
-    </html>`;
+  overlay.setMenu(null);
+  const closeOverlay = () => {
+    if (worldLoadingOverlays.get(webContentsId) === overlay) {
+      closeWorldLoadingOverlay(webContentsId);
+    } else if (!overlay.isDestroyed()) {
+      overlay.destroy();
+    }
+  };
+  const overlayHtml = createWorldLoadingHtml({
+    worldName,
+    iconUrl: worldLoadingIcon,
+    backgroundColor,
+    accentColor,
+    textColor,
+    lastLoadMs: worldLoadTimes.get(loadTimeKey),
+    initialElapsedMs: Math.max(0, performance.now() - startedAt),
+  });
 
   let readyPollTimer: ReturnType<typeof setTimeout> | null = null;
+  let syncTimer: ReturnType<typeof setTimeout> | null = null;
+  let finishTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastProgress = "";
   let finishing = false;
+  let overlayLoaded = false;
+  let dismissed = false;
+
+  // Dismiss only the presentation. Keep observing readiness so a successful
+  // load still updates its timing, and normal navigation can clean up.
+  overlay.webContents.on("will-navigate", (event, url) => {
+    event.preventDefault();
+    if (url !== "ve-client://dismiss-world-loading") return;
+    dismissed = true;
+    overlay.hide();
+    if (!win.isDestroyed()) win.focus();
+  });
 
   const hideOverlay = () => {
     if (!overlay.isDestroyed()) overlay.hide();
@@ -1269,14 +1103,13 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
   const syncOverlay = () => {
     if (win.isDestroyed() || overlay.isDestroyed()) return;
     const bounds = win.getContentBounds();
-    const height = Math.max(160, Math.min(210, Math.round(bounds.height * 0.18)));
     overlay.setBounds({
       x: bounds.x,
-      y: bounds.y + Math.round((bounds.height - height) / 2),
+      y: bounds.y,
       width: bounds.width,
-      height,
+      height: bounds.height,
     });
-    if (win.isVisible() && !win.isMinimized()) {
+    if (!dismissed && win.isVisible() && !win.isMinimized()) {
       overlay.showInactive();
     } else {
       overlay.hide();
@@ -1284,17 +1117,19 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
   };
   const syncOverlayAfterWindowChange = () => {
     syncOverlay();
-    setTimeout(syncOverlay, 50);
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncOverlay, 50);
   };
   const finishOverlay = () => {
     if (finishing || overlay.isDestroyed()) return;
     finishing = true;
+    worldLoadTimes.record(loadTimeKey, performance.now() - startedAt);
     void overlay.webContents
-      .executeJavaScript(
-        'document.getElementById("ve-world-loading-banner")?.classList.add("ve-world-loading-banner-hidden");',
-      )
+      .executeJavaScript("globalThis.__veFinishWorldLoading?.();")
+      .catch((): void => undefined)
       .finally(() => {
-        setTimeout(() => closeWorldLoadingOverlay(webContentsId), 200);
+        if (overlay.isDestroyed()) return;
+        finishTimer = setTimeout(closeOverlay, 350);
       });
   };
   const pollForWorldReady = async () => {
@@ -1304,15 +1139,32 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
       overlay.isDestroyed() ||
       !isFoundryGameUrl(win.webContents.getURL())
     ) {
-      closeWorldLoadingOverlay(webContentsId);
+      closeOverlay();
       return;
     }
 
     try {
-      const isReady = await win.webContents.executeJavaScript(
-        "Boolean(globalThis.game?.ready)",
+      const progress = await win.webContents.executeJavaScript(
+        worldLoadingProgressScript,
       );
-      if (isReady) {
+      if (finishing || win.isDestroyed() || overlay.isDestroyed()) return;
+      if (!isFoundryGameUrl(win.webContents.getURL())) {
+        closeOverlay();
+        return;
+      }
+      const progressKey = `${progress.stage}:${Boolean(progress.skipScene)}`;
+      if (
+        overlayLoaded &&
+        Number.isInteger(progress.stage) &&
+        progressKey !== lastProgress
+      ) {
+        await overlay.webContents.executeJavaScript(
+          `globalThis.__veSetWorldLoadingStage?.(${progress.stage}, ${Boolean(progress.skipScene)});`,
+        );
+        if (finishing || win.isDestroyed() || overlay.isDestroyed()) return;
+        lastProgress = progressKey;
+      }
+      if (overlayLoaded && progress.ready) {
         finishOverlay();
         return;
       }
@@ -1339,6 +1191,8 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
 
   overlay.once("closed", () => {
     if (readyPollTimer) clearTimeout(readyPollTimer);
+    if (syncTimer) clearTimeout(syncTimer);
+    if (finishTimer) clearTimeout(finishTimer);
     if (worldLoadingOverlays.get(webContentsId) === overlay) {
       worldLoadingOverlays.delete(webContentsId);
     }
@@ -1356,15 +1210,20 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     win.removeListener("minimize", hideOverlay);
   });
 
+  // Attach Foundry hooks immediately at dom-ready. Rendering the separate
+  // overlay must not delay checkpoint collection; its first update catches up.
+  void pollForWorldReady();
   void overlay
     .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(overlayHtml)}`)
     .then(() => {
-      syncOverlay();
-      void pollForWorldReady();
+      if (overlay.isDestroyed()) return;
+      overlayLoaded = true;
+      // Windows can finish applying the parent's menu after its first show.
+      syncOverlayAfterWindowChange();
     })
     .catch((error) => {
       console.warn("[world-loading-banner] Could not create overlay:", error);
-      closeWorldLoadingOverlay(webContentsId);
+      closeOverlay();
     });
 }
 
@@ -2736,8 +2595,11 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
 
     const isGameNavigation = isFoundryGameUrl(e.url);
     if (isGameNavigation) {
+      closeWorldLoadingOverlay(webContentsId);
+      worldLoadingStartedAt.set(webContentsId, performance.now());
       activeWorldLoadingRequests.clear();
     } else {
+      worldLoadingStartedAt.delete(webContentsId);
       closeWorldLoadingOverlay(webContentsId);
     }
 
@@ -2843,6 +2705,7 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
       password: userData.password,
       adminPassword: userData.adminPassword,
       autoLogin: windowsData[win.webContents.id].autoLogin,
+      isAuthPage: url.endsWith("/auth"),
     });
     win.webContents.executeJavaScript(`
       (() => {
@@ -2850,27 +2713,46 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
         const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
         function setFieldValue(field, value) {
-          if (!field) return;
+          if (!field) return false;
           field.value = value ?? "";
           field.dispatchEvent(new Event("input", { bubbles: true }));
           field.dispatchEvent(new Event("change", { bubbles: true }));
+          return true;
         }
 
         function selectUser(select, userName) {
-          if (!select) return;
           const normalizedUserName = String(userName).trim();
           const option = Array.from(select.options).find((opt) => {
             return (
-              opt.textContent?.trim() === normalizedUserName ||
-              opt.label?.trim() === normalizedUserName ||
-              opt.value === normalizedUserName
+              !opt.disabled &&
+              opt.value !== "" &&
+              (opt.textContent?.trim() === normalizedUserName ||
+                opt.label?.trim() === normalizedUserName ||
+                opt.value === normalizedUserName)
             );
           });
           if (option) {
             select.value = option.value;
             select.dispatchEvent(new Event("input", { bubbles: true }));
             select.dispatchEvent(new Event("change", { bubbles: true }));
+            return true;
           }
+          return false;
+        }
+
+        function findUserField() {
+          return document.querySelector(
+            [
+              '#join-username',
+              'select[name="userId"]',
+              'select[name="userid"]',
+              'select[name="user"]',
+              'select[name="username"]',
+              'input[name="username"]',
+              'input[name="userid"]',
+              'input[name="user"]',
+            ].join(","),
+          );
         }
 
         function findSubmitButton() {
@@ -2923,14 +2805,9 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
         async function waitForLoginFields() {
           for (let i = 0; i < 150; i += 1) {
             if (
+              findUserField() ||
               document.querySelector(
                 [
-                  'select[name="userid"]',
-                  'select[name="user"]',
-                  '#join-username',
-                  'input[name="username"]',
-                  'input[name="userid"]',
-                  'input[name="user"]',
                   'input[name="password"]',
                   'input[name="adminPassword"]',
                 ].join(","),
@@ -2951,22 +2828,17 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
             document.querySelector('input[name="adminPassword"]'),
             credentials.adminPassword,
           );
-          selectUser(
-            document.querySelector('select[name="userid"], select[name="user"]'),
-            credentials.user,
-          );
-          setFieldValue(
-            document.querySelector(
-              '#join-username, input[name="username"], input[name="userid"], input[name="user"]',
-            ),
-            credentials.user,
-          );
+          const userField = findUserField();
+          // Dropdowns submit user IDs; text inputs submit the saved username.
+          const userFilled = userField instanceof HTMLSelectElement
+            ? selectUser(userField, credentials.user)
+            : userField instanceof HTMLInputElement && setFieldValue(userField, credentials.user);
           setFieldValue(
             document.querySelector('input[name="password"]'),
             credentials.password,
           );
 
-          if (credentials.autoLogin) {
+          if (credentials.autoLogin && (credentials.isAuthPage || userFilled)) {
             await wait(75);
             submitLogin();
           }
@@ -3008,6 +2880,7 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
   });
   win.on("closed", () => {
     closeWorldLoadingOverlay(webContentsId);
+    worldLoadingStartedAt.delete(webContentsId);
     if (worldLoadingItemUpdateTimer) {
       clearTimeout(worldLoadingItemUpdateTimer);
       worldLoadingItemUpdateTimer = null;
