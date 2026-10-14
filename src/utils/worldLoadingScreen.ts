@@ -153,7 +153,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     }
     .step-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .loading-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .detail { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); }
+    .detail { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); text-align: center; }
     .item { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
     .timing { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 14px; margin-top: 9px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
     .message { margin: 16px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
