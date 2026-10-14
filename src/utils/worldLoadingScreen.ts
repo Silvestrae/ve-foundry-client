@@ -106,18 +106,51 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     .ellipsis span:nth-child(3) { animation-delay: .4s; }
     .world { max-width: 100%; margin: 0 0 22px; color: var(--muted); font-size: 14px; text-align: center; overflow-wrap: anywhere; }
     .activity { width: 100%; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
-    .checkpoints { display: grid; gap: 8px; max-height: 320px; margin: 0; padding: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--border) transparent; list-style: none; }
-    .checkpoints li { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; gap: 11px; color: var(--muted); font-size: 14px; font-weight: 600; }
-    .marker { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--border); border-radius: 50%; font-size: 12px; }
-    .checkpoints [data-state="current"] { color: var(--text); }
-    [data-state="current"] .marker { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent); }
-    [data-state="current"] .marker::after { content: ""; width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
-    [data-state="complete"] .marker { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .checkpoints {
+      position: relative;
+      height: 208px;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      list-style: none;
+      perspective: 560px;
+      mask-image: linear-gradient(transparent, black 14%, black 86%, transparent);
+    }
+    .checkpoints::before {
+      content: "";
+      position: absolute;
+      inset: calc(50% - 22px) 0 auto;
+      height: 44px;
+      border-block: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 5%, transparent), transparent);
+    }
+    .checkpoints li {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      height: 36px;
+      padding-inline: 4px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      backface-visibility: hidden;
+      transition: transform 560ms cubic-bezier(.22, .61, .36, 1), opacity 420ms ease, filter 560ms ease, color 420ms ease;
+      will-change: transform, opacity;
+    }
+    .checkpoints [data-position="current"] { color: var(--accent); font-weight: 750; }
+    .step-number { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+    .step-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .loading-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .detail { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
     .item { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
     .timing { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 14px; margin-top: 9px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
     .message { margin: 16px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
-    @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 18%, transparent)); } 50% { filter: drop-shadow(0 0 20px color-mix(in srgb, var(--accent) 36%, transparent)); } }
     @keyframes dot { 0%, 19%, 100% { opacity: .2; } 20%, 99% { opacity: 1; } }
     @media (max-height: 540px) {
@@ -125,7 +158,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       .icon { width: 84px; height: 84px; margin-bottom: 10px; }
       .world { margin-bottom: 12px; }
       .activity { padding: 14px 18px; }
-      .checkpoints { gap: 6px; max-height: min(240px, 34vh); }
+      .checkpoints { height: 170px; }
       .detail { margin-top: 12px; padding-top: 10px; }
       .message { margin-top: 10px; }
     }
@@ -137,8 +170,11 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       .icon { width: 48px; height: 48px; margin-bottom: 8px; }
       h1 { font-size: 21px; }
       .world { margin-bottom: 10px; }
-      .checkpoints { max-height: 30vh; }
+      .checkpoints { height: 132px; }
       .message { display: none; }
+    }
+    @media (max-width: 480px) {
+      .checkpoints li { gap: 8px; font-size: 12px; }
     }
   </style>
 </head>
@@ -149,9 +185,10 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       <h1>Loading your game<span class="ellipsis" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></h1>
       <p class="world" data-loading-heading></p>
       <section class="activity" aria-label="Loading progress">
-        <ol class="checkpoints" aria-label="Loading checkpoints">
-          ${worldLoadingCheckpoints.map((checkpoint) => `<li><span class="marker" aria-hidden="true"></span><span>${checkpoint.label}</span></li>`).join("\n")}
+        <ol class="checkpoints" aria-label="Loading checkpoints" aria-live="off">
+          ${worldLoadingCheckpoints.map((checkpoint, index) => `<li><span class="step-number">${index + 1}/${worldLoadingCheckpoints.length}</span><span class="step-label">${checkpoint.label}</span></li>`).join("\n")}
         </ol>
+        <p class="loading-announcement" data-loading-announcement aria-live="polite" aria-atomic="true"></p>
         <div class="detail" aria-live="off">
           <span class="item" data-loading-item>Initialising Foundry...</span>
           <div class="timing"><span data-loading-elapsed>Elapsed · 0:00</span><span data-loading-previous>Last load time · —</span></div>
@@ -165,6 +202,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       const settings = ${settings};
       const banner = document.getElementById("ve-world-loading-banner");
       const rows = Array.from(banner.querySelectorAll(".checkpoints li"));
+      const labels = rows.map(row => row.querySelector(".step-label").textContent);
       banner.querySelector(".icon").src = settings.iconUrl;
       banner.querySelector("[data-loading-heading]").textContent = settings.worldName;
       let stage = 0;
@@ -191,31 +229,46 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       const cleanup = () => {
         clearInterval(elapsedTimer);
         timers.forEach(clearTimeout);
-        removeEventListener("resize", followCurrent);
+        removeEventListener("resize", positionRows);
       };
-      const followCurrent = () => {
-        if (!finished) rows[stage]?.scrollIntoView({ block: "nearest" });
+      const positionRows = () => {
+        const radius = banner.querySelector(".checkpoints").clientHeight * .48;
+        rows.forEach((row, index) => {
+          const offset = index - stage;
+          const distance = Math.abs(offset);
+          const angle = Math.max(-3, Math.min(3, offset)) * 24;
+          const radians = angle * Math.PI / 180;
+          const y = Math.sin(radians) * radius;
+          const z = (Math.cos(radians) - 1) * radius;
+          row.dataset.position = distance === 0 ? "current" : "recessed";
+          row.dataset.offset = String(offset);
+          row.style.transform = "translateY(calc(-50% + " + y + "px)) translateZ(" + z + "px) rotateX(" + -angle + "deg)";
+          row.style.opacity = String(distance === 0 ? 1 : distance === 1 ? .62 : distance === 2 ? .32 : 0);
+          row.style.filter = "blur(" + (distance === 0 ? 0 : distance === 1 ? .1 : .3) + "px)";
+          row.setAttribute("aria-hidden", String(distance > 2));
+        });
       };
-      addEventListener("resize", followCurrent);
+      addEventListener("resize", positionRows);
       addEventListener("pagehide", cleanup, { once: true });
       const renderStage = () => {
         rows.forEach((row, index) => {
           const skipped = skipScene && index >= 3 && index <= 6;
           const state = skipped ? "skipped" : finished || index < stage ? "complete" : index === stage ? "current" : "pending";
           row.dataset.state = state;
-          row.querySelector(".marker").textContent = state === "skipped" ? "—" : state === "complete" ? "✓" : state === "pending" ? String(index + 1) : "";
+          row.querySelector(".step-label").textContent = labels[index] + (skipped ? " (not needed)" : "");
           if (skipped) row.setAttribute("title", "Not needed for this world or client configuration");
           else row.removeAttribute("title");
           if (state === "current") row.setAttribute("aria-current", "step");
           else row.removeAttribute("aria-current");
         });
+        positionRows();
+        banner.querySelector("[data-loading-announcement]").textContent = (stage + 1) + "/" + rows.length + " " + labels[stage];
       };
       globalThis.__veSetWorldLoadingStage = (next, sceneSkipped = false) => {
         if (finished || !Number.isInteger(next) || next < 0 || next >= rows.length) return;
         stage = Math.max(stage, next);
         skipScene = sceneSkipped === true;
         renderStage();
-        rows[stage]?.scrollIntoView({ block: "nearest" });
       };
       globalThis.__veSetWorldLoadingItem = (item) => {
         if (!finished && typeof item === "string" && item) {

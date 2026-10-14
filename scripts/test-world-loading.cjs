@@ -361,10 +361,66 @@ async function run() {
     win.webContents.executeJavaScript(
       'Array.from(document.querySelectorAll(".checkpoints li"), row => row.dataset.state)',
     );
+  const assertWheel = async (stage) => {
+    const wheel = await win.webContents.executeJavaScript(`(async () => {
+      const list = document.querySelector(".checkpoints");
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        list.getBoundingClientRect();
+        const transitions = document.getAnimations().filter(animation => animation instanceof CSSTransition);
+        if (!transitions.length) break;
+        const settled = await Promise.allSettled(transitions.map(animation => animation.finished));
+        for (const result of settled) {
+          // Resizing can cancel a transition and replace it with a new one.
+          if (result.status === "rejected" && result.reason?.name !== "AbortError") throw result.reason;
+        }
+      }
+      const bounds = list.getBoundingClientRect();
+      const current = list.querySelector('[data-position="current"]');
+      const row = current.getBoundingClientRect();
+      return {
+        centerDifference: Math.abs(row.top + row.height / 2 - bounds.top - bounds.height / 2),
+        counter: current.querySelector(".step-number").textContent,
+        offset: current.dataset.offset,
+        visible: Array.from(list.children, element => ({
+          offset: Number(element.dataset.offset),
+          opacity: Number(getComputedStyle(element).opacity),
+          height: element.getBoundingClientRect().height,
+        })).filter(element => element.opacity > 0),
+        currentHeight: row.height,
+        announcement: document.querySelector("[data-loading-announcement]").textContent,
+        label: current.querySelector(".step-label").textContent,
+      };
+    })()`);
+    assert.ok(
+      wheel.centerDifference < 1,
+      `Step ${stage + 1} stays in the centre`,
+    );
+    assert.equal(wheel.counter, `${stage + 1}/8`);
+    assert.equal(wheel.offset, "0");
+    assert.equal(wheel.announcement, `${stage + 1}/8 ${wheel.label}`);
+    const expectedOffsets = [-2, -1, 0, 1, 2].filter(
+      (offset) => stage + offset >= 0 && stage + offset < 8,
+    );
+    assert.deepEqual(
+      wheel.visible.map((row) => row.offset),
+      expectedOffsets,
+      "Only two preceding and two following steps are visible",
+    );
+    for (const row of wheel.visible) {
+      if (row.offset !== 0) {
+        assert.ok(row.opacity < 1, "Neighbouring steps fade away");
+        assert.ok(
+          row.height < wheel.currentHeight,
+          "Neighbouring steps curve into the cylinder",
+        );
+      }
+    }
+  };
   try {
     await testOverlayLifecycle(blocked);
     await load();
     assert.deepEqual(await states(), ["current", ...Array(7).fill("pending")]);
+    await assertWheel(0);
     for (let stage = 1; stage < 8; stage += 1) {
       await win.webContents.executeJavaScript(
         `__veSetWorldLoadingStage(${stage})`,
@@ -374,6 +430,7 @@ async function run() {
         "current",
         ...Array(7 - stage).fill("pending"),
       ]);
+      await assertWheel(stage);
     }
     await win.webContents.executeJavaScript(
       "__veSetWorldLoadingStage(0); __veSetWorldLoadingStage(99); __veSetWorldLoadingStage(NaN)",
@@ -381,6 +438,10 @@ async function run() {
     assert.deepEqual(await states(), [...Array(7).fill("complete"), "current"]);
     await load();
     await win.webContents.executeJavaScript("__veSetWorldLoadingStage(4)");
+    await assertWheel(4);
+    console.log(
+      "PASS rolling cylinder centring, step counts, faded neighbours, and startup/end boundaries",
+    );
     assert.equal(
       await win.webContents.executeJavaScript(
         'document.querySelector("[data-loading-previous]").textContent',
@@ -436,6 +497,7 @@ async function run() {
         `Progress card fits ${width} × ${height}`,
       );
       assert.equal(layout.horizontalOverflow, false);
+      await assertWheel(4);
       await capture(`world-loading-${width}x${height}.png`);
     }
     console.log("PASS compact and short-window layouts");
