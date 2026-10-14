@@ -4,13 +4,17 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ## Unreleased
 
-### Added
+## 1.0.35 - 2026-10-14
 
-- Show a centred update notification with release notes, Update now and Close buttons, and a saved option to stop notifying about that version. Manual update checks remain available.
+### Security
 
-### Fixed
+- Updated Electron to 41.10.6 with security fixes for sandbox restrictions, protocol handling, worker permissions, and macOS updates.
+- Updated Vue to 3.5.44 and refreshed affected XML, URL, address-validation, and source-map dependencies.
+- Patched supporting libraries affected by command-injection and denial-of-service advisories. See [dependency security notes](docs/dependency-security.md) for validation and the remaining disputed build-tool advisory.
 
-- Show the version being downloaded and installed, and label the installed version clearly before installation.
+### Changed
+
+- Improved update notifications with release notes, clearer version labels, and an option to mute notifications for a specific version.
 
 ## 1.0.34 - 2026-10-14
 
