@@ -1042,7 +1042,8 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     parent: win,
     show: false,
     frame: false,
-    backgroundColor,
+    transparent: true,
+    backgroundColor: "#00000000",
     thickFrame: false,
     focusable: true,
     resizable: false,
@@ -1217,7 +1218,8 @@ function showWorldLoadingOverlay(win: BrowserWindow) {
     .then(() => {
       if (overlay.isDestroyed()) return;
       overlayLoaded = true;
-      syncOverlay();
+      // Windows can finish applying the parent's menu after its first show.
+      syncOverlayAfterWindowChange();
     })
     .catch((error) => {
       console.warn("[world-loading-banner] Could not create overlay:", error);

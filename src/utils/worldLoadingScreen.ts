@@ -41,13 +41,15 @@ export const worldLoadingProgressScript = `(() => {
 export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
   const settings = JSON.stringify(options).replace(/</g, "\\u003c");
   const color = (value: string, fallback: string) =>
-    /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value) ? value : fallback;
+    // Surface opacity is controlled separately so theme alpha cannot make
+    // the progress card or its text translucent.
+    /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value) ? value.slice(0, 7) : fallback;
   // A very low-opacity, single-pixel texture breaks up 8-bit colour bands.
   // It is static and sits behind the content, rather than adding visible grain.
   const dither =
     "data:image/svg+xml," +
     encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="1" seed="17" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="1" seed="17" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)" opacity=".018"/></svg>',
     );
 
   return `<!doctype html>
@@ -65,7 +67,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       --muted: color-mix(in srgb, var(--text) 75%, var(--background));
       font: 400 16px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
       color: var(--text);
-      background: var(--background);
+      background: transparent;
     }
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
@@ -79,17 +81,21 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
       isolation: isolate;
-      background: var(--background);
-      background-image: radial-gradient(ellipse 80% 85% at 50% 8% in oklab,
-        color-mix(in oklab, var(--background) 88%, var(--accent)) 0%,
-        color-mix(in oklab, var(--background) 92%, var(--accent)) 26%,
-        color-mix(in oklab, var(--background) 97%, var(--accent)) 58%,
-        var(--background) 100%);
       opacity: 1;
       transition: opacity 300ms ease;
     }
     #ve-world-loading-banner.ve-world-loading-banner-hidden { opacity: 0; }
-    #ve-world-loading-banner::before { content: ""; position: fixed; inset: 0; z-index: -1; background-image: url("${dither}"); background-size: 192px 192px; opacity: .018; pointer-events: none; }
+    #ve-world-loading-banner::before {
+      content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: var(--background);
+      background-image: url("${dither}"), radial-gradient(ellipse 80% 85% at 50% 8% in oklab,
+        color-mix(in oklab, var(--background) 88%, var(--accent)) 0%,
+        color-mix(in oklab, var(--background) 92%, var(--accent)) 26%,
+        color-mix(in oklab, var(--background) 97%, var(--accent)) 58%,
+        var(--background) 100%);
+      background-size: 192px 192px, cover;
+      opacity: .9;
+    }
     .content { display: grid; justify-items: center; width: min(100%, 420px); }
     .close-loading {
       position: fixed; top: 12px; right: 12px; z-index: 1;

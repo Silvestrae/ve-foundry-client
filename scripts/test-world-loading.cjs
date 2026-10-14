@@ -417,6 +417,9 @@ async function run() {
   await app.whenReady();
   const win = new BrowserWindow({
     show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: "#00000000",
     width: 1280,
     height: 800,
     useContentSize: true,
@@ -590,7 +593,7 @@ async function run() {
     );
     assert.notEqual(
       await win.webContents.executeJavaScript(
-        'getComputedStyle(document.getElementById("ve-world-loading-banner")).backgroundImage',
+        'getComputedStyle(document.getElementById("ve-world-loading-banner"), "::before").backgroundImage',
       ),
       "none",
       "The smooth gradient is supported by the bundled browser",
@@ -618,6 +621,29 @@ async function run() {
     );
     await busy;
     await capture("world-loading-desktop.png");
+    const pixels = await win.webContents.capturePage();
+    const pixelSize = pixels.getSize();
+    const bitmap = pixels.toBitmap();
+    const viewport = await win.webContents.executeJavaScript(`(() => {
+      const card = document.querySelector(".activity").getBoundingClientRect();
+      return { width: innerWidth, height: innerHeight, cardX: card.x + card.width / 2, cardY: card.y + card.height / 2 };
+    })()`);
+    const alphaAt = (x, y) => bitmap[(y * pixelSize.width + x) * 4 + 3];
+    assert.ok(
+      Math.abs(alphaAt(4, pixelSize.height - 5) - 230) <= 1,
+      "The rendered background is 90% opaque",
+    );
+    assert.equal(
+      alphaAt(
+        Math.floor((viewport.cardX * pixelSize.width) / viewport.width),
+        Math.floor((viewport.cardY * pixelSize.height) / viewport.height),
+      ),
+      255,
+      "The progress card stays completely opaque",
+    );
+    console.log(
+      "PASS rendered background transparency and solid progress card",
+    );
     console.log("PASS checkpoint rendering and independent elapsed clock");
 
     for (const [width, height] of [
