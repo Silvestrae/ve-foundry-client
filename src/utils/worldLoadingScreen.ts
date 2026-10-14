@@ -74,7 +74,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       inset: 0;
       display: grid;
       place-items: safe center;
-      padding: 28px;
+      padding: 24px;
       overflow: auto;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
@@ -93,64 +93,71 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
     .content { display: grid; justify-items: center; width: min(100%, 420px); }
     .icon {
       display: block;
-      width: min(184px, 24vh);
-      height: min(184px, 24vh);
-      margin-bottom: 20px;
+      width: min(156px, 20vh);
+      height: min(156px, 20vh);
+      margin-bottom: 18px;
       object-fit: contain;
       animation: glow 2.8s ease-in-out infinite;
     }
-    h1 { margin: 0 0 7px; font-size: clamp(21px, 3vw, 27px); font-weight: 700; line-height: 1.2; text-align: center; }
+    h1 { margin: 0 0 7px; font-size: clamp(21px, 3vw, 26px); font-weight: 700; line-height: 1.2; text-align: center; }
     .ellipsis { display: inline-flex; width: .9em; margin-left: .08em; }
     .ellipsis span { opacity: .2; animation: dot 1.2s steps(1, end) infinite; }
     .ellipsis span:nth-child(2) { animation-delay: .2s; }
     .ellipsis span:nth-child(3) { animation-delay: .4s; }
-    .world { max-width: 100%; margin: 0 0 22px; color: var(--muted); font-size: 14px; text-align: center; overflow-wrap: anywhere; }
-    .activity { width: 100%; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
+    .world { max-width: 100%; margin: 0 0 18px; color: var(--muted); font-size: 14px; text-align: center; overflow-wrap: anywhere; }
+    .activity { width: 100%; padding: 18px 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); }
     .checkpoints {
       position: relative;
-      height: 208px;
+      height: 170px;
       margin: 0;
       padding: 0;
       overflow: hidden;
       list-style: none;
-      perspective: 560px;
-      mask-image: linear-gradient(transparent, black 14%, black 86%, transparent);
+      mask-image: linear-gradient(transparent, black 8%, black 92%, transparent);
     }
     .checkpoints::before {
       content: "";
       position: absolute;
-      inset: calc(50% - 22px) 0 auto;
-      height: 44px;
+      inset: 40% 0 auto;
+      height: 20%;
       border-block: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
       background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 5%, transparent), transparent);
     }
     .checkpoints li {
       position: absolute;
       top: 50%;
-      left: 0;
-      right: 0;
-      display: flex;
+      left: 10px;
+      right: 10px;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
       align-items: center;
-      justify-content: center;
       gap: 10px;
-      height: 36px;
-      padding-inline: 4px;
+      height: 20%;
       color: var(--muted);
       font-size: 14px;
       font-weight: 600;
       white-space: nowrap;
-      backface-visibility: hidden;
-      transition: transform 560ms cubic-bezier(.22, .61, .36, 1), opacity 420ms ease, filter 560ms ease, color 420ms ease;
+      transition: transform 400ms cubic-bezier(.22, .61, .36, 1), opacity 320ms ease, color 320ms ease;
       will-change: transform, opacity;
     }
     .checkpoints [data-position="current"] { color: var(--accent); font-weight: 750; }
-    .step-number { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+    .step-number { display: grid; place-items: center; flex: 0 0 28px; font-variant-numeric: tabular-nums; }
+    [data-state="current"] .step-number::after {
+      content: "";
+      width: 18px;
+      height: 18px;
+      border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
     .step-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .loading-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .detail { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
+    .detail { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border); }
     .item { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
     .timing { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 14px; margin-top: 9px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
     .message { margin: 16px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 18%, transparent)); } 50% { filter: drop-shadow(0 0 20px color-mix(in srgb, var(--accent) 36%, transparent)); } }
     @keyframes dot { 0%, 19%, 100% { opacity: .2; } 20%, 99% { opacity: 1; } }
     @media (max-height: 540px) {
@@ -158,7 +165,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       .icon { width: 84px; height: 84px; margin-bottom: 10px; }
       .world { margin-bottom: 12px; }
       .activity { padding: 14px 18px; }
-      .checkpoints { height: 170px; }
+      .checkpoints { height: 150px; }
       .detail { margin-top: 12px; padding-top: 10px; }
       .message { margin-top: 10px; }
     }
@@ -170,11 +177,11 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
       .icon { width: 48px; height: 48px; margin-bottom: 8px; }
       h1 { font-size: 21px; }
       .world { margin-bottom: 10px; }
-      .checkpoints { height: 132px; }
+      .checkpoints { height: 120px; }
       .message { display: none; }
     }
     @media (max-width: 480px) {
-      .checkpoints li { gap: 8px; font-size: 12px; }
+      .checkpoints li { gap: 8px; font-size: 13px; }
     }
   </style>
 </head>
@@ -232,19 +239,15 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
         removeEventListener("resize", positionRows);
       };
       const positionRows = () => {
-        const radius = banner.querySelector(".checkpoints").clientHeight * .48;
+        const spacing = banner.querySelector(".checkpoints").clientHeight / 5;
         rows.forEach((row, index) => {
           const offset = index - stage;
           const distance = Math.abs(offset);
-          const angle = Math.max(-3, Math.min(3, offset)) * 24;
-          const radians = angle * Math.PI / 180;
-          const y = Math.sin(radians) * radius;
-          const z = (Math.cos(radians) - 1) * radius;
-          row.dataset.position = distance === 0 ? "current" : "recessed";
+          const y = Math.max(-3, Math.min(3, offset)) * spacing;
+          row.dataset.position = distance === 0 ? "current" : "nearby";
           row.dataset.offset = String(offset);
-          row.style.transform = "translateY(calc(-50% + " + y + "px)) translateZ(" + z + "px) rotateX(" + -angle + "deg)";
-          row.style.opacity = String(distance === 0 ? 1 : distance === 1 ? .62 : distance === 2 ? .32 : 0);
-          row.style.filter = "blur(" + (distance === 0 ? 0 : distance === 1 ? .1 : .3) + "px)";
+          row.style.transform = "translateY(calc(-50% + " + y + "px))";
+          row.style.opacity = String(distance === 0 ? 1 : distance === 1 ? .7 : distance === 2 ? .42 : 0);
           row.setAttribute("aria-hidden", String(distance > 2));
         });
       };
@@ -255,6 +258,7 @@ export function createWorldLoadingHtml(options: WorldLoadingScreenOptions) {
           const skipped = skipScene && index >= 3 && index <= 6;
           const state = skipped ? "skipped" : finished || index < stage ? "complete" : index === stage ? "current" : "pending";
           row.dataset.state = state;
+          row.querySelector(".step-number").textContent = state === "current" ? "" : (index + 1) + "/" + rows.length;
           row.querySelector(".step-label").textContent = labels[index] + (skipped ? " (not needed)" : "");
           if (skipped) row.setAttribute("title", "Not needed for this world or client configuration");
           else row.removeAttribute("title");

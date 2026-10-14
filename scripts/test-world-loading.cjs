@@ -278,6 +278,14 @@ async function testOverlayLifecycle(parent) {
       ),
       "Last load time · 1:27",
     );
+    // Native window/menu geometry can settle after the renderer has loaded.
+    await until(() => {
+      const actual = overlay.getBounds();
+      const expected = parent.getContentBounds();
+      return Object.keys(expected).every(
+        (key) => actual[key] === expected[key],
+      );
+    });
     assert.deepEqual(
       overlay.getBounds(),
       parent.getContentBounds(),
@@ -361,8 +369,8 @@ async function run() {
     win.webContents.executeJavaScript(
       'Array.from(document.querySelectorAll(".checkpoints li"), row => row.dataset.state)',
     );
-  const assertWheel = async (stage) => {
-    const wheel = await win.webContents.executeJavaScript(`(async () => {
+  const assertScrollingList = async (stage) => {
+    const listState = await win.webContents.executeJavaScript(`(async () => {
       const list = document.querySelector(".checkpoints");
       for (let attempt = 0; attempt < 5; attempt += 1) {
         list.getBoundingClientRect();
@@ -380,11 +388,17 @@ async function run() {
       return {
         centerDifference: Math.abs(row.top + row.height / 2 - bounds.top - bounds.height / 2),
         counter: current.querySelector(".step-number").textContent,
+        loadingCircle: getComputedStyle(current.querySelector(".step-number"), "::after").animationName === "spin",
         offset: current.dataset.offset,
         visible: Array.from(list.children, element => ({
           offset: Number(element.dataset.offset),
           opacity: Number(getComputedStyle(element).opacity),
           height: element.getBoundingClientRect().height,
+          filter: getComputedStyle(element).filter,
+          transform: getComputedStyle(element).transform,
+          counter: element.querySelector(".step-number").textContent,
+          labelLeft: element.querySelector(".step-label").getBoundingClientRect().left,
+          labelClipped: element.querySelector(".step-label").scrollWidth > element.querySelector(".step-label").clientWidth,
         })).filter(element => element.opacity > 0),
         currentHeight: row.height,
         announcement: document.querySelector("[data-loading-announcement]").textContent,
@@ -392,35 +406,63 @@ async function run() {
       };
     })()`);
     assert.ok(
-      wheel.centerDifference < 1,
+      listState.centerDifference < 1,
       `Step ${stage + 1} stays in the centre`,
     );
-    assert.equal(wheel.counter, `${stage + 1}/8`);
-    assert.equal(wheel.offset, "0");
-    assert.equal(wheel.announcement, `${stage + 1}/8 ${wheel.label}`);
+    assert.equal(
+      listState.counter,
+      "",
+      "The loading circle replaces the current step number",
+    );
+    assert.equal(
+      listState.loadingCircle,
+      true,
+      "The current step has an animated loading circle",
+    );
+    assert.equal(listState.offset, "0");
+    assert.equal(listState.announcement, `${stage + 1}/8 ${listState.label}`);
     const expectedOffsets = [-2, -1, 0, 1, 2].filter(
       (offset) => stage + offset >= 0 && stage + offset < 8,
     );
     assert.deepEqual(
-      wheel.visible.map((row) => row.offset),
+      listState.visible.map((row) => row.offset),
       expectedOffsets,
       "Only two preceding and two following steps are visible",
     );
-    for (const row of wheel.visible) {
+    for (const row of listState.visible) {
       if (row.offset !== 0) {
         assert.ok(row.opacity < 1, "Neighbouring steps fade away");
+        assert.equal(
+          row.counter,
+          `${stage + row.offset + 1}/8`,
+          "Neighbouring rows retain their step counts",
+        );
         assert.ok(
-          row.height < wheel.currentHeight,
-          "Neighbouring steps curve into the cylinder",
+          Math.abs(row.height - listState.currentHeight) < 1,
+          "All steps retain the same height in a flat list",
         );
       }
+      assert.equal(row.filter, "none", "Step text remains sharp");
+      assert.ok(
+        Math.abs(row.labelLeft - listState.visible[0].labelLeft) < 1,
+        "Step labels share a uniform column",
+      );
+      assert.equal(
+        row.labelClipped,
+        false,
+        "Visible step labels have enough room",
+      );
+      assert.ok(
+        !row.transform.startsWith("matrix3d"),
+        "Steps use a simple vertical translation",
+      );
     }
   };
   try {
     await testOverlayLifecycle(blocked);
     await load();
     assert.deepEqual(await states(), ["current", ...Array(7).fill("pending")]);
-    await assertWheel(0);
+    await assertScrollingList(0);
     for (let stage = 1; stage < 8; stage += 1) {
       await win.webContents.executeJavaScript(
         `__veSetWorldLoadingStage(${stage})`,
@@ -430,7 +472,7 @@ async function run() {
         "current",
         ...Array(7 - stage).fill("pending"),
       ]);
-      await assertWheel(stage);
+      await assertScrollingList(stage);
     }
     await win.webContents.executeJavaScript(
       "__veSetWorldLoadingStage(0); __veSetWorldLoadingStage(99); __veSetWorldLoadingStage(NaN)",
@@ -438,9 +480,9 @@ async function run() {
     assert.deepEqual(await states(), [...Array(7).fill("complete"), "current"]);
     await load();
     await win.webContents.executeJavaScript("__veSetWorldLoadingStage(4)");
-    await assertWheel(4);
+    await assertScrollingList(4);
     console.log(
-      "PASS rolling cylinder centring, step counts, faded neighbours, and startup/end boundaries",
+      "PASS flat scrolling list centring, sharp text, faded neighbours, and startup/end boundaries",
     );
     assert.equal(
       await win.webContents.executeJavaScript(
@@ -497,7 +539,7 @@ async function run() {
         `Progress card fits ${width} × ${height}`,
       );
       assert.equal(layout.horizontalOverflow, false);
-      await assertWheel(4);
+      await assertScrollingList(4);
       await capture(`world-loading-${width}x${height}.png`);
     }
     console.log("PASS compact and short-window layouts");
