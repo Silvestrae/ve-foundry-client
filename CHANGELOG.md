@@ -4,19 +4,19 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ## Unreleased
 
+## 1.0.34 - 2026-10-14
+
 ### Changed
 
-- Replaced the world-loading banner with a full-screen VE Mobile-style bootloader using the VE Desktop icon, eight live startup checkpoints in a faded vertically scrolling list, a smoother background, an independent elapsed clock, and a saved last successful load time for each server tile.
-- Start tracking world-loading checkpoints before the overlay renders, improve faded-step readability, and keep the desktop logo glow steady.
-- Added a subtle loading-screen close button and Escape shortcut that reveal Foundry while loading and successful-load timing continue.
-- Made the themed loading-screen background 90% opaque while keeping the progress card, text, and controls solid.
-- Removed the redundant `linux` label from AppImage filenames while keeping the version and architecture.
-- Added a descriptive Linux launcher comment instead of repeating the application name.
+- Reworked the world loading screen to match VE Mobile, with the VE Desktop icon, eight startup steps and your chosen theme colours.
+- Added elapsed time and a saved last load time for each server, so you can compare loads.
+- Added a close button to reveal Foundry while it continues loading. The background is slightly transparent, while the progress card stays solid.
+- Tidied up Linux AppImage filenames and the application's launcher description.
 
 ### Fixed
 
-- Restored username autofill and automatic login for Foundry VTT 14.369's user dropdown while preserving earlier dropdown and text-input login forms.
-- Kept the update widget anchored to the bottom of the launcher without allowing it to overlap favourites on shorter aspect ratios.
+- Fixed automatic login with Foundry VTT 14.369's user dropdown. Older dropdown and text-entry login screens are still supported.
+- Fixed the launcher's update widget overlapping favourites in shorter windows.
 
 ## 1.0.33 - 2026-08-15
 
