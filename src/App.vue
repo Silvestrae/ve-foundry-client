@@ -117,6 +117,10 @@ onMounted(async () => {
 });
 
 function checkUpdates() {
+  if (isUpdateAvailable.value) {
+    updaterStore.visible = true;
+    return;
+  }
   window.api.checkForUpdates();
 }
 

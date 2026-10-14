@@ -85,6 +85,7 @@ export const AppConfigSchema = z.object({
   externalLinksInDefaultBrowser: z.boolean().optional().prefault(true),
   discordRP: z.boolean().optional().prefault(true),
   notificationTimer: z.number().optional(),
+  ignoredUpdateVersion: z.string().optional(),
   serverInfoEnabled: z.boolean().optional(),
   serverColumnCount: z
     .union([z.literal(1), z.literal(2)])

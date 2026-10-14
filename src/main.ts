@@ -2931,7 +2931,11 @@ async function enrichUpdateInfoWithReleaseNotes(info: any) {
   }
 }
 
+let targetUpdateVersion = "";
+let installAfterDownload = false;
+
 autoUpdater.on("update-available", (info) => {
+  targetUpdateVersion = info.version;
   if (initialCheckInProgress) {
     // silence the first “available”
     return;
@@ -2951,17 +2955,27 @@ autoUpdater.on("update-not-available", (info) => {
   });
 });
 autoUpdater.on("download-progress", (progress) => {
-  sendUpdateStatus("progress", progress, lastUpdateRequestingWindow);
+  sendUpdateStatus(
+    "progress",
+    { ...progress, version: targetUpdateVersion },
+    lastUpdateRequestingWindow,
+  );
 });
 
 let downloadedUpdateFile: string | null = null;
 
 autoUpdater.on("update-downloaded", (info) => {
+  targetUpdateVersion = info.version;
   downloadedUpdateFile = info.downloadedFile ?? null;
   sendUpdateStatus("downloaded", info, lastUpdateRequestingWindow);
+  if (installAfterDownload) {
+    installAfterDownload = false;
+    installDownloadedUpdate(lastUpdateRequestingWindow);
+  }
 });
 
 autoUpdater.on("error", (err) => {
+  installAfterDownload = false;
   if (initialCheckInProgress) {
     // silence the first “available”
     return;
@@ -3500,16 +3514,18 @@ app.whenReady().then(async () => {
           const latest = result.updateInfo?.version;
           const current = app.getVersion();
 
-          if (latest && latest !== current) {
+          if (result.isUpdateAvailable && latest && latest !== current) {
             const updateInfo = await enrichUpdateInfoWithReleaseNotes(
               result.updateInfo,
             );
             sendUpdateStatus(
               "available",
-              { ...updateInfo, silent: true },
+              {
+                ...updateInfo,
+                silent: getAppConfig().ignoredUpdateVersion === latest,
+              },
               mainWindow,
             );
-            notifyMainWindow(`An update is available!`);
           }
         })
         .catch((err) => {
@@ -3792,23 +3808,39 @@ ipcMain.on("check-for-updates", (event) => {
   sendUpdateStatus("checking", undefined, win);
   autoUpdater.checkForUpdates();
 });
-ipcMain.on("download-update", () => autoUpdater.downloadUpdate());
-ipcMain.on("install-update", async (event) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
+ipcMain.on("download-update", (event) => {
+  if (installAfterDownload) return;
+  lastUpdateRequestingWindow = BrowserWindow.fromWebContents(event.sender);
+  installAfterDownload = true;
+  sendUpdateStatus(
+    "progress",
+    { version: targetUpdateVersion, percent: 0 },
+    lastUpdateRequestingWindow,
+  );
+  // electron-updater reports download failures through its error event.
+  void autoUpdater.downloadUpdate().catch(() => {
+    installAfterDownload = false;
+  });
+});
+
+function installDownloadedUpdate(win?: BrowserWindow | null) {
+  sendUpdateStatus("installing", { version: targetUpdateVersion }, win);
   if (process.platform === "linux") {
     const downloadedFile = downloadedUpdateFile ?? "";
     if (downloadedFile.toLowerCase().endsWith(".deb")) {
-      sendUpdateStatus("installing", undefined, win);
       installDebUpdate(downloadedFile);
       return;
     }
   }
   // Windows / macOS / Linux RPM
-  sendUpdateStatus("installing", undefined, win);
   autoUpdater.quitAndInstall(true, true);
+}
+
+ipcMain.on("install-update", (event) => {
+  installDownloadedUpdate(BrowserWindow.fromWebContents(event.sender));
 });
 
-ipcMain.handle("save-app-config", (_e, data: AppConfig) => {
+ipcMain.handle("save-app-config", (_e, data: Partial<AppConfig>) => {
   const currentData = getUserData();
   currentData.app = { ...currentData.app, ...data };
   fs.writeFileSync(

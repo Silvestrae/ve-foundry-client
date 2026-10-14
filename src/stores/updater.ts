@@ -29,6 +29,7 @@ export const useUpdaterStore = defineStore("updater", {
     visible: false as boolean,
     status: "idle" as UpdaterStatus,
     payload: {} as UpdatePayload,
+    targetVersion: "",
   }),
   actions: {
     handleStatus({
@@ -40,12 +41,12 @@ export const useUpdaterStore = defineStore("updater", {
     }) {
       this.status = status;
       this.payload = payload || {};
+      if (status === "checking") this.targetVersion = "";
+      if (payload?.version) this.targetVersion = payload.version;
       this.visible = !payload?.silent;
     },
     close() {
       this.visible = false;
-      this.status = "idle";
-      this.payload = {};
     },
   },
 });

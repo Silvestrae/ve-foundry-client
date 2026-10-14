@@ -1,7 +1,16 @@
 <template>
   <transition name="fade">
     <div v-if="store.visible" class="backdrop">
-      <div class="updater-window">
+      <div
+        ref="dialog"
+        class="updater-window"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Client update"
+        tabindex="-1"
+        @keydown.esc="close"
+        @keydown.tab="trapFocus"
+      >
         <div class="updater-overflow">
           <div
             v-loading="loading"
@@ -50,22 +59,26 @@
             An update is available!
           </div>
           <div v-else-if="store.status === 'progress'" class="updater-text">
-            Download in progress…
+            Downloading update {{ store.targetVersion }}…
             <el-progress
               :text-inside="true"
               :stroke-width="24"
-              :percentage="store.payload.percent.toFixed(1)"
+              :percentage="Number((store.payload.percent ?? 0).toFixed(1))"
               :color="colorset"
             >
             </el-progress>
           </div>
           <div v-else-if="store.status === 'downloaded'" class="updater-text">
-            Download complete.
+            Update {{ store.targetVersion }} is ready to install.
           </div>
           <div
             v-loading="loading"
             element-loading-background="transparent"
-            element-loading-text="Installing update…"
+            :element-loading-text="
+              store.targetVersion
+                ? `Installing update ${store.targetVersion}…`
+                : 'Installing update…'
+            "
             element-loading-custom-class="loading-update-check"
             v-if="store.status === 'installing'"
             class="updater-text"
@@ -74,22 +87,51 @@
             Error : {{ store.payload.message }}
           </div>
         </div>
-        <span slot="footer" class="dialog-footer">
+        <div class="dialog-footer">
           <div class="updater-current-version">
-            VE Foundry Client {{ currentVersion }}
-            <div class="updater-process-versions">
+            <template v-if="store.status === 'installing'">
+              {{
+                store.targetVersion
+                  ? `Updating to VE Foundry Client ${store.targetVersion}`
+                  : "Updating VE Foundry Client"
+              }}
+            </template>
+            <template v-else>Installed version: {{ currentVersion }}</template>
+            <div
+              v-if="store.status !== 'installing'"
+              class="updater-process-versions"
+            >
               Node.js {{ versions.node }}, Chromium {{ versions.chrome }},
               Electron
               {{ versions.electron }}
             </div>
           </div>
+          <label
+            v-if="store.status === 'available' && store.targetVersion"
+            class="updater-dismiss-version"
+          >
+            <input
+              v-model="dontNotify"
+              type="checkbox"
+              :disabled="savingPreference"
+            />
+            Don't notify me of this version again
+          </label>
+          <p
+            v-if="preferenceError"
+            class="updater-preference-error"
+            role="alert"
+          >
+            {{ preferenceError }}
+          </p>
           <div class="updater-buttons">
             <button
               class="updater-button"
               v-if="store.status === 'available'"
-              @click="download"
+              :disabled="savingPreference"
+              @click="updateNow"
             >
-              Download
+              Update now
             </button>
             <button
               class="updater-button"
@@ -98,18 +140,25 @@
             >
               Install
             </button>
-            <button class="updater-button" @click="openLatest">
+            <button
+              v-if="
+                store.status !== 'available' && store.status !== 'installing'
+              "
+              class="updater-button"
+              @click="openLatest"
+            >
               Open GitHub
             </button>
             <button
               v-if="store.status !== 'installing'"
               class="updater-button"
-              @click="store.close"
+              :disabled="savingPreference"
+              @click="close"
             >
               Close
             </button>
           </div>
-        </span>
+        </div>
       </div>
     </div>
   </transition>
@@ -117,7 +166,7 @@
 
 <script setup lang="ts">
 import { useUpdaterStore } from "../stores/updater";
-import { ref, onMounted, reactive } from "vue";
+import { ref, onMounted, reactive, watch, nextTick } from "vue";
 
 const currentVersion = ref<string>("");
 interface Versions {
@@ -129,12 +178,20 @@ interface Versions {
 const versions = reactive<Partial<Versions>>({});
 const loading = ref(true);
 const colorset = ref("var(--color-accent)");
+const dialog = ref<HTMLElement>();
+const ignoredVersion = ref("");
+const dontNotify = ref(false);
+const savingPreference = ref(false);
+const preferenceError = ref("");
+let previousFocus: HTMLElement | null = null;
 
 // Fetch the version when the modal mounts
 onMounted(async () => {
   try {
     currentVersion.value = await window.api.appVersion();
     Object.assign(versions, window.api.versions);
+    ignoredVersion.value =
+      (await window.api.localAppConfig()).ignoredUpdateVersion ?? "";
   } catch (e) {
     console.warn("Could not fetch app version:", e);
   }
@@ -142,7 +199,76 @@ onMounted(async () => {
 
 const store = useUpdaterStore();
 
-function download() {
+watch([() => store.targetVersion, ignoredVersion], () => {
+  dontNotify.value =
+    !!store.targetVersion && store.targetVersion === ignoredVersion.value;
+});
+
+watch(
+  () => store.visible,
+  async (visible) => {
+    preferenceError.value = "";
+    if (visible) {
+      previousFocus = document.activeElement as HTMLElement | null;
+      await nextTick();
+      dialog.value?.focus();
+    } else {
+      previousFocus?.focus();
+    }
+  },
+);
+
+function trapFocus(event: KeyboardEvent) {
+  const controls = Array.from(
+    dialog.value?.querySelectorAll<HTMLElement>(
+      "button:not(:disabled), input:not(:disabled)",
+    ) ?? [],
+  );
+  const first = controls[0];
+  const last = controls.at(-1);
+  if (!first) {
+    event.preventDefault();
+    return;
+  }
+  if (
+    event.shiftKey &&
+    (document.activeElement === first ||
+      document.activeElement === dialog.value)
+  ) {
+    event.preventDefault();
+    last?.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+async function savePreference() {
+  if (store.status !== "available" || !store.targetVersion) return true;
+  const version = dontNotify.value ? store.targetVersion : "";
+  if (version === ignoredVersion.value) return true;
+  savingPreference.value = true;
+  preferenceError.value = "";
+  try {
+    await window.api.saveAppConfig({ ignoredUpdateVersion: version });
+    ignoredVersion.value = version;
+    return true;
+  } catch (error) {
+    console.warn("Could not save update notification preference:", error);
+    preferenceError.value = "Could not save your preference. Please try again.";
+    return false;
+  } finally {
+    savingPreference.value = false;
+  }
+}
+
+async function close() {
+  if (store.status === "installing" || savingPreference.value) return;
+  if (await savePreference()) store.close();
+}
+
+async function updateNow() {
+  if (savingPreference.value || !(await savePreference())) return;
   window.api.downloadUpdate();
 }
 

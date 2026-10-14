@@ -4,6 +4,14 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ## Unreleased
 
+### Added
+
+- Show a centred update notification with release notes, Update now and Close buttons, and a saved option to stop notifying about that version. Manual update checks remain available.
+
+### Fixed
+
+- Show the version being downloaded and installed, and label the installed version clearly before installation.
+
 ## 1.0.34 - 2026-10-14
 
 ### Changed

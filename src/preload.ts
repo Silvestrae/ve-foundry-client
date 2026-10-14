@@ -58,7 +58,7 @@ export type ContextBridgeApi = {
   ) => void;
   openHostedGame: (data: HostedGameLaunchData) => Promise<void>;
   clearCache: () => void;
-  saveAppConfig: (data: AppConfig) => Promise<void>;
+  saveAppConfig: (data: Partial<AppConfig>) => Promise<void>;
   saveThemeConfig: (data: ThemeConfig) => void;
   showNotification(callback: (message: string) => void): void;
   onShowPrompt: (
@@ -112,7 +112,7 @@ export type ContextBridgeApi = {
   ) => void;
   /** Manually ask the main process to check for updates */
   checkForUpdates: () => void;
-  /** Tell the main process to download the update (after “available”) */
+  /** Download the update, then install and restart (after “available”) */
   downloadUpdate: () => void;
   /** Tell the main process to install & restart (after “downloaded”) */
   installUpdate: () => void;
@@ -191,7 +191,7 @@ const exposedApi: ContextBridgeApi = {
   setCachePath(cachePath: string) {
     ipcRenderer.send("cache-path", cachePath);
   },
-  saveAppConfig(data: AppConfig) {
+  saveAppConfig(data: Partial<AppConfig>) {
     return ipcRenderer.invoke("save-app-config", data) as Promise<void>;
   },
   saveThemeConfig(data: ThemeConfig) {

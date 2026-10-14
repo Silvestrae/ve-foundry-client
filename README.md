@@ -309,7 +309,9 @@ Linux AppImage builds use the built-in Electron updater. External AppImageUpdate
 When an update is available:
 
 - The update button changes state.
-- The updater modal shows release notes.
+- A centred modal shows the available version and release notes. **Update now** downloads the update, installs it, and restarts the client. **Close** leaves it for later.
+- Tick **Don't notify me of this version again** before closing to suppress automatic prompts for that version across restarts. A newer version will prompt again, and the update button still lets you open the dismissed update manually.
+- Download and installation screens show the target version. Before installation, the current version is labelled **Installed version**.
 
 ![update button.](docs/screenshots/update2.png)
 

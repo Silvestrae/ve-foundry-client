@@ -84,11 +84,34 @@
   justify-content: space-around;
   margin: 1rem 0 0;
   gap: 1.1rem;
+  flex-wrap: wrap;
 }
 
 .updater-button {
-  padding: 0.75rem 2.25rem;
-  width: 9em;
+  padding: 0.75rem 1.25rem;
+  min-width: 7em;
+}
+
+.updater-dismiss-version {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-family: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.updater-dismiss-version input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-accent);
+}
+
+.updater-preference-error {
+  font-size: 0.95rem;
 }
 
 .updater-current-version {

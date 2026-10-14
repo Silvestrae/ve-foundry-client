@@ -60,6 +60,7 @@
     "build": "npm run clean && npm run build:main && npm run build:preload && npm run build:renderer",
     "typecheck": "tsc --noEmit",
     "test:login": "electron scripts/test-foundry-login.cjs",
+    "test:updater": "node scripts/test-updater.cjs",
     "test:loading": "electron scripts/test-world-loading.cjs",
     "lint": "eslint \"src/**/*.{ts,vue}\" \"*.ts\" \"*.js\"",
     "format": "prettier --write \"*.{js,json,md,ts}\" \"src/**/*.{ts,vue}\" \"public/styles/*.css\" \".github/**/*.yml\"",
