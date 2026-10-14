@@ -23,6 +23,7 @@ This app is currently unsigned. Windows Defender, SmartScreen, macOS Gatekeeper,
 - [Download And Install](#download-and-install)
 - [What VE Foundry Client Adds](#what-ve-foundry-client-adds)
 - [Server Launcher](#server-launcher)
+- [World Loading](#world-loading)
 - [Hosted Services: Sqyre And The Forge](#hosted-services-sqyre-and-the-forge)
 - [Favourites](#favourites)
 - [Server Autorun Favourites](#server-autorun-favourites)
@@ -129,6 +130,12 @@ You can turn status details on or off in client settings. You can also disable a
 ![Server tile with automatic status refresh disabled.](docs/screenshots/norefresh.png)
 
 ![Server settings modal with credentials, auto-login, and status refresh options.](docs/screenshots/serversettings.png)
+
+## World Loading
+
+Direct Foundry servers show a full-screen loading screen styled after VE Mobile, with the VE Desktop icon and your client theme colours. It displays the saved server name, elapsed time, the last successful load time for that server tile, current download activity, and eight startup checkpoints as Foundry initialises the world and scene. Last load times survive app restarts and update only after successful loads. Scene checkpoints are skipped when no active scene is available or the canvas is disabled. The screen closes automatically when Foundry reports that the world is ready.
+
+The loading screen runs in a separate renderer so its animation and clock stay responsive while Foundry is busy. Sqyre and The Forge retain their hosted-service launch flow.
 
 ## Hosted Services: Sqyre And The Forge
 
