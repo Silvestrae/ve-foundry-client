@@ -85,10 +85,6 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CSC_IDENTITY_AUTO_DISCOVERY: false
-    strategy:
-      matrix:
-        arch: [x64, arm64]
-      fail-fast: false
     steps:
       - uses: actions/checkout@v5
 
@@ -107,5 +103,7 @@ jobs:
       - name: Build main, preload & renderer
         run: yarn build
 
-      - name: Package for macOS ${{ matrix.arch }}
-        run: npx electron-builder --mac --${{ matrix.arch }} --publish always
+      # Build both architectures together so latest-mac.yml includes both.
+      # Separate publishers race to overwrite this shared updater manifest.
+      - name: Package for macOS x64 and arm64
+        run: npx electron-builder --mac --x64 --arm64 --publish always
