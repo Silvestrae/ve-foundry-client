@@ -10,6 +10,10 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 - Normalised saved and imported theme names while preserving custom appearance settings.
 - Added accessible names to the launcher's icon buttons.
 
+### Removed
+
+- Removed empty, unused component and helper files and the redundant screenshot directory placeholder.
+
 ### Fixed
 
 - Corrected a font fallback and redundant style declarations, and tidied development configuration and logging.
