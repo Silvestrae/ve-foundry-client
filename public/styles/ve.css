@@ -330,7 +330,9 @@ button:not(.game-button):not(.configure-game):not(.refresh-game):not(
   );
   background-position: center, center;
   background-repeat: no-repeat;
-  background-size: cover, auto 72%;
+  background-size:
+    cover,
+    auto 72%;
 }
 
 .game-item.has-server-background::before {
@@ -2799,7 +2801,6 @@ input:checked + .slider:before {
 .switch .slider .switch-label {
   position: absolute;
   transform: none;
-  display: inline-block;
   vertical-align: middle;
   font-size: 0.7em;
   display: none;

@@ -13,16 +13,16 @@
       crossorigin="anonymous"
       src="https://kit.fontawesome.com/d9351ab632.js"
     ></script>
-    <link id="theme-stylesheet" rel="stylesheet" href="styles/codex.css" />
+    <link id="theme-stylesheet" rel="stylesheet" href="styles/ve.css" />
     <link
       id="updater-stylesheet"
       rel="stylesheet"
-      href="styles/UpdaterModal-codex.css"
+      href="styles/UpdaterModal-ve.css"
     />
     <link
       id="client-settings-stylesheet"
       rel="stylesheet"
-      href="styles/AppConfigurationModal-codex.css"
+      href="styles/AppConfigurationModal-ve.css"
     />
   </head>
   <body>
@@ -45,31 +45,39 @@
       </div>
       <div class="button-controls">
         <div class="tooltip-wrapper">
-          <button class="config-button" id="open-config">
+          <button
+            class="config-button"
+            id="open-config"
+            aria-label="Client Settings"
+          >
             <i class="fa-solid fa-gear"></i>
           </button>
           <div class="tooltip">Client Settings</div>
         </div>
         <div class="tooltip-wrapper">
-          <button class="config-button" id="open-theme">
+          <button
+            class="config-button"
+            id="open-theme"
+            aria-label="Theme Editor"
+          >
             <i class="fa-solid fa-brush"></i>
           </button>
           <div class="tooltip">Theme Editor</div>
         </div>
         <div class="tooltip-wrapper">
-          <button class="config-button" id="open-share">
+          <button class="config-button" id="open-share" aria-label="Share">
             <i class="fa-solid fa-share-from-square"></i>
           </button>
           <div class="tooltip">Share</div>
         </div>
         <div class="tooltip-wrapper">
-          <button class="config-button" id="open-help">
+          <button class="config-button" id="open-help" aria-label="Help">
             <i class="fa-solid fa-question-circle"></i>
           </button>
           <div class="tooltip">Help</div>
         </div>
         <div class="tooltip-wrapper close-app" style="display: none">
-          <button class="config-button" id="close-app">
+          <button class="config-button" id="close-app" aria-label="Close">
             <i class="fa-solid fa-xmark"></i>
           </button>
           <div class="tooltip">Close</div>
@@ -461,58 +469,58 @@
               </div>
 
               <div class="theme-section-title">Colours</div>
-            <div class="text-color-field field">
-              <label for="text-color">Text Color</label>
-              <div class="color-wrapper">
-                <input class="no-text" id="text-color" type="color" />
-              </div>
-            </div>
-            <div class="accent-color-field field">
-              <label for="accent-color">Accent Color</label>
-              <div class="color-wrapper">
-                <input class="no-text" id="accent-color" type="color" />
-              </div>
-            </div>
-            <div class="button-color-field field">
-              <label for="button-color">Button Color</label>
-              <div class="range-wrapper">
-                <div class="tooltip-wrapper">
-                  <input
-                    type="range"
-                    id="button-color-alpha"
-                    onchange="updateColorAlpha(this)"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value="1"
-                  />
-                  <div class="tooltip">Opacity</div>
+              <div class="text-color-field field">
+                <label for="text-color">Text Color</label>
+                <div class="color-wrapper">
+                  <input class="no-text" id="text-color" type="color" />
                 </div>
               </div>
-              <div class="color-wrapper">
-                <input class="no-text" id="button-color" type="color" />
-              </div>
-            </div>
-            <div class="button-color-hover-field field">
-              <label for="button-color-hover">Button Color (Hover)</label>
-              <div class="range-wrapper">
-                <div class="tooltip-wrapper">
-                  <input
-                    type="range"
-                    id="button-color-hover-alpha"
-                    onchange="updateColorAlpha(this)"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value="1"
-                  />
-                  <div class="tooltip">Opacity</div>
+              <div class="accent-color-field field">
+                <label for="accent-color">Accent Color</label>
+                <div class="color-wrapper">
+                  <input class="no-text" id="accent-color" type="color" />
                 </div>
               </div>
-              <div class="color-wrapper">
-                <input class="no-text" id="button-color-hover" type="color" />
+              <div class="button-color-field field">
+                <label for="button-color">Button Color</label>
+                <div class="range-wrapper">
+                  <div class="tooltip-wrapper">
+                    <input
+                      type="range"
+                      id="button-color-alpha"
+                      onchange="updateColorAlpha(this)"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value="1"
+                    />
+                    <div class="tooltip">Opacity</div>
+                  </div>
+                </div>
+                <div class="color-wrapper">
+                  <input class="no-text" id="button-color" type="color" />
+                </div>
               </div>
-            </div>
+              <div class="button-color-hover-field field">
+                <label for="button-color-hover">Button Color (Hover)</label>
+                <div class="range-wrapper">
+                  <div class="tooltip-wrapper">
+                    <input
+                      type="range"
+                      id="button-color-hover-alpha"
+                      onchange="updateColorAlpha(this)"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value="1"
+                    />
+                    <div class="tooltip">Opacity</div>
+                  </div>
+                </div>
+                <div class="color-wrapper">
+                  <input class="no-text" id="button-color-hover" type="color" />
+                </div>
+              </div>
             </div>
           </div>
           <div class="button-group">
@@ -592,7 +600,11 @@
         </div>
         <div id="server-column-control" class="server-column-control">
           <span class="server-column-label">Columns</span>
-          <div class="server-column-options" role="group" aria-label="Server columns">
+          <div
+            class="server-column-options"
+            role="group"
+            aria-label="Server columns"
+          >
             <button
               class="server-column-option"
               type="button"
@@ -612,87 +624,89 @@
           </div>
         </div>
         <ul id="game-list">
-        <template id="game-item-template">
-          <li class="game-item">
-            <div class="game-title-bar">
-              <div class="game-main-button">
-                <button class="game-button">
-                  <a>GameName</a>
-                </button>
-                <div class="server-infos">
-                  <div class="tooltip-wrapper">
-                    <span class="status"
-                      ><i class="fa-solid fa-signal"></i> ?
-                    </span>
-                    <div class="tooltip">Server Status</div>
+          <template id="game-item-template">
+            <li class="game-item">
+              <div class="game-title-bar">
+                <div class="game-main-button">
+                  <button class="game-button">
+                    <a>GameName</a>
+                  </button>
+                  <div class="server-infos">
+                    <div class="tooltip-wrapper">
+                      <span class="status"
+                        ><i class="fa-solid fa-signal"></i> ?
+                      </span>
+                      <div class="tooltip">Server Status</div>
+                    </div>
+                    <div class="tooltip-wrapper">
+                      <span class="version"
+                        ><i class="fa-solid fa-dice-d20"></i> ?
+                      </span>
+                      <div class="tooltip">Foundry Version</div>
+                    </div>
+                    <div class="tooltip-wrapper">
+                      <span class="world"
+                        ><i class="fa-solid fa-globe"></i> ?
+                      </span>
+                      <div class="tooltip">World</div>
+                    </div>
+                    <div class="tooltip-wrapper">
+                      <span class="system"
+                        ><i class="fa-solid fa-dice"></i> ?
+                      </span>
+                      <div class="tooltip">Game System</div>
+                    </div>
+                    <div class="tooltip-wrapper">
+                      <span class="systemVersion"
+                        ><i class="fa-solid fa-screwdriver-wrench"></i> ?
+                      </span>
+                      <div class="tooltip">Game System Version</div>
+                    </div>
+                    <div class="tooltip-wrapper">
+                      <span class="users"
+                        ><i class="fa-solid fa-users"></i> ?
+                      </span>
+                      <div class="tooltip">Online Players</div>
+                    </div>
                   </div>
-                  <div class="tooltip-wrapper">
-                    <span class="version"
-                      ><i class="fa-solid fa-dice-d20"></i> ?
-                    </span>
-                    <div class="tooltip">Foundry Version</div>
+                </div>
+                <div class="config-refresh-wrapper">
+                  <div class="config-main-button reorder">
+                    <div class="config-button-wrapper tooltip-wrapper">
+                      <button
+                        type="button"
+                        class="reorder-game"
+                        draggable="true"
+                        aria-label="Reorder server"
+                      >
+                        <i class="fa-solid fa-grip-lines"></i>
+                      </button>
+                      <div class="tooltip">Reorder Server</div>
+                    </div>
                   </div>
-                  <div class="tooltip-wrapper">
-                    <span class="world"
-                      ><i class="fa-solid fa-globe"></i> ?
-                    </span>
-                    <div class="tooltip">World</div>
+                  <div class="config-main-button config">
+                    <div class="config-button-wrapper tooltip-wrapper">
+                      <button id="configure-game" class="configure-game">
+                        <i class="fa-solid fa-gear"></i>
+                      </button>
+                      <div class="tooltip">Game Settings</div>
+                    </div>
                   </div>
-                  <div class="tooltip-wrapper">
-                    <span class="system"
-                      ><i class="fa-solid fa-dice"></i> ?
-                    </span>
-                    <div class="tooltip">Game System</div>
-                  </div>
-                  <div class="tooltip-wrapper">
-                    <span class="systemVersion"
-                      ><i class="fa-solid fa-screwdriver-wrench"></i> ?
-                    </span>
-                    <div class="tooltip">Game System Version</div>
-                  </div>
-                  <div class="tooltip-wrapper">
-                    <span class="users"
-                      ><i class="fa-solid fa-users"></i> ?
-                    </span>
-                    <div class="tooltip">Online Players</div>
+                  <div class="config-main-button refresh">
+                    <div class="config-button-wrapper tooltip-wrapper">
+                      <button id="refresh-game" class="refresh-game">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                      </button>
+                      <div class="tooltip">Refresh Status</div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="config-refresh-wrapper">
-                <div class="config-main-button reorder">
-                  <div class="config-button-wrapper tooltip-wrapper">
-                    <button
-                      type="button"
-                      class="reorder-game"
-                      draggable="true"
-                      aria-label="Reorder server"
-                    >
-                      <i class="fa-solid fa-grip-lines"></i>
-                    </button>
-                    <div class="tooltip">Reorder Server</div>
-                  </div>
-                </div>
-                <div class="config-main-button config">
-                  <div class="config-button-wrapper tooltip-wrapper">
-                    <button id="configure-game" class="configure-game">
-                      <i class="fa-solid fa-gear"></i>
-                    </button>
-                    <div class="tooltip">Game Settings</div>
-                  </div>
-                </div>
-                <div class="config-main-button refresh">
-                  <div class="config-button-wrapper tooltip-wrapper">
-                    <button id="refresh-game" class="refresh-game">
-                      <i class="fa-solid fa-arrows-rotate"></i>
-                    </button>
-                    <div class="tooltip">Refresh Status</div>
-                  </div>
-                </div>
+              <div class="server-reorder-overlay">
+                Click and drag to reorder
               </div>
-            </div>
-            <div class="server-reorder-overlay">Click and drag to reorder</div>
-          </li>
-        </template>
+            </li>
+          </template>
         </ul>
       </section>
       <div id="add-game-wrapper">

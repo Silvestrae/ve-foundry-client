@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const CURRENT_SCHEMA_VERSION = 2;
+export const DEFAULT_THEME = "ve";
 
 export const optionalUrl = z.preprocess((val) => {
   if (typeof val === "string" && val.trim() === "") return undefined;
@@ -121,7 +122,6 @@ export const ParticleOptionsSchema = z
 export type ParticleOptions = z.infer<typeof ParticleOptionsSchema>;
 
 // ThemeConfig
-// schemas.ts
 
 export const ThemeConfigSchema = z.object({
   background: z.string().prefault(""),
@@ -136,7 +136,10 @@ export const ThemeConfigSchema = z.object({
   particlesEnabled: z.boolean().prefault(true),
   serverTileBackgroundImagesEnabled: z.boolean().prefault(true),
   particleOptions: ParticleOptionsSchema,
-  baseTheme: z.string().prefault("codex"),
+  baseTheme: z
+    .string()
+    .prefault(DEFAULT_THEME)
+    .transform(() => DEFAULT_THEME),
   fontPrimary: z.string().prefault(""),
   fontPrimaryUrl: optionalUrl.prefault(""),
   fontPrimaryName: z.string().optional(),

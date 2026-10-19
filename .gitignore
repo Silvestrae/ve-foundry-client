@@ -1,6 +1,7 @@
 .yarn
 node_modules
-out/### VisualStudioCode template
+
+### VisualStudioCode template
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -237,6 +238,3 @@ typings/
 # Electron-Forge
 out/
 dev-app-update.yml
-
-# Local Codex project instructions
-AGENTS.md

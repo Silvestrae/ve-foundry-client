@@ -1,6 +1,7 @@
 // noinspection JSIgnoredPromiseFromCall
 import * as particles from "./utils/particles";
 import {
+  DEFAULT_THEME,
   ThemeConfigSchema,
   ParticleOptions,
   GameConfig,
@@ -562,10 +563,7 @@ function closeServerSettings() {
   serverSettingsModal.classList.add("hidden-display");
 }
 
-async function syncHostedCredentialsSection(
-  rawUrl: string,
-  force = false,
-) {
+async function syncHostedCredentialsSection(rawUrl: string, force = false) {
   const service = getHostedServiceFromUrl(rawUrl);
   if (!force && service === editingHostedService) return;
 
@@ -1686,7 +1684,7 @@ document
       "#secondary-custom-font",
     )!;
     const config = {
-      baseTheme: "codex",
+      baseTheme: DEFAULT_THEME,
       accentColor,
       backgroundColor,
       background,
@@ -1748,7 +1746,6 @@ document
       return;
     }
 
-    console.log(config);
     const validConfig = result.data as ThemeConfig;
 
     await window.api.saveThemeConfig(validConfig);
@@ -2064,7 +2061,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setParticlesControlsEnabled(particlesCheckbox.checked);
   });
 
-  const selectedTheme = "codex";
+  const selectedTheme = DEFAULT_THEME;
   themeStylesheet.setAttribute("href", `styles/${selectedTheme}.css`);
   updaterStylesheet.setAttribute(
     "href",
@@ -2251,18 +2248,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const confirmed = await safePrompt(
       `Clear the saved ${serviceName} login from VE Client?`,
     );
-    if (
-      !confirmed ||
-      !editingHostedService ||
-      editingServerId === null
-    ) {
+    if (!confirmed || !editingHostedService || editingServerId === null) {
       return;
     }
 
-    await window.api.clearHostedProfile(
-      editingHostedService,
-      editingServerId,
-    );
+    await window.api.clearHostedProfile(editingHostedService, editingServerId);
     hostedCredentialsUsernameField.value = "";
     hostedCredentialsPasswordField.value = "";
     showNotification(`${serviceName} login cleared`);
@@ -2371,10 +2361,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const hostedService = getHostedServiceFromUrl(game.url);
     if (hostedService) {
-      await window.api.clearHostedProfile(
-        hostedService,
-        game.id ?? game.name,
-      );
+      await window.api.clearHostedProfile(hostedService, game.id ?? game.name);
     }
 
     await updateGameList((appConfig) => {
@@ -2881,14 +2868,17 @@ async function applyThemeImport(theme: ShareThemePayload) {
   ) as HTMLLinkElement;
 
   const mergedTheme = await mergeThemeData(theme);
-  mergedTheme.baseTheme = "codex";
+  mergedTheme.baseTheme = DEFAULT_THEME;
   await window.api.saveThemeConfig(mergedTheme);
   applyThemeConfig(mergedTheme);
-  themeStylesheet.href = "styles/codex.css";
-  updaterStylesheet.setAttribute("href", "styles/UpdaterModal-codex.css");
+  themeStylesheet.href = `styles/${DEFAULT_THEME}.css`;
+  updaterStylesheet.setAttribute(
+    "href",
+    `styles/UpdaterModal-${DEFAULT_THEME}.css`,
+  );
   appConfigStylesheet.setAttribute(
     "href",
-    "styles/AppConfigurationModal-codex.css",
+    `styles/AppConfigurationModal-${DEFAULT_THEME}.css`,
   );
 
   const nextAppConfig = await window.api.localAppConfig();
@@ -3988,7 +3978,7 @@ async function createGameList() {
     buttonColor: "#14141e",
     buttonColorHoverAlpha: 0.95,
     buttonColorHover: "#28283c",
-    baseTheme: "codex",
+    baseTheme: DEFAULT_THEME,
     particlesEnabled: true,
     serverTileBackgroundImagesEnabled: true,
   };

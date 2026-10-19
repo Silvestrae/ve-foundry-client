@@ -4,6 +4,16 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ## Unreleased
 
+### Changed
+
+- Standardised the built-in theme name and stylesheet filenames under VE branding.
+- Normalised saved and imported theme names while preserving custom appearance settings.
+- Added accessible names to the launcher's icon buttons.
+
+### Fixed
+
+- Corrected a font fallback and redundant style declarations, and tidied development configuration and logging.
+
 ## 1.0.35 - 2026-10-14
 
 ### Security
@@ -230,7 +240,7 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 ### Changed
 
 - Replaced the app icon.
-- Removed unused original theme styles now that the Codex theme is the hardcoded default.
+- Removed unused original theme styles now that the VE theme is the hardcoded default.
 - Polished selective import/export UI sizing and option order.
 - Improved disabled-refresh server tiles by hiding live status/player values and showing cached server metadata.
 - Cache Foundry, game system, and game system version details when launching a disabled-refresh server.
@@ -269,7 +279,7 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 ### Changed
 
 - Reworked the client settings modal into clearer two-column sections with compact slider value readouts.
-- Reworked the theme editor layout into fixed section columns and hardcoded Codex as the supported theme base.
+- Reworked the theme editor layout into fixed section columns and hardcoded VE as the supported theme base.
 - Improved edit-mode spacing and tooltip behaviour.
 - Refined theme and accent colour handling across settings panels.
 
