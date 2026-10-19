@@ -336,6 +336,6 @@ Client and Rich Presence icons were designed by [Freepik](http://www.freepik.com
 
 ## Disclaimer
 
-This fork is developed and maintained with AI assistance. While it plays an important role in the development process, the project is guided by deliberate design decisions and ongoing refinement.
+VE Client is developed and maintained with the use of AI assistance. While it plays an important role in the development process, the project is guided by deliberate design decisions and ongoing refinement.
 
-If you encounter a bug, notice a rough edge or see an opportunity for improvement, please open a "GitHub Issue" (https://github.com/Silvestrae/ve-foundry-client/issues) or submit a "Pull Request" (https://github.com/Silvestrae/ve-foundry-client/pulls). Contributions and feedback are always welcome.
+If you encounter a bug, notice a rough edge or see an opportunity for improvement, please open a [GitHub Issue](https://github.com/Silvestrae/ve-foundry-client/issues) or submit a [Pull Request](https://github.com/Silvestrae/ve-foundry-client/pulls). Contributions and feedback are always welcome.
