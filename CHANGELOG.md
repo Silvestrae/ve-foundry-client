@@ -9,6 +9,8 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 - Standardised the built-in theme name and stylesheet filenames under VE branding.
 - Normalised saved and imported theme names while preserving custom appearance settings.
 - Added accessible names to the launcher's icon buttons.
+- Shared one application icon between the renderer and Windows packaging.
+- Aligned VS Code formatting with the repository's Prettier tooling and removed obsolete editor settings.
 
 ### Removed
 

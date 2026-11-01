@@ -38,7 +38,7 @@ module.exports = {
       { target: "portable", arch: ["x64"] },
       "zip",
     ],
-    icon: "src/icons/win/icon.ico",
+    icon: "src/icons/icon.ico",
     artifactName: `${artifactProductName}_\${version}_\${os}-\${arch}.\${ext}`,
   },
   nsis: {
