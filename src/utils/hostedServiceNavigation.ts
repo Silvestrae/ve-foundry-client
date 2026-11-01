@@ -73,6 +73,21 @@ export function isHostedGameServerUrl(
   );
 }
 
+/** Foundry v14 populates this same-origin popup through its opening window. */
+export function isFoundryDetachedWindowUrl(
+  currentUrl: string,
+  targetUrl: string,
+): boolean {
+  const current = getHttpUrl(currentUrl);
+  const target = getHttpUrl(targetUrl);
+  return !!(
+    current &&
+    target &&
+    current.origin === target.origin &&
+    target.pathname.endsWith("/detached/index.html")
+  );
+}
+
 export function getSqyreGameSlug(rawUrl: string): string | null {
   const url = getHttpUrl(rawUrl);
   if (!url || getHostedServiceFromUrl(rawUrl) !== "sqyre") return null;

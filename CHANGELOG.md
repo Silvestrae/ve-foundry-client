@@ -4,6 +4,8 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ## Unreleased
 
+## 1.0.36 - 2026-11-01
+
 ### Changed
 
 - Standardised the built-in theme name and stylesheet filenames under VE branding.
@@ -18,6 +20,7 @@ All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
 ### Fixed
 
+- Keep Foundry v14 detached windows visible in Sqyre and Forge games without redirecting the main game window.
 - Corrected a font fallback and redundant style declarations, and tidied development configuration and logging.
 
 ## 1.0.35 - 2026-10-14

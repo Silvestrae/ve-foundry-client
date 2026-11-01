@@ -1,7 +1,7 @@
 {
   "name": "ve-foundry-client",
   "packageManager": "yarn@4.12.0",
-  "version": "1.0.35",
+  "version": "1.0.36",
   "license": "MIT",
   "description": "VE Foundry Client",
   "main": ".vite/build/main.js",
@@ -62,6 +62,7 @@
     "test:login": "electron scripts/test-foundry-login.cjs",
     "test:updater": "node scripts/test-updater.cjs",
     "test:loading": "electron scripts/test-world-loading.cjs",
+    "test:detach": "node scripts/test-detached-windows.cjs",
     "lint": "eslint \"src/**/*.{ts,vue}\" \"*.ts\" \"*.js\"",
     "format": "prettier --write \"*.{js,json,md,ts}\" \"src/**/*.{ts,vue}\" \"public/styles/*.css\" \".github/**/*.yml\"",
     "format:check": "prettier --check \"*.{js,json,md,ts}\" \"src/**/*.{ts,vue}\" \"public/styles/*.css\" \".github/**/*.yml\"",

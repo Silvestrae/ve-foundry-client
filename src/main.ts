@@ -57,6 +57,7 @@ import {
   getHostedAuthenticationProviderFromUrl,
   getHostedServiceFromUrl,
   getSqyreGameSlug,
+  isFoundryDetachedWindowUrl,
   isHostedGameServerUrl,
   isHostedServiceNavigation,
   type HostedService,
@@ -1862,11 +1863,15 @@ function hookExternalLinkHandling(
   };
 
   win.webContents.setWindowOpenHandler(({ url }) => {
+    const isDetachedWindow = isFoundryDetachedWindowUrl(
+      win.webContents.getURL(),
+      url,
+    );
     if (blockUnsupportedGoogleSignIn(url)) {
       return { action: "deny" };
     }
 
-    if (continueHostedGameInCurrentWindow(url)) {
+    if (!isDetachedWindow && continueHostedGameInCurrentWindow(url)) {
       return { action: "deny" };
     }
 
@@ -1886,6 +1891,7 @@ function hookExternalLinkHandling(
 
     const activeHostedService = getActiveHostedService();
     const isHostedLaunchPopup =
+      !isDetachedWindow &&
       activeHostedService !== null &&
       getHostedServiceFromUrl(url) === activeHostedService;
 
@@ -1944,6 +1950,7 @@ function hookExternalLinkHandling(
     hookFavoritePopupShortcut(childWindow);
 
     if (
+      isFoundryDetachedWindowUrl(win.webContents.getURL(), details.url) ||
       !activeHostedService ||
       getHostedServiceFromUrl(details.url) !== activeHostedService
     ) {
