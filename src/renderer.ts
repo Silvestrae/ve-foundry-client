@@ -2258,12 +2258,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     showNotification(`${serviceName} login cleared`);
   });
 
-  serverSettingsModal.addEventListener("click", (event) => {
-    if (event.target === serverSettingsModal) {
-      closeServerSettings();
-    }
-  });
-
   document.addEventListener("keydown", (event) => {
     if (
       event.key === "Escape" &&
