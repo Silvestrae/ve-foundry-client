@@ -2,12 +2,6 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
-## Unreleased
-
-### Fixed
-
-- Keep unsaved Server Settings open when clicking outside the dialog; the close button and Escape still dismiss it.
-
 ## 1.0.36 - 2026-11-01
 
 ### Changed
