@@ -2371,14 +2371,17 @@ function createWindow(options: CreateWindowOptions = {}): BrowserWindow {
       session: localSession,
     },
   });
-  // Foundry pages are remote content, so only allow Demiplane <webview>s, with no Node access.
+  // Foundry pages are remote content, so only allow <webview>s on user-configured domains, with no Node access.
   win.webContents.on("will-attach-webview", (event, webPreferences, params) => {
     let allowed = false;
     try {
       const { protocol, hostname } = new URL(params.src);
+      const domains = getAppConfig().webviewAllowedDomains ?? ["demiplane.com"];
       allowed =
         protocol === "https:" &&
-        (hostname === "demiplane.com" || hostname.endsWith(".demiplane.com"));
+        domains.some(
+          (d) => !!d && (hostname === d || hostname.endsWith(`.${d}`)),
+        );
     } catch {
       // Invalid URL: leave disallowed.
     }

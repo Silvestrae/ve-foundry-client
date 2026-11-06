@@ -77,6 +77,7 @@ const appConfig = ref<AppConfigurationForm>({
   enableChromiumDiagnostics: false,
   disableHardwareAcceleration: false,
   forceXWayland: false,
+  webviewAllowedDomains: "demiplane.com",
   enableDiscordRp: true,
 });
 
@@ -105,6 +106,9 @@ async function loadAppConfigIntoForm() {
     enableChromiumDiagnostics: cfg.chromiumDiagnosticsEnabled ?? false,
     disableHardwareAcceleration: cfg.disableHardwareAcceleration ?? false,
     forceXWayland: cfg.forceXWayland ?? false,
+    webviewAllowedDomains: (
+      cfg.webviewAllowedDomains ?? ["demiplane.com"]
+    ).join(", "),
     enableDiscordRp: cfg.discordRP ?? true,
   };
 }

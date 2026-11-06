@@ -99,6 +99,10 @@ export const AppConfigSchema = z.object({
   chromiumDiagnosticsEnabled: z.boolean().optional().prefault(false),
   disableHardwareAcceleration: z.boolean().optional().prefault(false),
   forceXWayland: z.boolean().optional().prefault(false),
+  webviewAllowedDomains: z
+    .array(z.string())
+    .optional()
+    .prefault(["demiplane.com"]),
   windowBounds: WindowBoundsSchema.optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;

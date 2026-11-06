@@ -209,6 +209,23 @@
                 </el-tooltip>
               </div>
 
+              <!-- Webview allowed domains -->
+              <div class="webview-domains-field cache-path-field">
+                <el-tooltip placement="bottom">
+                  <template #content
+                    >Comma-separated domains (subdomains included) that modules
+                    may embed in an Electron &lt;webview&gt;. HTTPS only. Leave
+                    blank to block all webviews.</template
+                  >
+                  <el-input
+                    v-model="form.webviewAllowedDomains"
+                    placeholder="Webview allowed domains (e.g. demiplane.com)"
+                    id="webview-allowed-domains"
+                    clearable
+                  />
+                </el-tooltip>
+              </div>
+
               <!-- Discord Rich Presence -->
               <div class="discord-rp-field field">
                 <div class="discord-rp-copy">
@@ -468,6 +485,7 @@ const form = reactive<AppConfigurationForm>({
   enableChromiumDiagnostics: false,
   disableHardwareAcceleration: false,
   forceXWayland: false,
+  webviewAllowedDomains: "demiplane.com",
   enableDiscordRp: true,
 });
 

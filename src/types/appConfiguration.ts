@@ -17,5 +17,6 @@ export interface AppConfigurationForm {
   enableChromiumDiagnostics: boolean;
   disableHardwareAcceleration: boolean;
   forceXWayland: boolean;
+  webviewAllowedDomains: string;
   enableDiscordRp: boolean;
 }

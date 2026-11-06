@@ -53,6 +53,7 @@ type AppConfig = {
   chromiumDiagnosticsEnabled?: boolean;
   disableHardwareAcceleration?: boolean;
   forceXWayland?: boolean;
+  webviewAllowedDomains?: string[];
   windowBounds?: WindowBounds;
 };
 

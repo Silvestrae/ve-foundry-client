@@ -45,6 +45,15 @@ export async function saveAppConfigFromForm(form: AppConfigurationForm) {
     chromiumDiagnosticsEnabled: form.enableChromiumDiagnostics,
     disableHardwareAcceleration: form.disableHardwareAcceleration,
     forceXWayland: form.forceXWayland,
+    webviewAllowedDomains: form.webviewAllowedDomains
+      .split(/[\s,]+/)
+      .map((d) =>
+        d
+          .trim()
+          .toLowerCase()
+          .replace(/^\*?\./, ""),
+      )
+      .filter(Boolean),
   };
 
   const result = AppConfigSchema.safeParse(rawConfig);
