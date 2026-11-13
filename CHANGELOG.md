@@ -2,6 +2,21 @@
 
 All notable VE Foundry Client changes are tracked here from `1.0.0` onward.
 
+## 1.0.37 - 2026-11-13
+
+### Security
+
+- Updated Electron to 43.8.10 to address browser and network security vulnerabilities, while retaining macOS 12 support.
+- Updated supporting dependencies to address additional security vulnerabilities and improve input validation.
+
+### Fixed
+
+- Kept server settings open when clicking outside the dialog, preventing accidental dismissal while editing.
+
+### Changed
+
+- Added fork contributor credits to the MIT licence.
+
 ## 1.0.36 - 2026-11-01
 
 ### Changed
